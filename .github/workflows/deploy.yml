@@ -31,8 +31,27 @@ jobs:
       - name: Prepare public release
         run: |
           mkdir -p deploy
-          cp index.php deploy/index.php
+          cp index.php login.php logout.php setup.php deploy/
+          mkdir -p deploy/app deploy/database
+          cp app/bootstrap.php app/.htaccess deploy/app/
+          cp database/schema.sql deploy/database/
+          printf 'Require all denied\nDeny from all\n' > deploy/database/.htaccess
           php -l deploy/index.php
+          php -l deploy/login.php
+          php -l deploy/setup.php
+          php -l deploy/app/bootstrap.php
+
+      - name: Generate protected PHP configuration
+        env:
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          COMESY_SETUP_KEY: ${{ secrets.COMESY_SETUP_KEY }}
+        run: |
+          test -n "$DB_NAME"
+          test -n "$DB_USER"
+          php -r '$c = ["db_host"=>"localhost","db_name"=>getenv("DB_NAME"),"db_user"=>getenv("DB_USER"),"db_pass"=>getenv("DB_PASS"),"setup_key"=>getenv("COMESY_SETUP_KEY")];file_put_contents("deploy/app/config.php","<?php\\nreturn ".var_export($c,true).";\\n");'
+          php -l deploy/app/config.php
 
       - name: Upload via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
