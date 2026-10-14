@@ -1,10 +1,9 @@
 CREATE TABLE IF NOT EXISTS taxonomy_terms (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
- site_id BIGINT UNSIGNED NOT NULL,
  type ENUM('category','tag') NOT NULL,
  name VARCHAR(190) NOT NULL,
  slug VARCHAR(190) NOT NULL,
- UNIQUE KEY uq_term(site_id,type,slug)
+ UNIQUE KEY uq_term(type,slug)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 CREATE TABLE IF NOT EXISTS article_terms (
  article_id BIGINT UNSIGNED NOT NULL,
