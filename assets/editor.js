@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const error=document.createElement('p');error.className='error';error.setAttribute('role','alert');
   error.textContent='A szövegszerkesztő nem töltődött be. Ellenőrizd a kapcsolatot, majd frissítsd az oldalt. A cikkmentést a tartalom védelmében letiltottuk.';
   form.prepend(error);
-  const save=form.querySelector('.editor-save-button');if(save)save.disabled=true;
+  document.querySelectorAll('.editor-save-button,[form="editor-form"]').forEach(button=>button.disabled=true);
   form.addEventListener('submit',e=>e.preventDefault());
   return;
  }
@@ -172,10 +172,14 @@ document.addEventListener('DOMContentLoaded',()=>{
  syncSite();
  form.addEventListener('submit',e=>{if(!siteChecks.some(x=>x.checked)){e.preventDefault();showDialog('Válassz webhelyet',[],[{label:'Rendben',primary:true}]);return}if(search.value.trim())chooseTag(search.value)});
  const serialize=()=>[{type:'richtext',text:JSON.stringify(quill.getContents())}];
- let dirty=false;
- quill.on('text-change',(_delta,_old,source)=>{if(source==='user')dirty=true;});
- form.addEventListener('input',()=>{dirty=true;});
- form.addEventListener('change',()=>{dirty=true;});
+ let dirty=false,unsaved=false,isSubmitting=false;
+ const markChanged=()=>{dirty=true;unsaved=true;};
+ quill.on('text-change',(_delta,_old,source)=>{if(source==='user')markChanged();});
+ form.addEventListener('input',markChanged);
+ form.addEventListener('change',markChanged);
+ window.addEventListener('beforeunload',event=>{
+  if(unsaved&&!isSubmitting){event.preventDefault();event.returnValue='';}
+ });
  const backupKey='comesy-wysiwyg-'+new URLSearchParams(location.search).get('id');
  const saveConfirmed=new URLSearchParams(location.search).has('saved');
  if(saveConfirmed){try{localStorage.removeItem(backupKey);localStorage.removeItem('comesy-wysiwyg-null')}catch(e){}}
@@ -191,7 +195,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(saved.delta?.ops)quill.setContents(saved.delta);
   dirty=true;
  }
- form.addEventListener('submit',()=>{document.getElementById('blocks-data').value=JSON.stringify(serialize());try{localStorage.setItem('comesy-pending-save',backupKey)}catch(e){}});
+ form.addEventListener('submit',e=>{
+  document.getElementById('blocks-data').value=JSON.stringify(serialize());
+  if(!e.defaultPrevented)isSubmitting=true;
+  try{localStorage.setItem('comesy-pending-save',backupKey)}catch(error){}
+ });
  setInterval(()=>{if(!dirty)return;try{localStorage.setItem(backupKey,JSON.stringify({title:document.getElementById('title').value,lead:document.getElementById('lead').value,delta:quill.getContents(),time:Date.now()}));status.textContent='Helyi piszkozat mentve';dirty=false;}catch(e){}},15000);
  document.getElementById('preview-button').addEventListener('click',()=>{
   const w=window.open('','_blank');if(!w)return;
