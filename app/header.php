@@ -15,6 +15,15 @@ if(!isset($u))$u=require_user();
 <aside class="mobile-nav sidebar">
  <div class="mobile-nav-head"><strong>comesy</strong><button type="button" class="mobile-nav-close" data-menu-close aria-label="Menü bezárása">×</button></div><p class="mobile-nav-sub">Content. Media. System.</p>
  <nav class="nav" aria-label="Mobil navigáció">
-  <a href="/articles.php">Cikkek</a><a href="/editor.php">Új cikk</a><a href="/taxonomy.php">Kategóriák és címkék</a><a href="/media.php">Médiatár</a><a href="/settings.php">Beállítások</a>
+  <details class="nav-group" <?=in_array(basename((string)($_SERVER['SCRIPT_NAME']??'')),['articles.php','editor.php','taxonomy.php','media.php'],true)?'open':''?>>
+   <summary class="nav-group-toggle"><span>Editor</span><span class="nav-group-chevron" aria-hidden="true">⌄</span></summary>
+   <div class="nav-submenu">
+    <a href="/articles.php">Cikkek</a>
+    <a href="/editor.php">Új cikk</a>
+    <a href="/taxonomy.php">Kategóriák és címkék</a>
+    <a href="/media.php">Médiatár</a>
+   </div>
+  </details>
+  <a href="/settings.php">Beállítások</a>
  </nav>
 </aside>
