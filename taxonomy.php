@@ -16,6 +16,25 @@ try{
  }
  $q=$pdo->prepare('SELECT t.id,t.name,t.slug,t.site_id,m.description,m.parent_id,(SELECT COUNT(*) FROM article_terms a WHERE a.term_id=t.id) usage_count FROM taxonomy_terms t LEFT JOIN taxonomy_term_meta m ON m.term_id=t.id WHERE t.site_id=? AND t.type=? ORDER BY t.name');
  $q->execute([$site,$type]);$terms=$q->fetchAll();
+ if($type==='category'&&$terms){
+  $lookup=[];$byParent=[];
+  foreach($terms as $t)$lookup[(int)$t['id']]=$t;
+  foreach($terms as $t){
+   $parent=(int)($t['parent_id']??0);
+   if(!$parent||!isset($lookup[$parent])||$parent===(int)$t['id'])$parent=0;
+   $byParent[$parent][]=$t;
+  }
+  $ordered=[];$visited=[];
+  $visit=function(int $parent,int $depth)use(&$visit,&$ordered,&$visited,$byParent):void{
+   foreach($byParent[$parent]??[] as $t){
+    $tid=(int)$t['id'];if(isset($visited[$tid]))continue;$visited[$tid]=true;
+    $t['depth']=min(5,$depth);$ordered[]=$t;$visit($tid,$depth+1);
+   }
+  };
+  $visit(0,0);
+  foreach($terms as $t)if(!isset($visited[(int)$t['id']])){$t['depth']=0;$ordered[]=$t;}
+  $terms=$ordered;
+ }
  $legacyCount=(int)$pdo->query('SELECT COUNT(*) FROM taxonomy_terms WHERE site_id=0')->fetchColumn();
  $editId=max(0,(int)($_GET['edit']??0));$selected=null;
  foreach($terms as $term)if((int)$term['id']===$editId)$selected=$term;
@@ -46,7 +65,7 @@ try{
 <?php foreach($terms as $term):?>
 <div class="ui-taxonomy-row term" data-search="<?=h($term['name'].' '.$term['slug'])?>">
  <?php if($canManage):?><input type="checkbox" class="taxonomy-select" name="term_ids[]" value="<?=(int)$term['id']?>" aria-label="<?=h($term['name'])?> kijelölése"><?php endif;?>
- <details><summary><span class="ui-taxonomy-name"><?=h($term['name'])?></span><span class="ui-taxonomy-usage"><?=(int)$term['usage_count']?> cikk</span></summary>
+ <details><summary><span class="ui-taxonomy-name"><?php if(($term['depth']??0)>0):?><span class="ui-taxonomy-indent" aria-hidden="true"><?=str_repeat('↳ ',(int)$term['depth'])?></span><?php endif;?><?=h($term['name'])?></span><span class="ui-taxonomy-usage"><?=(int)$term['usage_count']?> cikk</span></summary>
  <div class="ui-taxonomy-meta"><p>Slug: <?=h($term['slug'])?></p><?php if($term['description']):?><p><?=h($term['description'])?></p><?php endif;?>
  <div class="ui-taxonomy-actions"><?php if($canManage):?><a href="?type=<?=h($type)?>&amp;site_id=<?=$site?>&amp;edit=<?=(int)$term['id']?>">Szerkesztés</a><?php endif;?><a href="/articles.php?term_id=<?=(int)$term['id']?>">Kapcsolódó cikkek</a></div></div></details>
 </div>
