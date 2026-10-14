@@ -123,6 +123,8 @@ try{
  assert((await admin.locator('.ui-person-row').count())===4,'Created user missing');
  await admin.setViewportSize({width:320,height:740});
  await overflow(admin,'320 users');
+ await admin.goto(base+'/settings.php',{waitUntil:'networkidle'});
+ await overflow(admin,'settings mobile');
  await admin.close();
  console.log('PASS: desktop 1366/1100, mobile 390/320, menu/escape, dark mode, KPI and overflow checks.');
 }finally{await browser.close();}
