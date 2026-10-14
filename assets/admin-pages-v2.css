@@ -187,3 +187,9 @@ body.comesy-admin .ui-person-actions a{min-height:38px;display:inline-flex;align
  body.comesy-admin .ui-person-actions{flex-direction:column;align-items:end;gap:0}
  body.comesy-admin .ui-person-actions a{min-height:30px}
 }
+
+body.comesy-admin .ui-search-submit{display:none}
+@media(max-width:767px){
+ body.comesy-admin .ui-search-submit{display:inline-flex}
+ body.comesy-admin .ui-filterbar .ui-search-submit{width:auto}
+}
