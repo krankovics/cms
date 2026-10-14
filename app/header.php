@@ -24,6 +24,7 @@ if(!isset($u))$u=require_user();
     <a href="/media.php">Médiatár</a>
    </div>
   </details>
+  <?php if($u['role']==='platform_admin'):?><a href="/sites.php">Webhelyek</a><?php endif;?>
   <a href="/settings.php">Beállítások</a>
  </nav>
 </aside>
