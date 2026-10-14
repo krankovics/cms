@@ -19,6 +19,17 @@ document.addEventListener('DOMContentLoaded',()=>{
  imagePicker.type='file';imagePicker.accept='image/jpeg,image/png,image/webp,image/gif';imagePicker.hidden=true;
  document.body.append(imagePicker);
  let uploadingImage=false;
+ async function uploadImage(file,site){
+  if(file.size<1||file.size>10485760)throw new Error('A kép mérete legfeljebb 10 MB lehet.');
+  const data=new FormData();
+  data.append('image',file,file.name||'beillesztett-kep.png');
+  data.append('site_id',site);
+  data.append('csrf',form.querySelector('[name=csrf]').value);
+  const response=await fetch('/editor-upload.php',{method:'POST',body:data,credentials:'same-origin'});
+  const result=await response.json();
+  if(!response.ok||!result.ok)throw new Error(result.error||'Kép feltöltési hiba');
+  return new URL(result.url,location.origin).href;
+ }
  quill.getModule('toolbar').addHandler('image',()=>imagePicker.click());
  imagePicker.addEventListener('change',async()=>{
   const file=imagePicker.files?.[0];if(!file)return;
@@ -31,15 +42,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(saveButton)saveButton.disabled=true;
   status.textContent='Kép feltöltése folyamatban…';
   try{
-   const data=new FormData();
-   data.append('image',file);
-   data.append('site_id',site);
-   data.append('csrf',form.querySelector('[name=csrf]').value);
-   const response=await fetch('/editor-upload.php',{method:'POST',body:data,credentials:'same-origin'});
-   const result=await response.json();
-   if(!response.ok||!result.ok)throw new Error(result.error||'Feltöltési hiba');
+   const url=await uploadImage(file,site);
    const index=quill.getSelection(true)?.index??quill.getLength();
-   quill.insertEmbed(index,'image',new URL(result.url,location.origin).href,'user');
+   quill.insertEmbed(index,'image',url,'user');
    quill.setSelection(index+1);
    status.textContent='Kép feltöltve a médiatárba';
   }catch(error){
@@ -48,6 +53,37 @@ document.addEventListener('DOMContentLoaded',()=>{
   }finally{uploadingImage=false;if(saveButton)saveButton.disabled=false}
  });
  form.addEventListener('submit',e=>{if(uploadingImage){e.preventDefault();showDialog('Kép feltöltése folyamatban',[],[{label:'Rendben',primary:true}])}});
+ // Convert images pasted or dragged from mobile apps into permanent media URLs before submitting.
+ let processingPasted=false;
+ form.addEventListener('submit',async e=>{
+  if(processingPasted){e.preventDefault();return;}
+  if(e.submitter?.name==='action'&&e.submitter.value==='restore')return;
+  const ops=quill.getContents().ops;
+  const inline=ops.filter(op=>typeof op.insert?.image==='string'&&op.insert.image.startsWith('data:image/'));
+  if(!inline.length)return;
+  e.preventDefault();
+  const site=document.querySelector('.ed-site-check:checked')?.value;
+  if(!site){await showDialog('Válassz webhelyet',[],[{label:'Rendben',primary:true}]);return;}
+  processingPasted=true;uploadingImage=true;status.textContent='Beillesztett képek feltöltése…';
+  const submitter=e.submitter;
+  try{
+   const replacements=new Map();
+   for(const op of inline){
+    const uri=op.insert.image;
+    if(replacements.has(uri))continue;
+    const blob=await (await fetch(uri)).blob();
+    const type=blob.type;
+    if(!['image/jpeg','image/png','image/webp','image/gif'].includes(type))throw new Error('Nem támogatott képformátum.');
+    const ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'}[type];
+    const url=await uploadImage(new File([blob],'beillesztett-kep.'+ext,{type}),site);
+    replacements.set(uri,url);
+   }
+   const updated={ops:ops.map(op=>typeof op.insert?.image==='string'&&replacements.has(op.insert.image)?{...op,insert:{image:replacements.get(op.insert.image)}}:op)};
+   quill.setContents(updated,'silent');dirty=true;status.textContent='Képek feltöltve';
+  }catch(error){status.textContent='Képfeltöltési hiba';await showDialog('A kép mentése sikertelen',[{label:'Hiba',value:error.message}],[{label:'Rendben',primary:true}]);return;}
+  finally{processingPasted=false;uploadingImage=false;}
+  if(submitter&&submitter.form===form)form.requestSubmit(submitter);else form.requestSubmit();
+ },true);
  const modal=document.getElementById('ed-modal');
  const modalTitle=document.getElementById('ed-modal-title');
  const modalBody=document.getElementById('ed-modal-body');
