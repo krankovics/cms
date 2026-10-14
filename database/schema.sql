@@ -1,0 +1,46 @@
+CREATE TABLE IF NOT EXISTS users (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ email VARCHAR(190) NOT NULL UNIQUE,
+ name VARCHAR(190) NOT NULL,
+ password_hash VARCHAR(255) NOT NULL,
+ role ENUM('platform_admin','site_admin','editor','author','ad_manager') NOT NULL DEFAULT 'author',
+ active TINYINT(1) NOT NULL DEFAULT 1,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS sites (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ name VARCHAR(190) NOT NULL,
+ domain VARCHAR(190) NOT NULL UNIQUE,
+ slug VARCHAR(100) NOT NULL UNIQUE,
+ settings_json JSON NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS articles (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ site_id BIGINT UNSIGNED NOT NULL,
+ author_id BIGINT UNSIGNED NULL,
+ title VARCHAR(500) NOT NULL,
+ slug VARCHAR(255) NOT NULL,
+ lead TEXT NULL,
+ content_json LONGTEXT NULL,
+ status ENUM('draft','review','scheduled','published','archived') NOT NULL DEFAULT 'draft',
+ published_at DATETIME NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_article_slug(site_id,slug),
+ KEY idx_site_status_date(site_id,status,published_at),
+ CONSTRAINT fk_articles_site FOREIGN KEY(site_id) REFERENCES sites(id),
+ CONSTRAINT fk_articles_author FOREIGN KEY(author_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS audit_log (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ user_id BIGINT UNSIGNED NULL,
+ action VARCHAR(100) NOT NULL,
+ object_type VARCHAR(60) NOT NULL,
+ object_id BIGINT UNSIGNED NULL,
+ meta_json LONGTEXT NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ KEY idx_audit_created(created_at),
+ KEY idx_audit_object(object_type,object_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
