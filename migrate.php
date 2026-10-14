@@ -9,6 +9,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
    $pdo=db();
    $sql=file_get_contents(__DIR__.'/database/editor.sql')."\n".file_get_contents(__DIR__.'/database/content.sql');
    foreach(array_filter(array_map('trim',explode(';',$sql))) as $statement)$pdo->exec($statement);
+   $pdo->exec('INSERT IGNORE INTO taxonomy_terms(site_id,type,name,slug) SELECT 0,type,MIN(name),slug FROM taxonomy_terms WHERE site_id<>0 GROUP BY type,slug');
    $message='A comesy Editor adatbázis-migrációja sikeresen lefutott.';
   }catch(Throwable $e){error_log('comesy migration: '.$e->getMessage());$error='A migráció sikertelen. Ellenőrizd az adatbázis jogosultságait.';}
  }
