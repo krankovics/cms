@@ -36,6 +36,8 @@ jobs:
           find . -type f -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
           node --check assets/editor.js
           node --check assets/ui.js
+          node --check assets/admin-pages-v2.js
+          node tests/theme-contrast.mjs
       - name: Run isolated MySQL integration checks
         env:
           COMESY_TEST_DB: comesy_test
