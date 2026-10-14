@@ -32,7 +32,7 @@ try{
  $q->execute([$uid]);$permissions=[];
  foreach($q->fetchAll() as $p)$permissions[(int)$p['site_id']]=$p;
 }catch(Throwable $e){error_log('site permissions: '.$e->getMessage());$error=$e instanceof PDOException?'Futtasd le az adatbázis-migrációt.':$e->getMessage();$permissions=$permissions??[];$users=$users??[];$sites=$sites??[];}
-?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Webhely-hozzáférések | comesy</title><link rel="stylesheet" href="/assets/ui.css"><script src="/assets/ui.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
+?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Webhely-hozzáférések | comesy</title><link rel="stylesheet" href="/assets/ui.css"><script src="/assets/ui.js" defer></script><script src="/assets/admin-pages-v2.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
 <main class="ui-admin-section" id="main-content">
 <header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Adminisztráció</p><h1 class="ui-page-title">Webhely-hozzáférések</h1><p class="ui-page-description">Szerkesztési jogok, címke- és médiatár-hozzáférés webhelyenként.</p></div><div class="ui-page-actions"><a href="/users.php" class="ui-btn ui-btn-secondary">Felhasználók</a></div></header>
 <?php if($error):?><p class="error" role="alert"><?=h($error)?></p><?php endif;?>
@@ -43,10 +43,10 @@ try{
 <input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="user_id" value="<?=$uid?>">
 <div class="ui-panel-header"><div><h2>Jogosultsági mátrix</h2><p class="ui-page-description">Jelöld ki legalább egy webhely szerkesztési jogát. A címke- és médiatárhozzáférés további webhelyekre is adható.</p></div></div>
 <?php if($sites):?><div class="ui-permission-grid"><?php foreach($sites as $s):$sid=(int)$s['id'];$perm=$permissions[$sid]??[];?>
-<section class="ui-permission-item"><h3><?=h($s['name'])?></h3><div class="ui-permission-checks">
+<details class="ui-permission-item" data-responsive-accordion open><summary><?=h($s['name'])?></summary><div class="ui-permission-checks">
 <label><input type="checkbox" name="primary[]" value="<?=$sid?>" <?=!empty($perm['is_primary'])?'checked':''?>> Szerkesztés</label>
 <label><input type="checkbox" name="tags[]" value="<?=$sid?>" <?=!empty($perm['can_tags'])?'checked':''?>> Címkék</label>
-<label><input type="checkbox" name="media[]" value="<?=$sid?>" <?=!empty($perm['can_media'])?'checked':''?>> Médiatár</label></div></section>
+<label><input type="checkbox" name="media[]" value="<?=$sid?>" <?=!empty($perm['can_media'])?'checked':''?>> Médiatár</label></div></details>
 <?php endforeach;?></div>
 <p class="ui-page-description">A szerkeszthető webhelyek címkéi és médiatára automatikusan elérhető. A külön engedélyek csak további olvasási hozzáférést adnak.</p>
 <div class="ui-admin-actions"><button class="ui-btn ui-btn-primary" type="submit">Jogosultságok mentése</button></div>
