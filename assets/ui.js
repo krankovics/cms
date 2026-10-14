@@ -12,3 +12,28 @@
  const start=()=>observer.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['hidden','class','style']});
  if(document.body)start();else document.addEventListener('DOMContentLoaded',start,{once:true});
 })();
+
+/* Shared list search and filter for article, media and taxonomy pages. */
+(()=>{
+ const norm=s=>(s||'').toLocaleLowerCase('hu').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+ function apply(id){
+  const list=document.getElementById(id);if(!list)return;
+  const search=document.querySelector('[data-list-search="'+id+'"]');
+  const filter=document.querySelector('[data-list-filter="'+id+'"]');
+  const query=norm(search?.value.trim());
+  const field=filter?.dataset.filterField||'status';
+  const selected=filter?.value||'';
+  const rows=[...list.children].filter(el=>el.matches('tr,.asset,.term'));
+  let visible=0;
+  for(const row of rows){
+   const matches=(!query||norm(row.dataset.search||row.textContent).includes(query))&&(!selected||row.dataset[field]===selected);
+   row.hidden=!matches;if(matches)visible++;
+  }
+  const empty=document.querySelector('[data-empty-for="'+id+'"]');if(empty)empty.hidden=visible!==0||rows.length===0;
+ }
+ const init=()=>document.querySelectorAll('[data-list-search],[data-list-filter]').forEach(el=>{
+  const id=el.dataset.listSearch||el.dataset.listFilter;
+  el.addEventListener('input',()=>apply(id));el.addEventListener('change',()=>apply(id));apply(id);
+ });
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
