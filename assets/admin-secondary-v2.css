@@ -97,3 +97,17 @@ body.comesy-admin .ui-admin-full{grid-column:1/-1}
  body.comesy-admin .ui-permission-checks{gap:6px}
  body.comesy-admin .ui-permission-checks label{flex-direction:column;align-items:center;text-align:center;gap:6px;font-size:11px}
 }
+
+/* Editor meta sections and read-only publication status. */
+body.comesy-admin .ui-editor-meta{display:block;min-width:0;border-bottom:1px solid var(--ui-border);margin-bottom:12px;padding:0 0 13px}
+body.comesy-admin .ui-editor-meta>summary{cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;list-style:none;font-size:14px;font-weight:750;line-height:1.5;color:var(--ui-text);padding:7px 0}
+body.comesy-admin .ui-editor-meta>summary::-webkit-details-marker{display:none}
+body.comesy-admin .ui-editor-meta>summary::after{content:'⌄';font-size:16px;color:var(--ui-text-secondary);transform:rotate(-90deg)}
+body.comesy-admin .ui-editor-meta[open]>summary::after{transform:none}
+body.comesy-admin .ui-editor-state{padding:6px 10px;border:1px solid var(--ui-border);border-radius:9px;color:var(--ui-text-secondary);font-size:12px;white-space:nowrap}
+body.comesy-admin .ui-editor-meta .ed-category-list{max-height:230px;overflow:auto}
+@media(max-width:767px){
+ body.comesy-admin .ui-editor-meta{margin-bottom:8px}
+ body.comesy-admin .ui-editor-meta>summary{min-height:44px;padding:11px 0}
+ body.comesy-admin .ui-editor-state{font-size:11px;padding:6px 8px}
+}
