@@ -20,7 +20,7 @@ try{
  $editId=max(0,(int)($_GET['edit']??0));$selected=null;
  foreach($terms as $term)if((int)$term['id']===$editId)$selected=$term;
 }catch(Throwable $e){error_log('taxonomy: '.$e->getMessage());$error=$e instanceof PDOException?'Adatbázis-migráció szükséges vagy már létezik ez a név.':$e->getMessage();$sites=$sites??[];$terms=[];}
-?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kategóriák és címkék | comesy</title><link rel="stylesheet" href="/assets/ui.css"><link rel="stylesheet" href="/assets/admin-pages-v2.css"><script src="/assets/ui.js" defer></script><script src="/assets/admin-pages-v2.js" defer></script></head>
+?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kategóriák és címkék | comesy</title><link rel="stylesheet" href="/assets/ui.css"><script src="/assets/ui.js" defer></script><script src="/assets/admin-pages-v2.js" defer></script></head>
 <body><?php require __DIR__.'/app/header.php';?>
 <main class="ui-page" id="main-content">
 <header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Tartalomkezelés</p><h1 class="ui-page-title">Kategóriák és címkék</h1><p class="ui-page-description">Besorolások, hierarchia és közös fogalmak kezelése.</p></div>
