@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const file=imagePicker.files?.[0];if(!file)return;
   imagePicker.value='';
   if(file.size>10485760){await showDialog('Túl nagy kép',[],[{label:'Rendben',primary:true}]);return}
-  const site=document.querySelector('.ed-site-check:checked')?.value;
+  const site=(document.querySelector('.ed-site-check[data-primary="1"]:checked')||document.querySelector('.ed-site-check:checked'))?.value;
   if(!site){await showDialog('Válassz webhelyet',[],[{label:'Rendben',primary:true}]);return}
   uploadingImage=true;
   const saveButton=document.querySelector('.editor-save-button');
@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const inline=ops.filter(op=>typeof op.insert?.image==='string'&&op.insert.image.startsWith('data:image/'));
   if(!inline.length)return;
   e.preventDefault();
-  const site=document.querySelector('.ed-site-check:checked')?.value;
+  const site=(document.querySelector('.ed-site-check[data-primary="1"]:checked')||document.querySelector('.ed-site-check:checked'))?.value;
   if(!site){await showDialog('Válassz webhelyet',[],[{label:'Rendben',primary:true}]);return;}
   processingPasted=true;uploadingImage=true;status.textContent='Beillesztett képek feltöltése…';
   const submitter=e.submitter;
@@ -116,18 +116,16 @@ document.addEventListener('DOMContentLoaded',()=>{
  });
  const siteChecks=[...document.querySelectorAll('.ed-site-check')];
  const syncSite=()=>{
-  const checked=siteChecks.filter(el=>el.checked);
-  const active=checked[0]?.value;
+  // All taxonomy entries below are already filtered by server-side access rights.
+  // A user with explicit permission may attach global/other-site terms.
   document.querySelectorAll('.ed-term,#ed-tag-existing label').forEach(el=>{
-   const visible=!active||el.dataset.site===active||el.dataset.site==='0';
-   el.hidden=!visible;
-   const input=el.querySelector('input');
-   if(input)input.disabled=!visible;
+   el.hidden=false;
+   const input=el.querySelector('input');if(input)input.disabled=false;
   });
   refreshTags();
  };
  siteChecks.forEach(el=>el.addEventListener('change',()=>{
-  if(el.checked)siteChecks.forEach(other=>{if(other!==el)other.checked=false});
+  if(el.dataset.primary==='1'&&!el.checked)el.checked=true;
   if(!siteChecks.some(x=>x.checked))el.checked=true;
   syncSite();
  }));
