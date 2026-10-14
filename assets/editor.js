@@ -98,9 +98,11 @@ document.addEventListener('DOMContentLoaded',()=>{
  form.addEventListener('submit',e=>{if(!siteChecks.some(x=>x.checked)){e.preventDefault();showDialog('Válassz webhelyet',[],[{label:'Rendben',primary:true}]);return}if(search.value.trim())chooseTag(search.value)});
  const serialize=()=>[{type:'richtext',text:JSON.stringify(quill.getContents())}];
  const backupKey='comesy-wysiwyg-'+new URLSearchParams(location.search).get('id');
- const saved=(()=>{try{return JSON.parse(localStorage.getItem(backupKey)||'null')}catch(e){return null}})();
+ const saveConfirmed=new URLSearchParams(location.search).has('saved');
+ if(saveConfirmed){try{localStorage.removeItem(backupKey);localStorage.removeItem('comesy-wysiwyg-null')}catch(e){}}
+ const saved=saveConfirmed?null:(()=>{try{return JSON.parse(localStorage.getItem(backupKey)||'null')}catch(e){return null}})();
  if(saved&&saved.time&&saved.time>Date.now()-7*86400000){
-  const answer=awaitRestore(saved);
+  awaitRestore(saved);
  }
  async function awaitRestore(saved){
  const answer=await showDialog('Helyi piszkozat található',[],[{label:'Megtartom a jelenlegit',cancel:true},{label:'Piszkozat visszaállítása',primary:true}]);
@@ -109,7 +111,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('lead').value=saved.lead||'';
   if(saved.delta?.ops)quill.setContents(saved.delta);
  }
- form.addEventListener('submit',()=>{document.getElementById('blocks-data').value=JSON.stringify(serialize())});
+ form.addEventListener('submit',()=>{document.getElementById('blocks-data').value=JSON.stringify(serialize());try{localStorage.setItem('comesy-pending-save',backupKey)}catch(e){}});
  setInterval(()=>{try{localStorage.setItem(backupKey,JSON.stringify({title:document.getElementById('title').value,lead:document.getElementById('lead').value,delta:quill.getContents(),time:Date.now()}));status.textContent='Helyi piszkozat mentve'}catch(e){}},15000);
  document.getElementById('preview-button').addEventListener('click',()=>{
   const w=window.open('','_blank');if(!w)return;
