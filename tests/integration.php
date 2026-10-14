@@ -1,0 +1,79 @@
+<?php
+declare(strict_types=1);
+/** Destructive integration tests: run ONLY against a disposable comesy_test database. */
+if(getenv('COMESY_TEST_DB')!=='comesy_test'){fwrite(STDERR,"COMESY_TEST_DB must equal comesy_test.\n");exit(1);}
+$dsn=(string)getenv('COMESY_TEST_DSN');
+$pdo=new PDO($dsn,(string)getenv('COMESY_TEST_USER'),(string)getenv('COMESY_TEST_PASSWORD'),[
+ PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,
+ PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,
+ PDO::ATTR_EMULATE_PREPARES=>false
+]);
+require dirname(__DIR__).'/app/article-sites.php';
+require dirname(__DIR__).'/app/site-access.php';
+$tests=0;
+function ok(bool $condition,string $message):void{global $tests;$tests++;if(!$condition)throw new RuntimeException($message);}
+foreach(['schema','editor','content','site-permissions'] as $schema){
+ $sql=file_get_contents(dirname(__DIR__).'/database/'.$schema.'.sql');
+ foreach(array_filter(array_map('trim',explode(';',$sql))) as $statement)$pdo->exec($statement);
+}
+$sites=[];
+foreach(['Teszt portál A','Teszt portál B','Teszt portál C'] as $i=>$name){
+ $q=$pdo->prepare('INSERT INTO sites(name,domain,slug) VALUES(?,?,?)');
+ $q->execute([$name,'test'.$i.'.invalid','test-'.$i]);$sites[]=(int)$pdo->lastInsertId();
+}
+$uid=[];
+foreach(['editor','author','platform_admin'] as $role){
+ $q=$pdo->prepare('INSERT INTO users(email,name,password_hash,role) VALUES(?,?,?,?)');
+ $q->execute([$role.'@testing.invalid',ucfirst($role),password_hash('StrongTestingPwd!2026',PASSWORD_DEFAULT),$role]);
+ $uid[$role]=(int)$pdo->lastInsertId();
+}
+$q=$pdo->prepare('INSERT INTO user_site_permissions(user_id,site_id,is_primary,can_tags,can_media) VALUES(?,?,?,?,?)');
+$q->execute([$uid['editor'],$sites[0],1,1,1]);
+$q->execute([$uid['editor'],$sites[1],1,1,1]);
+$q->execute([$uid['author'],$sites[2],1,1,1]);
+$editor=['id'=>$uid['editor'],'role'=>'editor'];
+$author=['id'=>$uid['author'],'role'=>'author'];
+ok(allowed_primary_sites($pdo,$editor)===$sitesForEditor=[$sites[0],$sites[1]],'Editor must be allowed on two sites.');
+ok(allowed_primary_sites($pdo,$author)===[$sites[2]],'Author must have an isolated editable site.');
+ok(in_array(0,allowed_resource_sites($pdo,$editor,'tags'),true),'Shared taxonomy must be visible to editor.');
+ok(!in_array($sites[2],allowed_primary_sites($pdo,$editor),true),'Editor must not edit a third site.');
+$q=$pdo->prepare("INSERT INTO articles(site_id,author_id,title,slug,status,content_json) VALUES(?,?,?,'teszt-cikk','draft','[]')");
+$q->execute([$sites[0],$uid['editor'],'Többwebhelyes tesztcikk']);
+$articleId=(int)$pdo->lastInsertId();
+$article=['id'=>$articleId,'site_id'=>$sites[0]];
+ok(article_sites_ready($pdo),'article_sites must exist after migration.');
+ok(article_site_ids($pdo,$article)===[$sites[0]],'Legacy article must fall back to primary site.');
+$pdo->beginTransaction();
+article_site_save($pdo,$articleId,$sites[0],[$sites[0],$sites[1]]);
+$pdo->commit();
+ok(article_site_ids($pdo,$article)===$sitesForEditor,'Shared article must be linked to two sites.');
+$pdo->beginTransaction();
+try{article_site_save($pdo,$articleId,$sites[0],[$sites[1]]);throw new RuntimeException('Primary site removal must fail.');}
+catch(RuntimeException $e){ok(str_contains($e->getMessage(),'elsődleges'),'Primary site must be protected.');}
+$pdo->rollBack();
+ok(article_site_ids($pdo,$article)===$sitesForEditor,'Failed reassignment must not destroy links.');
+$q=$pdo->prepare('SELECT COUNT(*) FROM articles a WHERE (a.site_id=? OR EXISTS(SELECT 1 FROM article_sites x WHERE x.article_id=a.id AND x.site_id=?))');
+$q->execute([$sites[1],$sites[1]]);
+ok((int)$q->fetchColumn()===1,'Secondary site must find shared article.');
+$q->execute([$sites[2],$sites[2]]);
+ok((int)$q->fetchColumn()===0,'Unrelated site must not see shared article.');
+$pdo->exec('INSERT IGNORE INTO article_sites(article_id,site_id) SELECT id,site_id FROM articles');
+$pdo->exec('INSERT IGNORE INTO article_sites(article_id,site_id) SELECT id,site_id FROM articles');
+ok(count(article_site_ids($pdo,$article))===2,'Idempotent migration must preserve site associations.');
+$q=$pdo->prepare('INSERT INTO taxonomy_terms(site_id,type,name,slug) VALUES(0,?,?,?)');
+$q->execute(['tag','Közös címke','kozos-cimke']);$global=(int)$pdo->lastInsertId();
+$q=$pdo->prepare('INSERT INTO taxonomy_terms(site_id,type,name,slug) VALUES(?,?,?,?)');
+$q->execute([$sites[0],'tag','Helyi címke','helyi-cimke']);
+ok($global>0,'Shared taxonomy term should be created.');
+$q=$pdo->prepare('SELECT COUNT(*) FROM taxonomy_terms WHERE site_id=0 AND type=? AND slug=?');
+$q->execute(['tag','kozos-cimke']);
+ok((int)$q->fetchColumn()===1,'Shared term should be unique across the installation.');
+$q=$pdo->prepare('INSERT INTO article_terms(article_id,term_id) VALUES(?,?)');
+$q->execute([$articleId,$global]);
+$q=$pdo->prepare('SELECT COUNT(*) FROM article_terms WHERE article_id=? AND term_id=?');
+$q->execute([$articleId,$global]);
+ok((int)$q->fetchColumn()===1,'Article must link to globally shared term.');
+$pdo->prepare('DELETE FROM articles WHERE id=?')->execute([$articleId]);
+$q=$pdo->prepare('SELECT COUNT(*) FROM article_sites WHERE article_id=?');$q->execute([$articleId]);
+ok((int)$q->fetchColumn()===0,'Deleting article must cascade to its site assignments.');
+echo "PASS: $tests database integration assertions.\n";
