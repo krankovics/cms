@@ -59,6 +59,7 @@ jobs:
           sleep 2
           python3 tests/http-smoke.py || { cat /tmp/comesy-php-test.log; exit 1; }
           node tests/browser-smoke.mjs || { cat /tmp/comesy-php-test.log; exit 1; }
+          node tests/all-admin-pages.mjs || { cat /tmp/comesy-php-test.log; exit 1; }
       - name: Upload desktop and mobile previews
         if: always()
         uses: actions/upload-artifact@v4
