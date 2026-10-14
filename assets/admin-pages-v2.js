@@ -50,6 +50,12 @@
   panels.forEach(panel=>{if(panel.dataset.panelDefaultOpen==='1'&&narrow.matches){panel.inert=false;setPane(panel,true);}});
 
   const normalize=s=>(s||'').toLocaleLowerCase('hu').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const accordions=[...document.querySelectorAll('[data-responsive-accordion]')];
+  if(accordions.length){
+   const small=window.matchMedia('(max-width:767px)');
+   const sync=()=>accordions.forEach((panel,i)=>{panel.open=!small.matches||i===0;});
+   sync();small.addEventListener('change',sync);
+  }
   document.querySelectorAll('[data-filter-toggle]').forEach(button=>{
    const panel=document.getElementById(button.dataset.filterToggle);if(!panel)return;
    const set=open=>{panel.classList.toggle('is-open',open);button.setAttribute('aria-expanded',String(open));};
