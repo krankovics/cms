@@ -12,6 +12,18 @@ function tx_action(PDO $pdo,array $u,array $allowed,int $site,string $type):void
  $id=(int)($_POST['term_id']??0);
  $pdo->beginTransaction();
  try{
+  if($action==='bulk_delete'){
+   $ids=array_values(array_unique(array_filter(array_map('intval',(array)($_POST['term_ids']??[])),fn($v)=>$v>0)));
+   if(!$ids||count($ids)>500)throw new RuntimeException('Válassz ki 1–500 elemet.');
+   $placeholders=implode(',',array_fill(0,count($ids),'?'));
+   $q=$pdo->prepare("SELECT id FROM taxonomy_terms WHERE type=? AND site_id IN (".implode(',',array_map('intval',$allowed?:[-1])).") AND id IN ($placeholders) FOR UPDATE");
+   $q->execute(array_merge([$type],$ids));
+   $found=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
+   if(count($found)!==count($ids))throw new RuntimeException('A kijelölésben nem elérhető elem is van.');
+   $q=$pdo->prepare("DELETE FROM taxonomy_terms WHERE id IN ($placeholders)");
+   $q->execute($ids);
+   $pdo->commit();return;
+  }
   if($action!=='create'){
    $q=$pdo->prepare('SELECT id,site_id FROM taxonomy_terms WHERE id=? AND type=?');
    $q->execute([$id,$type]);$existing=$q->fetch();
