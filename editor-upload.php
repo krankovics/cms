@@ -4,7 +4,8 @@ require __DIR__.'/app/bootstrap.php';
 require __DIR__.'/app/site-access.php';
 header('Content-Type: application/json; charset=utf-8');
 try {
- $u=require_user();
+ $u=user();
+ if(!$u){http_response_code(401);echo json_encode(['ok'=>false,'error'=>'A munkamenet lejárt. Jelentkezz be újra.'],JSON_UNESCAPED_UNICODE);exit;}
  if($_SERVER['REQUEST_METHOD']!=='POST'||!valid_csrf())throw new RuntimeException('Érvénytelen kérés.');
  if(!in_array($u['role'],['platform_admin','site_admin','editor','author'],true))throw new RuntimeException('Nincs feltöltési jogosultság.');
  $pdo=db();$site=(int)($_POST['site_id']??0);
