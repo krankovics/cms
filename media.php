@@ -84,6 +84,7 @@ function media_page_link(array $p,int $page):string{return '/media.php?'.http_bu
 <div class="ui-pane-body"><label class="ui-field">Célwebhely <select name="site_id" required><?php foreach($sites as $s):if(!in_array((int)$s['id'],$primary,true))continue;?><option value="<?=(int)$s['id']?>" <?=$site===(int)$s['id']?'selected':''?>><?=h($s['name'])?></option><?php endforeach;?></select></label>
 <label class="ui-field">Képfájl <input type="file" id="media-upload-file" name="image" accept="image/jpeg,image/png,image/webp,image/gif" required data-ui-file-preview><small data-ui-file-name-for="media-upload-file">Nincs kiválasztott fájl</small></label>
 <label class="ui-field">Alternatív szöveg <input name="alt" maxlength="500" placeholder="Mi látható a képen?"></label></div>
+<div class="ui-upload-progress" id="media-upload-progress" aria-live="polite" hidden><progress max="100" value="0"></progress><span>Feltöltés indítása…</span></div>
 <div class="ui-pane-footer"><button class="ui-btn ui-btn-primary" type="submit">Feltöltés</button><button class="ui-btn ui-btn-secondary" type="button" data-ui-dialog-close>Mégse</button></div></form></dialog><?php endif;?>
 </main><script>
 document.addEventListener('DOMContentLoaded',()=>{
@@ -107,6 +108,26 @@ document.addEventListener('DOMContentLoaded',()=>{
   catch{window.prompt('Kép URL-je:',url);}
  });
  const form=document.getElementById('media-upload-form');
- form?.addEventListener('submit',e=>{const file=form.querySelector('input[type=file]')?.files?.[0];if(file&&file.size>10485760){e.preventDefault();alert('Legfeljebb 10 MB méretű kép tölthető fel.');}});
+ form?.addEventListener('submit',e=>{
+  const file=form.querySelector('input[type=file]')?.files?.[0];
+  if(!file||file.size>10485760){e.preventDefault();alert('Legfeljebb 10 MB méretű kép tölthető fel.');return;}
+  if(typeof XMLHttpRequest==='undefined')return;
+  e.preventDefault();
+  const progress=document.getElementById('media-upload-progress');
+  const bar=progress.querySelector('progress'),info=progress.querySelector('span'),submit=form.querySelector('button[type=submit]');
+  const xhr=new XMLHttpRequest();
+  xhr.open('POST',form.action||location.pathname,true);
+  submit.disabled=true;progress.hidden=false;bar.value=0;info.textContent='Feltöltés…';
+  xhr.upload.addEventListener('progress',ev=>{if(ev.lengthComputable){const value=Math.min(100,Math.round(ev.loaded/ev.total*100));bar.value=value;info.textContent='Feltöltés: '+value+'%';}});
+  const fail=()=>{submit.disabled=false;info.textContent='A feltöltés sikertelen. Ellenőrizd a fájlt, vagy próbáld újra.';};
+  xhr.addEventListener('load',()=>{
+   const url=new URL(xhr.responseURL||location.href,location.href);
+   if(xhr.status>=200&&xhr.status<300&&url.searchParams.has('saved'))location.assign(url.href);
+   else fail();
+  });
+  xhr.addEventListener('error',fail);
+  xhr.addEventListener('abort',fail);
+  xhr.send(new FormData(form));
+ });
 });
 </script></body></html>
