@@ -43,6 +43,7 @@ function article_page_link(array $p,int $page):string{return '/articles.php?'.ht
 <form method="get" class="ui-filterbar" aria-label="Cikkek szűrése">
 <?php if($termId):?><input type="hidden" name="term_id" value="<?=(int)$termId?>"><?php endif;?>
 <label class="ui-field ui-field-search">Keresés <input type="search" name="q" value="<?=h($search)?>" placeholder="Cikk címe…" autocomplete="off"></label>
+<button type="submit" class="ui-btn ui-btn-primary ui-search-submit">Keresés</button>
 <button class="ui-btn ui-btn-secondary ui-filter-toggle" type="button" aria-controls="article-filter-extras" aria-expanded="false" data-filter-toggle="article-filter-extras">Szűrők ⌄</button><div id="article-filter-extras" class="ui-filter-advanced"><label class="ui-field">Webhely <select name="site_id"><option value="0">Összes webhely</option><?php foreach($sites as $siteItem):?><option value="<?=(int)$siteItem['id']?>" <?=$siteFilter===(int)$siteItem['id']?'selected':''?>><?=h($siteItem['name'])?></option><?php endforeach;?></select></label>
 <label class="ui-field">Státusz <select name="status"><option value="">Összes státusz</option><?php foreach($statusLabels as $key=>$label):?><option value="<?=h($key)?>" <?=$statusFilter===$key?'selected':''?>><?=h($label)?></option><?php endforeach;?></select></label>
 <button class="ui-btn ui-btn-primary" type="submit">Szűrés</button>
