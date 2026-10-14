@@ -2,9 +2,9 @@
    Loaded after ui.css for gradual legacy migration. */
 :root {
  --ui-bg:#f6f8fc;--ui-surface:#fff;--ui-surface-subtle:#f1f5fa;
- --ui-text:#192437;--ui-text-secondary:#64748b;--ui-border:#dfe6f0;
+ --ui-text:#192437;--ui-text-secondary:#5f6f85;--ui-border:#dfe6f0;
  --ui-primary:#335eea;--ui-primary-on:#fff;--ui-nav-bg:#14213a;
- --ui-success:#157347;--ui-warning:#a5690e;--ui-danger:#c13c4d;
+ --ui-success:#157347;--ui-warning:#98600b;--ui-danger:#c13c4d;
  --ui-radius:14px;--ui-shadow:0 14px 34px rgba(22,37,66,.08);
 }
 html[data-theme="dark"] {
