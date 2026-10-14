@@ -35,7 +35,7 @@ try{
 $canUpload=in_array($u['role'],['platform_admin','site_admin','editor','author'],true)&&!empty($primary);
 $pagerParams=['view_site'=>$viewSite??0,'q'=>$search];
 function media_page_link(array $p,int $page):string{return '/media.php?'.http_build_query(array_merge($p,['page'=>$page]));}
-?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Médiatár | comesy</title><link rel="stylesheet" href="/assets/ui.css"><link rel="stylesheet" href="/assets/admin-pages-v2.css"><script src="/assets/ui.js" defer></script><script src="/assets/admin-pages-v2.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
+?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Médiatár | comesy</title><link rel="stylesheet" href="/assets/ui.css"><script src="/assets/ui.js" defer></script><script src="/assets/admin-pages-v2.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
 <main class="ui-page" id="main-content"><header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Tartalomkezelés</p><h1 class="ui-page-title">Médiatár</h1><p class="ui-page-description">Képek kezelése, keresése és webhelyenkénti böngészése.</p></div>
 <?php if($canUpload):?><div class="ui-page-actions"><button type="button" class="ui-btn ui-btn-primary" data-ui-dialog-open="media-upload-dialog"><svg class="ui-icon" aria-hidden="true"><use href="#cs-plus"></use></svg>Kép feltöltése</button></div><?php endif;?></header>
 <?php if($error):?><p class="ui-notice error" role="alert"><?=h($error)?></p><?php endif;?>
