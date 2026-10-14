@@ -52,7 +52,7 @@ try{
    if($id){
     $q=$pdo->prepare('SELECT updated_at FROM articles WHERE id=? FOR UPDATE');$q->execute([$id]);$current=$q->fetchColumn();
     if(!$current||$current!==(string)($_POST['expected_updated_at']??''))throw new RuntimeException('A cikket időközben módosították. Frissítsd az oldalt.');
-    $q=$pdo->prepare('UPDATE articles SET title=?,lead=?,content_json=?,status=?,site_id=?,published_at=CASE WHEN ?='published' THEN COALESCE(published_at,?) ELSE NULL END,updated_at=NOW() WHERE id=?');
+    $q=$pdo->prepare('UPDATE articles SET title=?,lead=?,content_json=?,status=?,site_id=?,published_at=CASE WHEN ?=\'published\' THEN COALESCE(published_at,?) ELSE NULL END,updated_at=NOW() WHERE id=?');
     $q->execute([$title,$lead,$json,$status,$siteId,$status,$publishedAt,$id]);
    }else{
     $slug=ed_slug($title).'-'.bin2hex(random_bytes(3));
