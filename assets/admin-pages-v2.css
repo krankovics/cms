@@ -114,3 +114,33 @@ body.comesy-admin .ui-panel-state{padding:20px;text-align:center;font-size:13px;
  body.comesy-admin .ui-compact-action{padding:9px 11px;font-size:12px;min-height:40px}
 }
 @media(prefers-reduced-motion:reduce){body.comesy-admin .ui-workbench-pane{transition:none}}
+
+/* Shared states and the native accessible upload modal. */
+body.comesy-admin .ui-page [hidden],body.comesy-admin .ui-page .ui-person-row[hidden],body.comesy-admin .ui-page .ui-taxonomy-row[hidden],body.comesy-admin .ui-page .ui-inspector-detail[hidden]{display:none!important}
+body.comesy-admin .ui-upload-dialog{
+ width:min(510px,calc(100vw - 24px));max-width:calc(100vw - 24px);
+ max-height:min(92dvh,780px);overflow-y:auto;
+ margin:auto;border:1px solid var(--ui-border);padding:0;
+ border-radius:18px;color:var(--ui-text);background:var(--ui-surface);
+ box-shadow:0 25px 70px #0004;
+}
+body.comesy-admin .ui-upload-dialog::backdrop{background:rgba(5,11,24,.65)}
+body.comesy-admin .ui-upload-dialog .ui-pane-close{display:grid;place-items:center;border:1px solid var(--ui-border);border-radius:10px;width:42px;height:42px;color:var(--ui-text);background:var(--ui-surface);padding:0;cursor:pointer}
+body.comesy-admin .ui-upload-dialog input[type=file]{font-size:16px;width:100%;border:1px dashed var(--ui-border);padding:13px;background:var(--ui-surface-subtle);border-radius:10px}
+body.comesy-admin .ui-upload-dialog input[type=file]::file-selector-button{border:1px solid var(--ui-border);border-radius:8px;background:var(--ui-surface);padding:9px;margin-right:10px;color:var(--ui-text);font-size:13px}
+body.comesy-admin .ui-account-active{display:flex;gap:10px;align-items:center;font-size:13px;font-weight:630;cursor:pointer}
+body.comesy-admin .ui-account-active input{width:18px;height:18px;accent-color:var(--ui-primary)}
+body.comesy-admin .ui-account-help{font-size:12px;margin:0;line-height:1.6}
+body.comesy-admin .ui-account-help a{color:var(--ui-primary)}
+body.comesy-admin .ui-inspector-detail{display:grid;gap:18px}
+body.comesy-admin .ui-inspector-empty{padding:18px 4px;font-size:13px;line-height:1.6}
+body.comesy-admin .ui-users-search{margin-bottom:13px;max-width:450px}
+body.comesy-admin.ui-pane-open{overflow:hidden}
+@media(max-width:1199px){
+ body.comesy-admin .ui-workbench-pane.ui-panel{padding:0}
+ body.comesy-admin .ui-workbench-pane[aria-hidden="true"]{pointer-events:none}
+ body.comesy-admin .ui-workbench-pane[aria-hidden="false"]{pointer-events:auto}
+}
+@media(min-width:1200px){
+ body.comesy-admin .ui-workbench-pane.ui-panel{padding:0}
+}
