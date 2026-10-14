@@ -35,7 +35,7 @@ $canWrite=in_array($u['role'],['platform_admin','site_admin','editor','author'],
 $statusLabels=['draft'=>'Piszkozat','review'=>'Ellenőrzés','scheduled'=>'Időzített','published'=>'Publikált','archived'=>'Archivált'];
 $pagerParams=['q'=>$search,'site_id'=>$siteFilter,'status'=>$statusFilter,'term_id'=>$termId];
 function article_page_link(array $p,int $page):string{return '/articles.php?'.http_build_query(array_merge($p,['page'=>$page]));}
-?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cikkek | comesy</title><link rel="stylesheet" href="/assets/ui.css"><link rel="stylesheet" href="/assets/admin-pages-v2.css"><script src="/assets/ui.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
+?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cikkek | comesy</title><link rel="stylesheet" href="/assets/ui.css"><script src="/assets/ui.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
 <main class="ui-page" id="main-content">
 <header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Tartalomkezelés</p><h1 class="ui-page-title">Cikkek</h1><p class="ui-page-description">Keresés, státuszok és többwebhelyes publikációk egy helyen.</p></div>
 <?php if($canWrite):?><div class="ui-page-actions"><a class="ui-btn ui-btn-primary" href="/editor.php"><svg class="ui-icon" aria-hidden="true"><use href="#cs-plus"></use></svg>Új cikk</a></div><?php endif;?></header>
