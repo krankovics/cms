@@ -1,6 +1,12 @@
 document.addEventListener('DOMContentLoaded',()=>{
  const form=document.getElementById('editor-form');
  const status=document.getElementById('local-save');
+ const metaPanels=[...document.querySelectorAll('.ui-editor-meta')];
+ const smallEditor=window.matchMedia('(max-width:767px)');
+ const syncMeta=()=>{
+  metaPanels.forEach((panel,index)=>{panel.open=!smallEditor.matches||index===0;});
+ };
+ if(metaPanels.length){syncMeta();smallEditor.addEventListener('change',syncMeta);}
  const raw=document.getElementById('initial-content');
  let initial=[];try{initial=JSON.parse(raw.textContent)}catch(e){}
  if(typeof window.Quill!=='function'){
@@ -193,7 +199,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('title').value=saved.title||'';
   document.getElementById('lead').value=saved.lead||'';
   if(saved.delta?.ops)quill.setContents(saved.delta);
-  dirty=true;
+  markChanged();
  }
  form.addEventListener('submit',e=>{
   document.getElementById('blocks-data').value=JSON.stringify(serialize());
