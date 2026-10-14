@@ -37,5 +37,20 @@ try{
   assert.equal(response.status(),200,'Author access regression '+route);
  }
  await author.close();
+ for(const role of ['site_admin','ad_manager']){
+  const rolePage=await browser.newPage();
+  await rolePage.goto(base+'/login.php');
+  await rolePage.locator('[name=email]').fill(role+'@testing.invalid');
+  await rolePage.locator('[name=password]').fill('StrongTestingPwd!2026');
+  await rolePage.locator('button[type=submit]').click();
+  await rolePage.waitForURL(base+'/');
+  for(const restricted of ['/users.php','/sites.php','/site-permissions.php','/migrate.php']){
+   const response=await rolePage.goto(base+restricted);
+   assert.equal(response.status(),403,role+' cannot open '+restricted);
+  }
+  const editorResponse=await rolePage.goto(base+'/editor.php');
+  assert.equal(editorResponse.status(),role==='site_admin'?200:403,role+' editor access');
+  await rolePage.close();
+ }
  console.log('PASS: all 12 admin routes at 320, 390, 768, 1366 widths.');
 }finally{await browser.close();}
