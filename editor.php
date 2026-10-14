@@ -37,7 +37,7 @@ function ed_blocks($raw):array{
 $error='';$message='';$article=null;$id=max(0,(int)($_GET['id']??0));
 try{
  $pdo=db();
- if($id){$q=$pdo->prepare('SELECT * FROM articles WHERE id=?');$q->execute([$id]);$article=$q->fetch();if(!$article)throw new RuntimeException('A cikk nem található.');if(!in_array((int)$article['site_id'],allowed_primary_sites($pdo,$u),true))throw new RuntimeException('Nincs jogosultság a cikk szerkesztéséhez.');if($u['role']==='author'&&(int)$article['author_id']!==(int)$u['id'])throw new RuntimeException('Csak a saját cikkeidet szerkesztheted.');}
+ if($id){$q=$pdo->prepare('SELECT * FROM articles WHERE id=?');$q->execute([$id]);$article=$q->fetch();if(!$article)throw new RuntimeException('A cikk nem található.');if(!in_array((int)$article['site_id'],allowed_primary_sites($pdo,$u),true)){http_response_code(403);exit('Nincs jogosultság a cikk szerkesztéséhez.');}if($u['role']==='author'&&(int)$article['author_id']!==(int)$u['id']){http_response_code(403);exit('Csak a saját cikkeidet szerkesztheted.');}}
  if($_SERVER['REQUEST_METHOD']==='POST'){
   if(!valid_csrf())throw new RuntimeException('Lejárt munkamenet. Frissítsd az oldalt.');
   $action=(string)($_POST['action']??'save');
@@ -112,7 +112,7 @@ try{
  $sites=$pdo->query('SELECT id,name FROM sites ORDER BY name')->fetchAll();
  $primaryIds=allowed_primary_sites($pdo,$u);$sites=array_values(array_filter($sites,fn($s)=>in_array((int)$s['id'],$primaryIds,true)));
  $selectedSites=$article?article_site_ids($pdo,$article):[(int)($sites[0]['id']??0)];
- if($article&&array_diff($selectedSites,$primaryIds))throw new RuntimeException('A cikk egy vagy több olyan webhelyen is szerepel, amelyhez nincs szerkesztési jogod. Kérj jogosultságot a rendszergazdától.');
+ if($article&&array_diff($selectedSites,$primaryIds)){http_response_code(403);exit('A cikk egy vagy több olyan webhelyhez kapcsolódik, amelyhez nincs szerkesztési jogosultságod.');}
  if($id){$q=$pdo->prepare('SELECT * FROM articles WHERE id=?');$q->execute([$id]);$article=$q->fetch();}
  $visibleSites=allowed_resource_sites($pdo,$u,'tags');
  $terms=$pdo->query('SELECT id,site_id,type,name FROM taxonomy_terms WHERE site_id IN ('.implode(',',array_map('intval',$visibleSites?:[-1])).') ORDER BY type,(site_id=0) DESC,name')->fetchAll();
