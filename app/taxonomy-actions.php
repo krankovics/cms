@@ -55,6 +55,15 @@ function tx_action(PDO $pdo,array $u,array $allowed,int $site,string $type):void
    $target=(int)($_POST['target_id']??0);
    $q=$pdo->prepare('SELECT site_id FROM taxonomy_terms WHERE id=? AND type=?');$q->execute([$target,$type]);$targetSite=$q->fetchColumn();
    if($target===$id||$targetSite===false||(int)$targetSite!==$site)throw new RuntimeException('Érvénytelen összevonási cél.');
+   if($type==='category'){
+    $walk=$target;$seen=[];
+    $parentQuery=$pdo->prepare('SELECT parent_id FROM taxonomy_term_meta WHERE term_id=?');
+    while($walk){
+     if($walk===$id||isset($seen[$walk]))throw new RuntimeException('Körkörös kategóriahierarchia nem hozható létre.');
+     $seen[$walk]=true;
+     $parentQuery->execute([$walk]);$walk=(int)$parentQuery->fetchColumn();
+    }
+   }
    $q=$pdo->prepare('INSERT IGNORE INTO article_terms(article_id,term_id) SELECT article_id,? FROM article_terms WHERE term_id=?');$q->execute([$target,$id]);
    if($type==='category'){$q=$pdo->prepare('UPDATE taxonomy_term_meta SET parent_id=? WHERE parent_id=?');$q->execute([$target,$id]);}
    $pdo->prepare('DELETE FROM taxonomy_terms WHERE id=?')->execute([$id]);
