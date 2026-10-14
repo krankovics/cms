@@ -68,6 +68,7 @@ fields = [
     ("blocks", blocks),
     ("site_ids[]", "1"),
     ("site_ids[]", "2"),
+    ("og_image_url", "https://cdn.example.invalid/hero.png"),
     ("status", "review"),
 ]
 response, dest = post(editor, "/editor.php", fields)
@@ -82,6 +83,7 @@ assert "Automatizált többwebhelyes ellenőrzés" in list_page, "Secondary site
 # A save through the editor must preserve both site assignments and the revision history.
 edit_page, _ = get(editor, f"/editor.php?id={article_id}")
 assert "name=\"expected_updated_at\"" in edit_page, "Revision consistency token absent"
+assert "cdn.example.invalid/hero.png" in edit_page, "Featured image metadata was not saved"
 timestamp = re.search(r'name="expected_updated_at" value="([^"]+)"', edit_page)
 assert timestamp, "Could not find optimistic locking timestamp"
 fields = [
