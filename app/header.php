@@ -47,6 +47,7 @@ if($currentPage==='migrate.php')$currentTitle='Adatbázis-migráció';
 <aside class="mobile-nav sidebar comesy-sidebar" id="comesy-sidebar" aria-label="Fő navigáció">
  <div class="ui-sidebar-heading">
   <a class="ui-sidebar-brand" href="/" aria-label="comesy kezdőlap"><span class="ui-brand-mark">c<span>•</span></span><span>comesy<span class="ui-brand-dot">.</span></span></a>
+  <button type="button" class="ui-sidebar-collapse" data-sidebar-collapse aria-label="Oldalsáv összecsukása" aria-pressed="false" title="Oldalsáv összecsukása"><svg class="ui-icon" aria-hidden="true"><use href="#cs-chevron"></use></svg></button>
   <button type="button" class="mobile-nav-close ui-sidebar-close" data-menu-close aria-label="Menü bezárása"><svg class="ui-icon"><use href="#cs-close"></use></svg></button>
  </div>
  <p class="ui-sidebar-tagline">Content. Media. System.</p>
