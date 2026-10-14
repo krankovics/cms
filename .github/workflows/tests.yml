@@ -1,0 +1,46 @@
+name: comesy database integration tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test_password
+          MYSQL_DATABASE: comesy_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -ptest_password"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, iconv, fileinfo
+          coverage: none
+      - name: Lint PHP and JavaScript
+        run: |
+          find . -type f -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+          node --check assets/editor.js
+          node --check assets/ui.js
+      - name: Run isolated MySQL integration checks
+        env:
+          COMESY_TEST_DB: comesy_test
+          COMESY_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=comesy_test;charset=utf8mb4
+          COMESY_TEST_USER: root
+          COMESY_TEST_PASSWORD: test_password
+        run: php tests/integration.php
