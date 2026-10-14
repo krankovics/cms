@@ -174,3 +174,9 @@ body.comesy-admin .ui-row-menu-items a:hover{background:var(--ui-surface-subtle)
 
 body.comesy-admin .ui-taxonomy-indent{font-size:14px;font-weight:500;color:var(--ui-text-secondary);letter-spacing:.12em;padding-right:8px;white-space:nowrap}
 body.comesy-admin .ui-taxonomy-row:has(.ui-taxonomy-indent){background:color-mix(in srgb,var(--ui-surface-subtle) 30%,var(--ui-surface))}
+
+body.comesy-admin .ui-media-alt-form{display:grid;gap:11px;padding-top:15px;border-top:1px solid var(--ui-border)}
+body.comesy-admin .ui-media-alt-form[hidden],body.comesy-admin .ui-upload-progress[hidden]{display:none}
+body.comesy-admin .ui-media-alt-form .ui-btn{width:fit-content}
+body.comesy-admin .ui-upload-progress{display:flex;gap:9px;align-items:center;padding:0 19px 12px;font-size:12px;color:var(--ui-text-secondary)}
+body.comesy-admin .ui-upload-progress progress{flex:1;min-width:0;max-width:250px;height:9px;accent-color:var(--ui-primary)}
