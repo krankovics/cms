@@ -35,7 +35,7 @@ $canWrite=in_array($u['role'],['platform_admin','site_admin','editor','author'],
 $statusLabels=['draft'=>'Piszkozat','review'=>'Ellenőrzés','scheduled'=>'Időzített','published'=>'Publikált','archived'=>'Archivált'];
 $pagerParams=['q'=>$search,'site_id'=>$siteFilter,'status'=>$statusFilter,'term_id'=>$termId];
 function article_page_link(array $p,int $page):string{return '/articles.php?'.http_build_query(array_merge($p,['page'=>$page]));}
-?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cikkek | comesy</title><link rel="stylesheet" href="/assets/ui.css"><script src="/assets/ui.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
+?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cikkek | comesy</title><link rel="stylesheet" href="/assets/ui.css"><script src="/assets/ui.js" defer></script><script src="/assets/admin-pages-v2.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
 <main class="ui-page" id="main-content">
 <header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Tartalomkezelés</p><h1 class="ui-page-title">Cikkek</h1><p class="ui-page-description">Keresés, státuszok és többwebhelyes publikációk egy helyen.</p></div>
 <?php if($canWrite):?><div class="ui-page-actions"><a class="ui-btn ui-btn-primary" href="/editor.php"><svg class="ui-icon" aria-hidden="true"><use href="#cs-plus"></use></svg>Új cikk</a></div><?php endif;?></header>
@@ -43,11 +43,11 @@ function article_page_link(array $p,int $page):string{return '/articles.php?'.ht
 <form method="get" class="ui-filterbar" aria-label="Cikkek szűrése">
 <?php if($termId):?><input type="hidden" name="term_id" value="<?=(int)$termId?>"><?php endif;?>
 <label class="ui-field ui-field-search">Keresés <input type="search" name="q" value="<?=h($search)?>" placeholder="Cikk címe…" autocomplete="off"></label>
-<label class="ui-field">Webhely <select name="site_id"><option value="0">Összes webhely</option><?php foreach($sites as $siteItem):?><option value="<?=(int)$siteItem['id']?>" <?=$siteFilter===(int)$siteItem['id']?'selected':''?>><?=h($siteItem['name'])?></option><?php endforeach;?></select></label>
+<button class="ui-btn ui-btn-secondary ui-filter-toggle" type="button" aria-controls="article-filter-extras" aria-expanded="false" data-filter-toggle="article-filter-extras">Szűrők ⌄</button><div id="article-filter-extras" class="ui-filter-advanced"><label class="ui-field">Webhely <select name="site_id"><option value="0">Összes webhely</option><?php foreach($sites as $siteItem):?><option value="<?=(int)$siteItem['id']?>" <?=$siteFilter===(int)$siteItem['id']?'selected':''?>><?=h($siteItem['name'])?></option><?php endforeach;?></select></label>
 <label class="ui-field">Státusz <select name="status"><option value="">Összes státusz</option><?php foreach($statusLabels as $key=>$label):?><option value="<?=h($key)?>" <?=$statusFilter===$key?'selected':''?>><?=h($label)?></option><?php endforeach;?></select></label>
 <button class="ui-btn ui-btn-primary" type="submit">Szűrés</button>
 <?php if($search!==''||$statusFilter!==''||$siteFilter||$termId):?><a class="ui-btn ui-btn-ghost" href="/articles.php">Alaphelyzet</a><?php endif;?>
-</form>
+</div></form>
 <div class="ui-result-bar"><span><strong><?=$total?></strong> cikk<?= $termId?' · Címke/kategória #'.(int)$termId:''?></span><span><?=$total?($offset+1).'–'.min($total,$offset+$perPage).' / '.$total:'Nincs találat'?></span></div>
 <section class="ui-panel ui-data-panel" aria-label="Cikklista">
 <?php if($articles):?>
