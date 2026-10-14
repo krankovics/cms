@@ -155,3 +155,26 @@
 .taxonomy-row summary{justify-content:flex-start}
 .taxonomy-row summary strong{min-width:0;overflow-wrap:anywhere}
 @media(max-width:650px){.taxonomy-bulk-toolbar{gap:8px;font-size:13px}.taxonomy-bulk-toolbar button{width:100%;margin:0}.taxonomy-row summary{gap:9px}}
+
+/* Compact taxonomy and article views */
+.taxonomy-bulk-toolbar{padding:8px 10px;margin:8px 0;gap:8px}
+.taxonomy-bulk-toolbar button{min-height:36px}
+.taxonomy-row summary{min-height:40px;padding:8px 4px}
+.taxonomy-row summary strong{font-size:14px}
+.taxonomy-row>p,.taxonomy-row>a{font-size:13px}
+@media(max-width:700px){
+ .taxonomy-bulk-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+ .taxonomy-bulk-toolbar label{min-width:0;font-size:12px}
+ .taxonomy-bulk-toolbar button{grid-column:1/-1;width:100%;min-height:36px}
+ .taxonomy-row summary{padding:8px 2px;gap:8px}
+ .taxonomy-row summary strong{font-size:14px}
+ .taxonomy-count{font-size:11px}
+ .wrap .head{align-items:center;gap:8px}
+ .wrap .head h1{font-size:26px!important;margin:0!important}
+ .wrap .head .btn{font-size:13px!important;min-height:36px;padding:8px 12px!important}
+ .comesy-filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(125px,.65fr);gap:8px;margin:12px 0}
+ .comesy-filters label{font-size:12px}
+ .comesy-filters .comesy-search{flex:auto;min-width:0}
+ .comesy-filters select{width:100%}
+ .comesy-article-table tbody tr{padding:10px 0}
+}
