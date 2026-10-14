@@ -10,6 +10,14 @@ try{
  if($_SERVER['REQUEST_METHOD']==='POST'){
   if(!valid_csrf())throw new RuntimeException('Érvénytelen munkamenet.');
   if(!in_array($u['role'],['platform_admin','site_admin','editor','author'],true))throw new RuntimeException('Nincs jogosultság.');
+  if(($_POST['action']??'')==='update_alt'){
+   $assetId=max(0,(int)($_POST['asset_id']??0));
+   $q=$pdo->prepare('SELECT site_id FROM media_assets WHERE id=?');$q->execute([$assetId]);$assetSite=(int)$q->fetchColumn();
+   if(!$assetSite||!in_array($assetSite,$primary,true))throw new RuntimeException('A kép módosításához nincs szerkesztési jogod.');
+   $alt=mb_substr(trim((string)($_POST['alt']??'')),0,500);
+   $pdo->prepare('UPDATE media_assets SET alt_text=? WHERE id=? AND site_id=?')->execute([$alt,$assetId,$assetSite]);
+   header('Location: /media.php?'.http_build_query(['view_site'=>$viewSite,'q'=>$search,'page'=>$page,'saved'=>'alt']));exit;
+  }
   if(!in_array($site,$primary,true))throw new RuntimeException('Csak a saját webhely médiatárába tölthetsz fel.');
   $f=$_FILES['image']??null;
   if(!$f||$f['error']!==UPLOAD_ERR_OK||$f['size']>10485760||$f['size']<1)throw new RuntimeException('Maximum 10 MB méretű kép tölthető fel.');
@@ -29,7 +37,7 @@ try{
  if($search!==''){$where.=' AND (m.original_name LIKE ? OR m.alt_text LIKE ?)';$like='%'.mb_substr($search,0,100).'%';$params[]=$like;$params[]=$like;}
  $count=$pdo->prepare('SELECT COUNT(*) FROM media_assets m'.$where);$count->execute($params);$total=(int)$count->fetchColumn();
  $lastPage=max(1,(int)ceil($total/$perPage));$page=min($page,$lastPage);$offset=($page-1)*$perPage;
- $q=$pdo->prepare('SELECT m.id,m.original_name,m.alt_text,m.mime_type,m.size_bytes,m.created_at,s.name site_name FROM media_assets m JOIN sites s ON s.id=m.site_id'.$where.' ORDER BY m.id DESC LIMIT '.$perPage.' OFFSET '.$offset);
+ $q=$pdo->prepare('SELECT m.id,m.site_id,m.original_name,m.alt_text,m.mime_type,m.size_bytes,m.created_at,s.name site_name FROM media_assets m JOIN sites s ON s.id=m.site_id'.$where.' ORDER BY m.id DESC LIMIT '.$perPage.' OFFSET '.$offset);
  $q->execute($params);$items=$q->fetchAll();
 }catch(Throwable $e){error_log('media: '.$e->getMessage());$error=$e instanceof PDOException?'Adatbázis-migráció szükséges.':$e->getMessage();$sites=$sites??[];$items=[];}
 $canUpload=in_array($u['role'],['platform_admin','site_admin','editor','author'],true)&&!empty($primary);
@@ -39,7 +47,7 @@ function media_page_link(array $p,int $page):string{return '/media.php?'.http_bu
 <main class="ui-page" id="main-content"><header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Tartalomkezelés</p><h1 class="ui-page-title">Médiatár</h1><p class="ui-page-description">Képek kezelése, keresése és webhelyenkénti böngészése.</p></div>
 <?php if($canUpload):?><div class="ui-page-actions"><button type="button" class="ui-btn ui-btn-primary" data-ui-dialog-open="media-upload-dialog"><svg class="ui-icon" aria-hidden="true"><use href="#cs-plus"></use></svg>Kép feltöltése</button></div><?php endif;?></header>
 <?php if($error):?><p class="ui-notice error" role="alert"><?=h($error)?></p><?php endif;?>
-<?php if(isset($_GET['saved'])):?><p class="ui-notice success" role="status">A képet sikeresen feltöltöttük.</p><?php endif;?>
+<?php if(isset($_GET['saved'])):?><p class="ui-notice success" role="status"><?=$_GET['saved']==='alt'?'Az alternatív szöveget mentettük.':'A képet sikeresen feltöltöttük.'?></p><?php endif;?>
 <form method="get" class="ui-filterbar" aria-label="Médiatár szűrése">
 <label class="ui-field ui-field-search">Keresés <input type="search" name="q" value="<?=h($search)?>" placeholder="Fájlnév vagy alternatív szöveg…"></label>
 <label class="ui-field">Webhely <select name="view_site"><option value="0">Összes elérhető</option><?php foreach($sites as $s):if(!in_array((int)$s['id'],$allowed,true))continue;?><option value="<?=(int)$s['id']?>" <?=($viewSite??0)===(int)$s['id']?'selected':''?>><?=h($s['name'])?></option><?php endforeach;?></select></label>
