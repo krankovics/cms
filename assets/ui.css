@@ -5,3 +5,15 @@
 
 /* Editor save actions remain reachable on narrow screens */
 .editor-layout .editor-form{align-items:start}.editor-layout .editor-form>aside{min-width:0;position:relative;z-index:1}.editor-layout .editor-form>.panel{min-width:0}.editor-layout .ql-container{height:auto;min-height:260px;max-height:none;overflow:visible}.editor-layout .ql-editor{min-height:260px;overflow-wrap:anywhere}.editor-layout .editor-save-button{display:block;min-height:48px}@media(max-width:800px){.editor-layout .editor-form{display:flex!important;flex-direction:column!important;gap:8px}.editor-layout .editor-form>.panel,.editor-layout .editor-form>aside{width:100%;box-sizing:border-box}.editor-layout .editor-form>aside .panel{margin-top:8px}.editor-layout .ql-toolbar{position:relative!important;top:auto!important}}
+
+/* comesy mobile drawer and compact article heading */
+.mobile-nav{box-sizing:border-box;padding:22px 18px!important;background:var(--nav)!important;color:#eaf0ff!important;min-height:0!important}
+.mobile-nav-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 0 10px}
+.mobile-nav-head strong{font-size:25px;letter-spacing:-.06em;color:#fff}
+.mobile-nav-close{width:40px;height:40px;border:1px solid #ffffff40;border-radius:10px;background:#ffffff14;color:#fff;font-size:26px;line-height:1}
+.mobile-nav-sub{margin:0 0 22px;color:#aab8d2!important;font-size:12px;letter-spacing:.03em}
+.mobile-nav .nav{gap:4px!important}
+.mobile-nav .nav a{display:block!important;padding:13px 14px!important;border-radius:10px!important;color:#eaf0ff!important;text-decoration:none!important;font-size:15px!important;font-weight:550!important;line-height:1.35!important}
+.mobile-nav .nav a:hover,.mobile-nav .nav a:focus-visible{background:#ffffff1b!important}
+.editor-layout .editor-top h1{font-size:clamp(22px,3vw,30px)!important;line-height:1.2!important;margin:4px 0 0!important}
+@media(max-width:950px){body.nav-open{overflow:hidden}body.nav-open .mobile-nav{display:flex!important}body.nav-open .nav-overlay{display:block!important;position:fixed;inset:0;z-index:70;background:rgba(4,10,25,.6)}.mobile-nav{box-shadow:12px 0 35px #0002}.editor-layout .editor-form>.panel{margin-top:12px!important}}
