@@ -1,0 +1,106 @@
+/* comesy Dashboard v2. Shared shell tokens live in admin-v2.css. */
+body.comesy-admin .ui-dashboard{
+ max-width:1380px;margin:0 auto;padding:28px 30px 52px;
+ min-width:0;
+}
+body.comesy-admin .ui-dashboard .ui-page-header{margin-bottom:24px}
+body.comesy-admin .ui-kpi-grid{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0 0 18px;
+}
+body.comesy-admin .ui-kpi-card{
+ min-width:0;min-height:156px;display:flex;flex-direction:column;justify-content:space-between;
+ background:var(--ui-surface);border:1px solid var(--ui-border);
+ border-radius:var(--ui-radius);padding:19px 20px;
+ text-decoration:none!important;color:var(--ui-text)!important;
+ transition:border-color .16s,transform .16s,box-shadow .16s;
+}
+body.comesy-admin .ui-kpi-card:hover{
+ border-color:var(--ui-primary);transform:translateY(-2px);
+ box-shadow:0 12px 24px rgba(26,43,75,.07);
+}
+body.comesy-admin .ui-kpi-top{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;font-weight:650;color:var(--ui-text-secondary)}
+body.comesy-admin .ui-kpi-icon{width:36px;height:36px;flex:none;display:grid;place-items:center;border-radius:11px;background:rgba(67,110,234,.10);color:var(--ui-primary)}
+body.comesy-admin .ui-kpi-icon.review{background:rgba(230,167,45,.12);color:var(--ui-warning)}
+body.comesy-admin .ui-kpi-value{font-variant-numeric:tabular-nums;display:block;font-size:34px;line-height:1.1;letter-spacing:-.045em;font-weight:760;color:var(--ui-text);margin:10px 0 5px}
+body.comesy-admin .ui-kpi-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px;font-weight:550;color:var(--ui-text-secondary)}
+body.comesy-admin .ui-kpi-foot span{font-size:16px;color:var(--ui-primary);font-weight:750}
+body.comesy-admin .ui-dashboard-columns{
+ display:grid;grid-template-columns:minmax(0,1.55fr) minmax(295px,.9fr);align-items:start;gap:18px;
+}
+body.comesy-admin .ui-dashboard-aside{min-width:0;display:grid;gap:18px}
+body.comesy-admin .ui-recent-panel{min-height:295px}
+body.comesy-admin .ui-panel-subtitle{font-size:12px;color:var(--ui-text-secondary);margin:5px 0 0}
+body.comesy-admin .ui-dashboard .ui-panel-header{margin-bottom:10px}
+body.comesy-admin .ui-recent-panel .ui-row{min-height:61px}
+body.comesy-admin .ui-recent-panel .ui-status{margin-left:6px}
+body.comesy-admin .ui-queue-dot{width:8px;height:8px;flex:none;border-radius:100%;background:var(--ui-warning);box-shadow:0 0 0 4px rgba(230,167,45,.12)}
+body.comesy-admin .ui-shortcuts{padding-bottom:12px}
+body.comesy-admin .ui-shortcuts a{
+ display:flex;align-items:center;justify-content:space-between;gap:8px;
+ color:var(--ui-text)!important;font-size:13px;text-decoration:none!important;
+ border-top:1px solid var(--ui-border);min-height:46px;font-weight:590;
+}
+body.comesy-admin .ui-shortcuts a:hover{color:var(--ui-primary)!important}
+body.comesy-admin .ui-shortcuts a .ui-icon{width:16px;height:16px;color:var(--ui-text-secondary)}
+body.comesy-admin .ui-empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:200px}
+body.comesy-admin .ui-empty-state strong{color:var(--ui-text);font-size:13px}
+body.comesy-admin .ui-empty-state .ui-btn{margin-top:6px}
+body.comesy-admin .ui-empty-icon{
+ display:grid;place-items:center;margin:0 0 13px;
+ width:42px;height:42px;border-radius:12px;color:var(--ui-primary);
+ background:rgba(67,110,234,.09);
+}
+body.comesy-admin .ui-empty-compact{min-height:130px;padding:13px 6px}
+body.comesy-admin .ui-empty-compact p{margin-bottom:0}
+body.comesy-admin .ui-setup-notice{
+ display:flex;align-items:center;gap:12px;margin:-2px 0 18px;padding:14px 16px;
+ border:1px solid rgba(196,129,30,.3);border-radius:12px;
+ background:rgba(228,164,55,.075);font-size:13px;
+}
+body.comesy-admin .ui-setup-notice>.ui-icon{color:var(--ui-warning)}
+body.comesy-admin .ui-setup-notice strong{color:var(--ui-text)}
+body.comesy-admin .ui-setup-notice p{margin:4px 0 0;color:var(--ui-text-secondary);font-size:12px}
+body.comesy-admin .ui-setup-notice a{margin-left:auto;white-space:nowrap;color:var(--ui-primary);font-weight:750;text-decoration:none}
+@media(max-width:1250px){
+ body.comesy-admin .ui-dashboard{padding:24px 23px 44px}
+ body.comesy-admin .ui-kpi-grid{gap:10px}
+ body.comesy-admin .ui-kpi-card{padding:16px;min-height:148px}
+ body.comesy-admin .ui-dashboard-columns{grid-template-columns:minmax(0,1.45fr) minmax(255px,.9fr);gap:13px}
+}
+@media(max-width:900px){
+ body.comesy-admin .ui-dashboard-columns{grid-template-columns:1fr}
+ body.comesy-admin .ui-dashboard-aside{grid-template-columns:repeat(2,minmax(0,1fr))}
+ body.comesy-admin .ui-dashboard .ui-page-header{margin-bottom:19px}
+}
+@media(max-width:767px){
+ body.comesy-admin .ui-dashboard{padding:17px 14px 36px}
+ body.comesy-admin .ui-dashboard .ui-page-header{margin-bottom:16px}
+ body.comesy-admin .ui-dashboard .ui-page-description{max-width:260px;line-height:1.4}
+ body.comesy-admin .ui-dashboard .ui-page-actions .ui-btn{font-size:12px;padding:10px 11px}
+ body.comesy-admin .ui-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:13px}
+ body.comesy-admin .ui-kpi-card{min-height:135px;border-radius:12px;padding:13px}
+ body.comesy-admin .ui-kpi-top{font-size:12px;align-items:flex-start}
+ body.comesy-admin .ui-kpi-icon{width:30px;height:30px;border-radius:8px}
+ body.comesy-admin .ui-kpi-icon .ui-icon{width:17px;height:17px}
+ body.comesy-admin .ui-kpi-value{font-size:29px;margin:7px 0 5px}
+ body.comesy-admin .ui-kpi-foot{font-size:10px;line-height:1.4}
+ body.comesy-admin .ui-dashboard-columns{gap:12px}
+ body.comesy-admin .ui-dashboard-aside{grid-template-columns:1fr;gap:12px}
+ body.comesy-admin .ui-recent-panel{min-height:0}
+ body.comesy-admin .ui-panel-subtitle{font-size:11px}
+ body.comesy-admin .ui-row-title{font-size:13px}
+ body.comesy-admin .ui-row-meta{font-size:11px}
+ body.comesy-admin .ui-recent-panel .ui-row{min-height:55px}
+ body.comesy-admin .ui-recent-panel .ui-status{max-width:130px;text-overflow:ellipsis;overflow:hidden}
+ body.comesy-admin .ui-setup-notice{align-items:flex-start;flex-wrap:wrap}
+}
+@media(max-width:360px){
+ body.comesy-admin .ui-dashboard{padding-left:11px;padding-right:11px}
+ body.comesy-admin .ui-kpi-card{padding:11px}
+ body.comesy-admin .ui-kpi-foot{font-size:9px}
+ body.comesy-admin .ui-kpi-value{font-size:27px}
+}
+@media(prefers-reduced-motion:reduce){
+ body.comesy-admin .ui-kpi-card{transition:none}
+ body.comesy-admin .ui-kpi-card:hover{transform:none}
+}
