@@ -55,6 +55,7 @@ try{
  assert(await menu.isVisible(),'Mobile hamburger missing');
  await menu.click();
  assert((await menu.getAttribute('aria-expanded'))==='true','Drawer did not open');
+ await mobile.waitForTimeout(350);
  assert((await mobile.locator('.comesy-sidebar').boundingBox()).x>=-2,'Drawer not visible after opening');
  await mobile.keyboard.press('Escape');
  assert((await menu.getAttribute('aria-expanded'))==='false','Escape must close menu');
