@@ -36,7 +36,7 @@ function ed_blocks($raw):array{
 $error='';$message='';$article=null;$id=max(0,(int)($_GET['id']??0));
 try{
  $pdo=db();
- if($id){$q=$pdo->prepare('SELECT * FROM articles WHERE id=?');$q->execute([$id]);$article=$q->fetch();if(!$article)throw new RuntimeException('A cikk nem található.');}
+ if($id){$q=$pdo->prepare('SELECT * FROM articles WHERE id=?');$q->execute([$id]);$article=$q->fetch();if(!$article)throw new RuntimeException('A cikk nem található.');if(!in_array((int)$article['site_id'],allowed_primary_sites($pdo,$u),true))throw new RuntimeException('Nincs jogosultság a cikk szerkesztéséhez.');}
  if($_SERVER['REQUEST_METHOD']==='POST'){
   if(!valid_csrf())throw new RuntimeException('Lejárt munkamenet. Frissítsd az oldalt.');
   $action=(string)($_POST['action']??'save');
@@ -58,7 +58,7 @@ try{
   $siteChoices=array_values(array_unique(array_filter(array_map('intval',(array)($_POST['site_ids']??[])))));
   $siteId=(int)($siteChoices[0]??0);
   if(count($siteChoices)!==1)throw new RuntimeException('Egy cikkhez jelenleg egy webhely választható.');
-  $q=$pdo->prepare('SELECT id FROM sites WHERE id=?');$q->execute([$siteId]);if(!$q->fetch())throw new RuntimeException('Válassz webhelyet.');
+  $q=$pdo->prepare('SELECT id FROM sites WHERE id=?');$q->execute([$siteId]);if(!$q->fetch())throw new RuntimeException('Válassz webhelyet.');if(!in_array($siteId,allowed_primary_sites($pdo,$u),true))throw new RuntimeException('Nincs jogosultság a kiválasztott webhelyhez.');
   $termIds=array_values(array_unique(array_filter(array_map('intval',(array)($_POST['terms']??[])))));
   $newCategories=array_filter(array_map('trim',preg_split('/[,;]+/u',(string)($_POST['new_categories']??''))));
   $tagNames=array_filter(array_map('trim',preg_split('/[,;]+/u',(string)($_POST['tag_names']??''))));
@@ -83,7 +83,7 @@ try{
    $pdo->prepare('DELETE FROM article_terms WHERE article_id=?')->execute([$id]);
    $check=$pdo->prepare('SELECT id,site_id FROM taxonomy_terms WHERE id=?');
    $link=$pdo->prepare('INSERT INTO article_terms(article_id,term_id) VALUES(?,?)');
-   foreach($termIds as $tid){$check->execute([$tid]);$term=$check->fetch();if(!$term||!in_array((int)$term['site_id'],allowed_resource_sites($pdo,$u,'tags'),true))throw new RuntimeException('Érvénytelen besorolás.');$link->execute([$id,$tid]);}
+   foreach($termIds as $tid){$check->execute([$tid]);$term=$check->fetch();if(!$term||(int)$term['site_id']!==$siteId)throw new RuntimeException('Érvénytelen besorolás.');$link->execute([$id,$tid]);}
    $pdo->prepare('INSERT INTO article_meta(article_id,seo_title,seo_description) VALUES(?,?,?) ON DUPLICATE KEY UPDATE seo_title=VALUES(seo_title),seo_description=VALUES(seo_description)')->execute([$id,$seoTitle,$seoDescription]);
    $q=$pdo->prepare('SELECT COALESCE(MAX(revision_number),0)+1 FROM article_revisions WHERE article_id=?');$q->execute([$id]);$num=(int)$q->fetchColumn();
    $q=$pdo->prepare('INSERT INTO article_revisions(article_id,editor_id,revision_number,title,lead,content_json,status) VALUES(?,?,?,?,?,?,?)');
@@ -94,6 +94,7 @@ try{
   }catch(Throwable $e){$pdo->rollBack();throw $e;}
  }
  $sites=$pdo->query('SELECT id,name FROM sites ORDER BY name')->fetchAll();
+ $primaryIds=allowed_primary_sites($pdo,$u);$sites=array_values(array_filter($sites,fn($s)=>in_array((int)$s['id'],$primaryIds,true)));
  if(!$sites&&$u['role']==='platform_admin'){
   $pdo->prepare('INSERT INTO sites(name,domain,slug) VALUES(?,?,?)')->execute(['comesy demo','demo.local','comesy-demo']);
   $sites=$pdo->query('SELECT id,name FROM sites ORDER BY name')->fetchAll();
