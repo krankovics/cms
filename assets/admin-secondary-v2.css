@@ -122,3 +122,10 @@ body.comesy-admin .ui-permission-checks{margin-top:13px}
  body.comesy-admin .ui-permission-item>summary{cursor:default}
  body.comesy-admin .ui-permission-item>summary::after{display:none}
 }
+
+body.comesy-admin .ed-featured{padding:11px 0;border-bottom:1px solid var(--ui-border);margin-bottom:14px}
+body.comesy-admin .ed-featured>summary{font-size:13px;font-weight:720;color:var(--ui-text);cursor:pointer;min-height:42px;display:flex;align-items:center}
+body.comesy-admin .ui-editor-featured-body{padding:2px 0 10px}
+body.comesy-admin .ui-featured-preview{width:100%;max-height:175px;object-fit:contain;border-radius:10px;background:var(--ui-surface-subtle);border:1px solid var(--ui-border);margin-top:10px}
+body.comesy-admin .ui-featured-preview[hidden]{display:none}
+body.comesy-admin .ui-editor-featured-body a{color:var(--ui-primary)}
