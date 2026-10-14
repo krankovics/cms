@@ -15,12 +15,27 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   if(ops.length)quill.setContents({ops},'silent');
  }
- document.getElementById('insert-recommendation').addEventListener('click',()=>{
-  const kind=prompt('Ajánló típusa: cikk vagy könyv?','cikk');
-  if(!['cikk','könyv'].includes(kind))return;
-  const url=prompt('Az ajánlott tartalom URL-je (https://)');
-  if(!url)return;
-  try{const u=new URL(url);if(!['https:','http:'].includes(u.protocol))throw Error();const index=quill.getSelection(true)?.index??quill.getLength();quill.insertText(index,'\n['+(kind==='könyv'?'Könyvajánló':'Cikkajánló')+'] '+url+'\n','user')}catch(e){alert('Érvénytelen URL')}
+ const modal=document.getElementById('ed-modal');
+ const modalTitle=document.getElementById('ed-modal-title');
+ const modalBody=document.getElementById('ed-modal-body');
+ const modalActions=document.getElementById('ed-modal-actions');
+ function showDialog(title,fields,buttons){
+  return new Promise(resolve=>{
+   modalTitle.textContent=title;modalBody.replaceChildren();modalActions.replaceChildren();
+   const inputs=fields.map(field=>{const label=document.createElement('label');label.textContent=field.label;const input=document.createElement('input');input.value=field.value||'';input.placeholder=field.placeholder||'';input.type=field.type||'text';label.append(input);modalBody.append(label);return input});
+   let finished=false;
+   const done=value=>{if(finished)return;finished=true;modal.close();resolve(value)};
+   buttons.forEach(button=>{const b=document.createElement('button');b.type='button';b.textContent=button.label;b.className=button.primary?'ed-modal-primary':'ed-modal-secondary';b.onclick=()=>done(button.cancel?null:inputs.map(x=>x.value));modalActions.append(b)});
+   modal.oncancel=e=>{e.preventDefault();done(null)};
+   modal.showModal();inputs[0]?.focus();
+  });
+ }
+ document.getElementById('insert-recommendation').addEventListener('click',async()=>{
+  const kind=await showDialog('Ajánló beszúrása',[{label:'Típus',value:'cikk',placeholder:'cikk vagy könyv'},{label:'Ajánlott tartalom URL-je',type:'url',placeholder:'https://'}],[{label:'Mégse',cancel:true},{label:'Beszúrás',primary:true}]);
+  if(!kind)return;
+  const [type,url]=kind;
+  if(!['cikk','könyv'].includes(type.trim().toLowerCase())){await showDialog('Érvénytelen típus',[],[{label:'Rendben',primary:true}]);return}
+  try{const u=new URL(url);if(!['https:','http:'].includes(u.protocol))throw Error();const index=quill.getSelection(true)?.index??quill.getLength();quill.insertText(index,'\\n['+(type==='könyv'?'Könyvajánló':'Cikkajánló')+'] '+url+'\\n','user')}catch(e){await showDialog('Érvénytelen URL',[],[{label:'Rendben',primary:true}])}
  });
  const siteChecks=[...document.querySelectorAll('.ed-site-check')];
  const syncSite=()=>{
@@ -80,11 +95,16 @@ document.addEventListener('DOMContentLoaded',()=>{
  search?.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===','){e.preventDefault();const first=suggestions.querySelector('button');if(first&&e.key==='Enter')first.click();else chooseTag(search.value)}if(e.key==='Escape')suggestions.hidden=true});
  allTags.forEach(l=>l.querySelector('input').addEventListener('change',refreshTags));
  syncSite();
- form.addEventListener('submit',e=>{if(!siteChecks.some(x=>x.checked)){e.preventDefault();alert('Válassz webhelyet.');return}if(search.value.trim())chooseTag(search.value)});
+ form.addEventListener('submit',e=>{if(!siteChecks.some(x=>x.checked)){e.preventDefault();showDialog('Válassz webhelyet',[],[{label:'Rendben',primary:true}]);return}if(search.value.trim())chooseTag(search.value)});
  const serialize=()=>[{type:'richtext',text:JSON.stringify(quill.getContents())}];
  const backupKey='comesy-wysiwyg-'+new URLSearchParams(location.search).get('id');
  const saved=(()=>{try{return JSON.parse(localStorage.getItem(backupKey)||'null')}catch(e){return null}})();
- if(saved&&saved.time&&saved.time>Date.now()-7*86400000&&confirm('Találtam egy helyi biztonsági másolatot. Visszaállítod?')){
+ if(saved&&saved.time&&saved.time>Date.now()-7*86400000){
+  const answer=awaitRestore(saved);
+ }
+ async function awaitRestore(saved){
+ const answer=await showDialog('Helyi piszkozat található',[],[{label:'Megtartom a jelenlegit',cancel:true},{label:'Piszkozat visszaállítása',primary:true}]);
+ if(answer===null)return;
   document.getElementById('title').value=saved.title||'';
   document.getElementById('lead').value=saved.lead||'';
   if(saved.delta?.ops)quill.setContents(saved.delta);
