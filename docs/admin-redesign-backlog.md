@@ -3,7 +3,7 @@
 Kapcsolódó alapdokumentum: [Admin UI v2 design system](./admin-design-system.md).  
 Cél: modulonként bevezethető, regresszióbiztos SaaS-admin UI desktopon és mobilon.
 
-**Állapotjelölések:** `TODO`, `IN PROGRESS`, `DONE`, `BLOCKED`. Kezdetkor minden feladat `TODO`; a terveket nem tekintjük implementált funkciónak.
+**Állapot:** Az S0–S4 tervezett admin UI-átépítés elkészült. A működő modulok kódja éles telepítésre előkészített, és izolált adatbázison, HTTP-s valamint Chromium-böngészős tesztekkel ellenőrzött. Az iPhone Safari fizikai készülékes elfogadási teszt külön ellenőrzési pont, nem igazolt automatikus teszt.
 
 ## Építési sorrend és függőségek
 
@@ -22,7 +22,7 @@ Cél: modulonként bevezethető, regresszióbiztos SaaS-admin UI desktopon és m
 | S3 | P1 | Átfogó a11y, dark/light és iPhone Safari ellenőrzés | minden oldal | közepes |
 | S4 | P2 | Legacy CSS és inline style szabályok konszolidációja | minden oldal migrált | közepes |
 
-## S0. Egységes alkalmazáskeret [P0 / TODO]
+## S0. Egységes alkalmazáskeret [P0 / DONE]
 
 **Érintett fájlok:** `app/header.php`, `assets/ui.css`, tervezett `assets/admin-v2.css`, `assets/ui.js`.
 
@@ -37,7 +37,7 @@ Feladat:
 
 **Elfogadás:** desktopon nincs hamburgerre kényszerülő navigáció, mobilon 320 px-en sem lóg ki a header, a drawer Escape-re és overlay-kattintásra zár, fókusz visszakerül a megnyitó gombra.
 
-## S1. Áttekintés [P0 / TODO]
+## S1. Áttekintés [P0 / DONE]
 
 **Érintett:** `index.php`
 
@@ -49,7 +49,7 @@ Feladat:
 
 **Elfogadás:** 390 px-en a négy KPI legfeljebb két sor; első képernyőn elérhető legalább egy hasznos akció; 1366 px-en látható a munkasor.
 
-## S1. Cikkek [P0 / TODO]
+## S1. Cikkek [P0 / DONE]
 
 **Érintett:** `articles.php`
 
@@ -62,7 +62,7 @@ Feladat:
 
 **Elfogadás:** a keresés URL-ben marad meg újratöltéskor; nincs táblázatból eredő oldalirányú görgetés mobilon; legalább 1000 cikk kezelése áttekinthető.
 
-## S1. Kategóriák és címkék [P0 / TODO]
+## S1. Kategóriák és címkék [P0 / DONE]
 
 **Érintett:** `taxonomy.php`, `assets/ui.js`, `app/taxonomy-actions.php`
 
@@ -76,7 +76,7 @@ Feladat:
 
 **Elfogadás:** mobilon az első látható listatétel maximum egy képernyőnyi görgetésre; a form nem látszik állandóan; nem ismétlődnek azonos fogalmak azonos nézetben; valódi jogosultsági kontroll van.
 
-## S2. Médiatár [P0 / TODO]
+## S2. Médiatár [P0 / DONE]
 
 **Érintett:** `media.php`, `media-file.php`, `editor-upload.php`
 
@@ -89,7 +89,7 @@ Feladat:
 
 **Elfogadás:** 390 px-en kétoszlopos galéria; keresés és site filter a galéria előtt; a fájlválasztó nem uralja a képernyőt.
 
-## S2. Cikkszerkesztő [P1 / TODO]
+## S2. Cikkszerkesztő [P1 / DONE]
 
 **Érintett:** `editor.php`, `assets/editor.js`
 
@@ -102,7 +102,7 @@ Feladat:
 
 **Elfogadás:** iPhone-on a képbeillesztés és mentés tesztje sikeres; a mentés látható marad; státusz és kategória módosítása nem ugráltatja az oldalt.
 
-## S2. Felhasználók [P1 / TODO]
+## S2. Felhasználók [P1 / DONE]
 
 **Érintett:** `users.php`, `site-permissions.php`
 
@@ -115,7 +115,7 @@ Feladat:
 
 **Elfogadás:** mobilon első foldon kereső és néhány felhasználó, nem teljes hosszú űrlap; sorok 44 px vagy nagyobb kattintási céllal.
 
-## S3. Webhelyek, jogosultságok, profil és beállítások [P1 / TODO]
+## S3. Webhelyek, jogosultságok, profil és beállítások [P1 / DONE]
 
 **Érintett:** `sites.php`, `site-permissions.php`, `profile.php`, `settings.php`, `migrate.php`
 
@@ -155,3 +155,15 @@ Az üzleti logikát nem változtathatja meg a vizuális redesign; minden fázisb
 - Üzleti szempontból elkülönítendő: közös cikk-hozzárendelés vs. külső webhelyre publikálás.
 
 A fenti döntések hiányában az alapértelmezett implementáció egyszerű, függőség nélküli, működő megoldást követ.
+
+## Megvalósítási összefoglaló
+
+- **S0**: szemantikus design tokenek; kibontható/összecsukható, állapotot megőrző desktop navigáció; fókuszkezelt mobilmenü; világos és sötét téma.
+- **S1**: szerkesztőségi KPI/dashboard, szerveroldali cikklista-lapozás, mobilos szűrőpanel és aktív filterek, hierarchikus kategóriák, globális fogalomtár, megerősített tömeges törlés.
+- **S2**: galéria-központú médiatár feltöltési visszajelzéssel és alternatívszöveg-szerkesztéssel; Quill-cikkszerkesztő összehajtható meta-panelekkel, kiemelt képpel, revíziókkal, mentetlen tartalomra figyelmeztetéssel; felhasználókezelő jogosultsági linkekkel és inaktiválás-megerősítéssel.
+- **S3**: mobilos webhelyszerkesztő-panel, webhelyenként lenyitható hozzáférési mátrix, saját profil, settings, guarded migráció.
+- **S4**: régi admin- és taxonomy-CSS felülírások eltávolítása; külön admin, listaszerkesztő és auth stíluslapok; nem módosuló PHP üzleti jogosultságok.
+
+**CI minőségkapuk:** PHP/JS lint, izolált MySQL, teljes cikkmentés/publikálás, kategórialétrehozás, médiatár/feltöltés/alt-szerkesztés, felhasználólétrehozás, szerepkörös hozzáférésvizsgálat, 12 adminnézet 320/390/768/1366/1920 px-en, sötét mód és képmentés. Éles FTP-telepítés csak a zöld tesztek után történik.
+
+**Külön termékfejlesztések:** külső kiadói oldalak tényleges cikkátvétele, további dokumentumformátumok (PDF, videó), fejlett média-bulk funkciók és szerkesztőségi jóváhagyási automatizmusok. Ezek nem képezik az Admin UI v2 vizuális átépítésének szállítását.
