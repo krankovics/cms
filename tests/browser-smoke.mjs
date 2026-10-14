@@ -107,6 +107,10 @@ try{
  assert((await admin.locator('.ui-asset').count())===1,'Uploaded image missing');
  await admin.locator('.ui-asset-preview').first().click();
  assert(await admin.locator('#media-inspector').evaluate(el=>el.classList.contains('is-open')),'Media detail drawer missing');
+ await admin.locator('[data-asset-alt-form] [name="alt"]').fill('Megújított képleírás');
+ await Promise.all([admin.waitForURL(/saved=alt/),admin.locator('[data-asset-alt-form] button[type="submit"]').click()]);
+ await admin.locator('.ui-asset-preview').first().click();
+ assert((await admin.locator('[data-asset-detail-alt]').textContent()).includes('Megújított képleírás'),'Alt text update not persisted');
  await admin.locator('#media-inspector [data-panel-close]').first().click();
  await admin.goto(base+'/users.php',{waitUntil:'networkidle'});
  await admin.locator('[data-ui-search="user-list"]').fill('editor');
