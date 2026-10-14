@@ -22,7 +22,7 @@ foreach(['Teszt portál A','Teszt portál B','Teszt portál C'] as $i=>$name){
  $q->execute([$name,'test'.$i.'.invalid','test-'.$i]);$sites[]=(int)$pdo->lastInsertId();
 }
 $uid=[];
-foreach(['editor','author','platform_admin'] as $role){
+foreach(['editor','author','site_admin','ad_manager','platform_admin'] as $role){
  $q=$pdo->prepare('INSERT INTO users(email,name,password_hash,role) VALUES(?,?,?,?)');
  $q->execute([$role.'@testing.invalid',ucfirst($role),password_hash('StrongTestingPwd!2026',PASSWORD_DEFAULT),$role]);
  $uid[$role]=(int)$pdo->lastInsertId();
@@ -31,11 +31,14 @@ $q=$pdo->prepare('INSERT INTO user_site_permissions(user_id,site_id,is_primary,c
 $q->execute([$uid['editor'],$sites[0],1,1,1]);
 $q->execute([$uid['editor'],$sites[1],1,1,1]);
 $q->execute([$uid['author'],$sites[2],1,1,1]);
+$q->execute([$uid['site_admin'],$sites[1],1,1,1]);
 $editor=['id'=>$uid['editor'],'role'=>'editor'];
 $author=['id'=>$uid['author'],'role'=>'author'];
+$siteAdmin=['id'=>$uid['site_admin'],'role'=>'site_admin'];
 $sitesForEditor=[$sites[0],$sites[1]];
 ok(allowed_primary_sites($pdo,$editor)===$sitesForEditor,'Editor must be allowed on two sites.');
 ok(allowed_primary_sites($pdo,$author)===[$sites[2]],'Author must have an isolated editable site.');
+ok(allowed_primary_sites($pdo,$siteAdmin)===[$sites[1]],'Site admin may edit only assigned sites.');
 ok(in_array(0,allowed_resource_sites($pdo,$editor,'tags'),true),'Shared taxonomy must be visible to editor.');
 ok(!in_array($sites[2],allowed_primary_sites($pdo,$editor),true),'Editor must not edit a third site.');
 $q=$pdo->prepare("INSERT INTO articles(site_id,author_id,title,slug,status,content_json) VALUES(?,?,?,'teszt-cikk','draft','[]')");
