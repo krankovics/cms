@@ -21,6 +21,14 @@ try{
    if(width===390||width===1366)await page.screenshot({path:'ui-preview/audit-'+width+'-'+route.replace(/[^a-z]/g,'')+'.png',fullPage:true});
   }
  }
+ await page.evaluate(()=>localStorage.setItem('comesy-theme','dark'));
+ for(const route of ['/','/articles.php','/editor.php','/taxonomy.php','/media.php','/sites.php','/users.php','/site-permissions.php','/profile.php','/settings.php']){
+  await page.goto(base+route,{waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>document.documentElement.dataset.theme==='dark');
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
+  assert(overflow<=2,'Dark theme overflow on '+route);
+ }
+ await page.evaluate(()=>localStorage.setItem('comesy-theme','light'));
  await page.goto(base+'/sites.php');
  await page.locator('input[name=name]').fill('Teszt webhely D');
  await page.locator('input[name=domain]').fill('site-d.example');
