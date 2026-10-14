@@ -71,6 +71,14 @@
    try{await navigator.clipboard.writeText(text);button.textContent='Másolva';}
    catch{window.prompt('Kép URL-je:',text);}
   }));
+  document.querySelectorAll('[data-ui-dialog-open]').forEach(button=>button.addEventListener('click',()=>{
+   const dialog=document.getElementById(button.dataset.uiDialogOpen);
+   if(dialog&&typeof dialog.showModal==='function')dialog.showModal();
+  }));
+  document.querySelectorAll('[data-ui-dialog-close]').forEach(button=>button.addEventListener('click',()=>button.closest('dialog')?.close()));
+  document.querySelectorAll('dialog.ui-upload-dialog').forEach(dialog=>dialog.addEventListener('click',e=>{
+   if(e.target===dialog)dialog.close();
+  }));
   document.querySelectorAll('[data-ui-file-preview]').forEach(input=>input.addEventListener('change',()=>{
    const label=document.querySelector('[data-ui-file-name-for="'+input.id+'"]');
    if(label)label.textContent=input.files?.[0]?.name||'Nincs kiválasztott fájl';
