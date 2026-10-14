@@ -7,7 +7,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
  else{
   try{
    $pdo=db();
-   $sql=file_get_contents(__DIR__.'/database/editor.sql');
+   $sql=file_get_contents(__DIR__.'/database/editor.sql')."\n".file_get_contents(__DIR__.'/database/content.sql');
    foreach(array_filter(array_map('trim',explode(';',$sql))) as $statement)$pdo->exec($statement);
    $message='A comesy Editor adatbázis-migrációja sikeresen lefutott.';
   }catch(Throwable $e){error_log('comesy migration: '.$e->getMessage());$error='A migráció sikertelen. Ellenőrizd az adatbázis jogosultságait.';}
