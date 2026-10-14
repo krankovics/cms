@@ -22,6 +22,65 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(!url)return;
   try{const u=new URL(url);if(!['https:','http:'].includes(u.protocol))throw Error();const index=quill.getSelection(true)?.index??quill.getLength();quill.insertText(index,'\n['+(kind==='könyv'?'Könyvajánló':'Cikkajánló')+'] '+url+'\n','user')}catch(e){alert('Érvénytelen URL')}
  });
+ const siteChecks=[...document.querySelectorAll('.ed-site-check')];
+ const syncSite=()=>{
+  const checked=siteChecks.filter(el=>el.checked);
+  const active=checked[0]?.value;
+  document.querySelectorAll('.ed-term,#ed-tag-existing label').forEach(el=>{
+   const visible=!active||el.dataset.site===active||el.dataset.site==='0';
+   el.hidden=!visible;
+   const input=el.querySelector('input');
+   if(input)input.disabled=!visible;
+  });
+  refreshTags();
+ };
+ siteChecks.forEach(el=>el.addEventListener('change',()=>{
+  if(el.checked)siteChecks.forEach(other=>{if(other!==el)other.checked=false});
+  if(!siteChecks.some(x=>x.checked))el.checked=true;
+  syncSite();
+ }));
+ if(siteChecks.length===1)siteChecks[0].checked=true;
+ const search=document.getElementById('ed-tag-search');
+ const suggestions=document.getElementById('ed-tag-suggestions');
+ const chips=document.getElementById('ed-tag-chips');
+ const newTags=new Map();
+ const allTags=[...document.querySelectorAll('#ed-tag-existing label')];
+ const normalize=s=>s.trim().toLocaleLowerCase('hu');
+ function refreshTags(){
+  chips.replaceChildren();
+  allTags.filter(l=>!l.hidden&&l.querySelector('input').checked).forEach(l=>{
+   const chip=document.createElement('span');chip.className='ed-chip';chip.textContent=l.dataset.label+' ';
+   const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.setAttribute('aria-label',l.dataset.label+' eltávolítása');remove.onclick=()=>{l.querySelector('input').checked=false;refreshTags()};chip.append(remove);chips.append(chip);
+  });
+  for(const [key,label] of newTags){
+   const chip=document.createElement('span');chip.className='ed-chip';chip.textContent=label+' ';
+   const remove=document.createElement('button');remove.type='button';remove.textContent='×';remove.onclick=()=>{newTags.delete(key);refreshTags()};chip.append(remove);chips.append(chip);
+  }
+  document.getElementById('ed-tag-names').value=[...newTags.values()].join(',');
+ }
+ function chooseTag(label){
+  const key=normalize(label);if(!key)return;
+  const found=allTags.find(l=>!l.hidden&&normalize(l.dataset.label)===key);
+  if(found)found.querySelector('input').checked=true;
+  else if(![...newTags.keys()].includes(key))newTags.set(key,label.trim());
+  search.value='';suggestions.hidden=true;search.setAttribute('aria-expanded','false');refreshTags();
+ }
+ function showSuggestions(){
+  const value=normalize(search.value);
+  suggestions.replaceChildren();
+  if(!value){suggestions.hidden=true;search.setAttribute('aria-expanded','false');return}
+  const matches=allTags.filter(l=>!l.hidden&&normalize(l.dataset.label).includes(value)).slice(0,8);
+  matches.forEach(l=>{const b=document.createElement('button');b.type='button';b.textContent=l.dataset.label;b.onclick=()=>chooseTag(l.dataset.label);suggestions.append(b)});
+  if(!matches.some(l=>normalize(l.dataset.label)===value)){
+   const b=document.createElement('button');b.type='button';b.textContent='+ Új címke: '+search.value.trim();b.onclick=()=>chooseTag(search.value);suggestions.append(b);
+  }
+  suggestions.hidden=false;search.setAttribute('aria-expanded','true');
+ }
+ search?.addEventListener('input',showSuggestions);
+ search?.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===','){e.preventDefault();const first=suggestions.querySelector('button');if(first&&e.key==='Enter')first.click();else chooseTag(search.value)}if(e.key==='Escape')suggestions.hidden=true});
+ allTags.forEach(l=>l.querySelector('input').addEventListener('change',refreshTags));
+ syncSite();
+ form.addEventListener('submit',e=>{if(!siteChecks.some(x=>x.checked)){e.preventDefault();alert('Válassz webhelyet.');return}if(search.value.trim())chooseTag(search.value)});
  const serialize=()=>[{type:'richtext',text:JSON.stringify(quill.getContents())}];
  const backupKey='comesy-wysiwyg-'+new URLSearchParams(location.search).get('id');
  const saved=(()=>{try{return JSON.parse(localStorage.getItem(backupKey)||'null')}catch(e){return null}})();
