@@ -103,7 +103,7 @@ try{
    $check=$pdo->prepare('SELECT id,site_id FROM taxonomy_terms WHERE id=?');
    $link=$pdo->prepare('INSERT INTO article_terms(article_id,term_id) VALUES(?,?)');
    foreach($termIds as $tid){$check->execute([$tid]);$term=$check->fetch();if(!$term||!in_array((int)$term['site_id'],allowed_resource_sites($pdo,$u,'tags'),true))throw new RuntimeException('Érvénytelen besorolás.');$link->execute([$id,$tid]);}
-   $pdo->prepare('INSERT INTO article_meta(article_id,seo_title,seo_description) VALUES(?,?,?) ON DUPLICATE KEY UPDATE seo_title=VALUES(seo_title),seo_description=VALUES(seo_description)')->execute([$id,$seoTitle,$seoDescription]);
+   $pdo->prepare('INSERT INTO article_meta(article_id,seo_title,seo_description,og_image_url) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE seo_title=VALUES(seo_title),seo_description=VALUES(seo_description),og_image_url=VALUES(og_image_url)')->execute([$id,$seoTitle,$seoDescription,$ogImageUrl]);
    $q=$pdo->prepare('SELECT COALESCE(MAX(revision_number),0)+1 FROM article_revisions WHERE article_id=?');$q->execute([$id]);$num=(int)$q->fetchColumn();
    $q=$pdo->prepare('INSERT INTO article_revisions(article_id,editor_id,revision_number,title,`lead`,content_json,status) VALUES(?,?,?,?,?,?,?)');
    $q->execute([$id,$u['id'],$num,$title,$lead,$json,$status]);
