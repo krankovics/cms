@@ -21,5 +21,21 @@ try{
    if(width===390||width===1366)await page.screenshot({path:'ui-preview/audit-'+width+'-'+route.replace(/[^a-z]/g,'')+'.png',fullPage:true});
   }
  }
+ // Verify that an author cannot access platform administration.
+ const author=await browser.newPage({viewport:{width:390,height:844}});
+ await author.goto(base+'/login.php');
+ await author.locator('[name=email]').fill('author@testing.invalid');
+ await author.locator('[name=password]').fill('StrongTestingPwd!2026');
+ await author.locator('button[type=submit]').click();
+ await author.waitForURL(base+'/');
+ for(const route of ['/users.php','/sites.php','/site-permissions.php','/migrate.php']){
+  const response=await author.goto(base+route);
+  assert.equal(response.status(),403,'Author must not access '+route);
+ }
+ for(const route of ['/editor.php','/articles.php','/media.php']){
+  const response=await author.goto(base+route);
+  assert.equal(response.status(),200,'Author access regression '+route);
+ }
+ await author.close();
  console.log('PASS: all 12 admin routes at 320, 390, 768, 1366 widths.');
 }finally{await browser.close();}
