@@ -36,4 +36,26 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   }catch(Throwable $e){$error=$e instanceof PDOException?'A módosítás nem sikerült.':$e->getMessage();}
  }
 }
-?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Profilbeállítások | comesy</title><link rel="stylesheet" href="/assets/ui.css"><script src="/assets/ui.js" defer></script></head><body><?php require __DIR__.'/app/header.php'; ?><main class="profile-wrap"><div class="profile-card"><h1>Profilbeállítások</h1><div class="profile-summary"><img class="avatar large" src="/avatar.php?v=<?=time()?>" alt="Profilkép"><div><strong><?=h($u['name'])?></strong><p><?=h($u['email'])?></p></div></div><?php if($message):?><p class="success"><?=h($message)?></p><?php endif;?><?php if($error):?><p class="error"><?=h($error)?></p><?php endif;?><section><h2>Profilkép</h2><form method="post" enctype="multipart/form-data"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="action" value="avatar"><label for="avatar">Kép feltöltése (JPG, PNG, WebP, max. 2 MB)</label><input type="file" id="avatar" name="avatar" accept="image/jpeg,image/png,image/webp" required><button type="submit">Profilkép mentése</button></form></section><section><h2>Alapadatok</h2><form method="post"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="action" value="name"><label for="name">Megjelenített név</label><input id="name" name="name" maxlength="190" value="<?=h($u['name'])?>" required><label>E-mail cím</label><input value="<?=h($u['email'])?>" disabled><button type="submit">Adatok mentése</button></form></section><section><h2>Jelszó módosítása</h2><form method="post"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="action" value="password"><label for="old">Jelenlegi jelszó</label><input id="old" name="current_password" type="password" autocomplete="current-password" required><label for="new">Új jelszó (min. 14 karakter)</label><input id="new" name="new_password" type="password" minlength="14" autocomplete="new-password" required><label for="confirm">Új jelszó újra</label><input id="confirm" name="confirm_password" type="password" minlength="14" autocomplete="new-password" required><button type="submit">Jelszó megváltoztatása</button></form></section><form method="post" action="/logout.php"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><button class="signout">Kijelentkezés</button></form></div></main></body></html>
+?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Profilbeállítások | comesy</title><link rel="stylesheet" href="/assets/ui.css"><script src="/assets/ui.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
+<main class="ui-admin-section" id="main-content">
+<header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Személyes beállítások</p><h1 class="ui-page-title">Saját profil</h1><p class="ui-page-description">Megjelenített név, profilkép és fiókbiztonság.</p></div></header>
+<div class="ui-profile-summary"><img class="avatar" src="/avatar.php?v=<?=time()?>" alt="Profilkép"><div><strong><?=h($u['name'])?></strong><p><?=h($u['email'])?></p></div></div>
+<?php if($message):?><p class="success" role="status"><?=h($message)?></p><?php endif;?>
+<?php if($error):?><p class="error" role="alert"><?=h($error)?></p><?php endif;?>
+<div class="ui-admin-grid">
+<section class="ui-admin-panel"><h2>Alapadatok</h2><form method="post" class="ui-admin-form">
+<input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="action" value="name">
+<label class="ui-field">Megjelenített név <input name="name" minlength="2" maxlength="190" required value="<?=h($u['name'])?>"></label>
+<label class="ui-field">E-mail cím <input value="<?=h($u['email'])?>" type="email" readonly title="Az e-mail cím nem módosítható ezen az oldalon."></label>
+<div class="ui-admin-actions"><button class="ui-btn ui-btn-primary" type="submit">Adatok mentése</button></div></form></section>
+<section class="ui-admin-panel"><h2>Profilkép</h2><form method="post" enctype="multipart/form-data" class="ui-admin-form">
+<input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="action" value="avatar">
+<label class="ui-field">Új kép (JPG, PNG, WebP, legfeljebb 2 MB) <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp" required></label>
+<div class="ui-admin-actions"><button class="ui-btn ui-btn-primary" type="submit">Profilkép mentése</button></div></form></section>
+<section class="ui-admin-panel ui-admin-full"><h2>Jelszó megváltoztatása</h2><form method="post" class="ui-admin-form">
+<input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="action" value="password">
+<label class="ui-field">Jelenlegi jelszó <input type="password" name="current_password" autocomplete="current-password" required></label>
+<label class="ui-field">Új jelszó <input type="password" name="new_password" autocomplete="new-password" minlength="14" required><small>Legalább 14 karakter.</small></label>
+<label class="ui-field">Új jelszó megerősítése <input type="password" name="confirm_password" autocomplete="new-password" minlength="14" required></label>
+<div class="ui-admin-actions"><button class="ui-btn ui-btn-primary" type="submit">Jelszó módosítása</button></div></form></section>
+</div></main></body></html>
