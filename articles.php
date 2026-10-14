@@ -51,14 +51,14 @@ function article_page_link(array $p,int $page):string{return '/articles.php?'.ht
 <div class="ui-result-bar"><span><strong><?=$total?></strong> cikk<?= $termId?' · Címke/kategória #'.(int)$termId:''?></span><span><?=$total?($offset+1).'–'.min($total,$offset+$perPage).' / '.$total:'Nincs találat'?></span></div>
 <section class="ui-panel ui-data-panel" aria-label="Cikklista">
 <?php if($articles):?>
-<div class="ui-table-wrap"><table class="ui-data-table"><thead><tr><th>Cikk címe</th><th>Webhely</th><th>Státusz</th><th>Utolsó módosítás</th></tr></thead><tbody id="article-list">
+<div class="ui-table-wrap"><table class="ui-data-table"><thead><tr><th>Cikk címe</th><th>Webhely</th><th>Státusz</th><th>Utolsó módosítás</th><th>Műveletek</th></tr></thead><tbody id="article-list">
 <?php foreach($articles as $a):?>
 <tr><td class="ui-cell-title">
 <?php if($canWrite&&$a['can_edit']):?><a class="ui-table-title" href="/editor.php?id=<?=(int)$a['id']?>"><?=h($a['title'])?></a><?php else:?><span class="ui-table-title"><?=h($a['title'])?></span><?php endif;?>
 <?php if(!$a['can_edit']):?><p class="ui-table-meta">Csak olvasás</p><?php endif;?></td>
 <td class="ui-cell-site"><span class="ui-cell-secondary"><?=h($a['site'])?><?php if((int)$a['site_count']>1):?> · +<?=((int)$a['site_count']-1)?> webhely<?php endif;?></span></td>
 <td class="ui-cell-status"><span class="ui-status ui-status-<?=h($a['status'])?>"><?=h($statusLabels[$a['status']]??$a['status'])?></span></td>
-<td class="ui-cell-date"><span class="ui-cell-secondary"><?=h($a['updated_at'])?></span></td></tr>
+<td class="ui-cell-date"><span class="ui-cell-secondary"><?=h($a['updated_at'])?></span></td><td class="ui-cell-actions"><?php if($canWrite&&$a['can_edit']):?><details class="ui-row-menu"><summary aria-label="Cikk műveletei" title="Műveletek">•••</summary><div class="ui-row-menu-items"><a href="/editor.php?id=<?=(int)$a['id']?>">Szerkesztés</a><a href="/editor.php?id=<?=(int)$a['id']?>#status">Státusz és publikálás</a></div></details><?php endif;?></td></tr>
 <?php endforeach;?></tbody></table></div>
 <?php else:?><div class="ui-empty-state"><strong>Nincs a feltételeknek megfelelő cikk.</strong><p>Próbálj más keresési kifejezést vagy szűrőt.</p><a class="ui-btn ui-btn-secondary" href="/articles.php">Szűrés törlése</a></div><?php endif;?>
 <?php if($total>$perPage):?><nav class="ui-pagination" aria-label="Cikklista lapozása"><span><?=$page?> / <?=$lastPage?>. oldal</span><div class="ui-pagination-links"><?php if($page>1):?><a href="<?=h(article_page_link($pagerParams,$page-1))?>" rel="prev">← Előző</a><?php endif;?><?php if($page<$lastPage):?><a href="<?=h(article_page_link($pagerParams,$page+1))?>" rel="next">Következő →</a><?php endif;?></div></nav><?php endif;?>
