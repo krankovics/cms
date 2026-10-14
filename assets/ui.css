@@ -129,3 +129,20 @@
 .mobile-nav .nav-submenu{display:flex;flex-direction:column;gap:2px;margin:2px 0 8px 12px;padding-left:12px;border-left:1px solid #ffffff38}
 .mobile-nav .nav-submenu a{font-size:14px!important;font-weight:450!important;padding:10px 12px!important;color:#cddaf1!important}
 .mobile-nav .nav-submenu a:hover,.mobile-nav .nav-submenu a:focus-visible{background:#ffffff1b!important;color:#fff!important}
+
+/* Taxonomy management */
+.taxonomy-edit label,.taxonomy-advanced label{display:flex;flex-direction:column;gap:6px;margin:12px 0;font-weight:600}
+.taxonomy-edit input,.taxonomy-edit textarea,.taxonomy-edit select,.taxonomy-advanced select{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:9px;background:var(--field);color:var(--ink);padding:10px;min-height:42px}
+.taxonomy-row{border-bottom:1px solid var(--line);padding:0!important}
+.taxonomy-row summary{display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;list-style:none;padding:13px 8px}
+.taxonomy-row summary::-webkit-details-marker{display:none}
+.taxonomy-row summary:after{content:"⌄";color:var(--muted)}
+.taxonomy-row[open] summary:after{content:"⌃"}
+.taxonomy-row>p,.taxonomy-row>a{margin:8px;display:inline-block}
+.taxonomy-count{font-size:12px;color:var(--muted);margin-left:auto;white-space:nowrap}
+.taxonomy-slug{font-size:12px;color:var(--muted)}
+.taxonomy-advanced{border-color:var(--line)}
+.taxonomy-advanced form{margin:12px 0}
+.taxonomy-advanced button{margin-top:5px}
+@media(min-width:850px){.taxonomy-edit{max-width:650px}}
+@media(max-width:700px){.taxonomy-row summary{padding:12px 2px}.taxonomy-edit label,.taxonomy-advanced label{font-size:14px}.taxonomy-edit input,.taxonomy-edit select,.taxonomy-edit textarea{font-size:16px}}
