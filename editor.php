@@ -76,7 +76,7 @@ try{
    $pdo->prepare('DELETE FROM article_terms WHERE article_id=?')->execute([$id]);
    $check=$pdo->prepare('SELECT id,site_id FROM taxonomy_terms WHERE id=?');
    $link=$pdo->prepare('INSERT INTO article_terms(article_id,term_id) VALUES(?,?)');
-   foreach($termIds as $tid){$check->execute([$tid]);$term=$check->fetch();if(!$term||((int)$term['site_id']!==0&&!in_array((int)$term['site_id'],allowed_resource_sites($pdo,$u,'tags'),true)))throw new RuntimeException('Érvénytelen besorolás.');$link->execute([$id,$tid]);}
+   foreach($termIds as $tid){$check->execute([$tid]);$term=$check->fetch();if(!$term||!in_array((int)$term['site_id'],allowed_resource_sites($pdo,$u,'tags'),true))throw new RuntimeException('Érvénytelen besorolás.');$link->execute([$id,$tid]);}
    $pdo->prepare('INSERT INTO article_meta(article_id,seo_title,seo_description) VALUES(?,?,?) ON DUPLICATE KEY UPDATE seo_title=VALUES(seo_title),seo_description=VALUES(seo_description)')->execute([$id,$seoTitle,$seoDescription]);
    $q=$pdo->prepare('SELECT COALESCE(MAX(revision_number),0)+1 FROM article_revisions WHERE article_id=?');$q->execute([$id]);$num=(int)$q->fetchColumn();
    $q=$pdo->prepare('INSERT INTO article_revisions(article_id,editor_id,revision_number,title,lead,content_json,status) VALUES(?,?,?,?,?,?,?)');
@@ -93,7 +93,7 @@ try{
  }
  if($id){$q=$pdo->prepare('SELECT * FROM articles WHERE id=?');$q->execute([$id]);$article=$q->fetch();}
  $visibleSites=allowed_resource_sites($pdo,$u,'tags');
- $terms=$pdo->query('SELECT id,site_id,type,name FROM taxonomy_terms WHERE site_id=0 OR site_id IN ('.implode(',',array_map('intval',$visibleSites?:[-1])).') ORDER BY type,name')->fetchAll();
+ $terms=$pdo->query('SELECT id,site_id,type,name FROM taxonomy_terms WHERE site_id IN ('.implode(',',array_map('intval',$visibleSites?:[-1])).') ORDER BY type,name')->fetchAll();
  $selectedTerms=[];if($id){$q=$pdo->prepare('SELECT term_id FROM article_terms WHERE article_id=?');$q->execute([$id]);$selectedTerms=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));}
  $meta=[];if($id){$q=$pdo->prepare('SELECT * FROM article_meta WHERE article_id=?');$q->execute([$id]);$meta=$q->fetch()?:[];}
  $revisions=[];
