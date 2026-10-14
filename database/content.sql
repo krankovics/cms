@@ -43,3 +43,13 @@ CREATE TABLE IF NOT EXISTS taxonomy_term_meta (
  FOREIGN KEY(term_id) REFERENCES taxonomy_terms(id) ON DELETE CASCADE,
  FOREIGN KEY(parent_id) REFERENCES taxonomy_terms(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS article_sites (
+ article_id BIGINT UNSIGNED NOT NULL,
+ site_id BIGINT UNSIGNED NOT NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY(article_id,site_id),
+ KEY idx_article_sites_site(site_id,article_id),
+ FOREIGN KEY(article_id) REFERENCES articles(id) ON DELETE CASCADE,
+ FOREIGN KEY(site_id) REFERENCES sites(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
