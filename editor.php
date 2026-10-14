@@ -36,7 +36,7 @@ function ed_blocks($raw):array{
 $error='';$message='';$article=null;$id=max(0,(int)($_GET['id']??0));
 try{
  $pdo=db();
- if($id){$q=$pdo->prepare('SELECT * FROM articles WHERE id=?');$q->execute([$id]);$article=$q->fetch();if(!$article)throw new RuntimeException('A cikk nem található.');if(!in_array((int)$article['site_id'],allowed_primary_sites($pdo,$u),true))throw new RuntimeException('Nincs jogosultság a cikk szerkesztéséhez.');}
+ if($id){$q=$pdo->prepare('SELECT * FROM articles WHERE id=?');$q->execute([$id]);$article=$q->fetch();if(!$article)throw new RuntimeException('A cikk nem található.');if(!in_array((int)$article['site_id'],allowed_primary_sites($pdo,$u),true))throw new RuntimeException('Nincs jogosultság a cikk szerkesztéséhez.');if($u['role']==='author'&&(int)$article['author_id']!==(int)$u['id'])throw new RuntimeException('Csak a saját cikkeidet szerkesztheted.');}
  if($_SERVER['REQUEST_METHOD']==='POST'){
   if(!valid_csrf())throw new RuntimeException('Lejárt munkamenet. Frissítsd az oldalt.');
   $action=(string)($_POST['action']??'save');
