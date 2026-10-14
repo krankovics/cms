@@ -42,6 +42,22 @@
    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
   });
+  const collapse=document.querySelector('[data-sidebar-collapse]');
+  if(collapse){
+   let compact=false;
+   try{compact=localStorage.getItem('comesy-sidebar-compact')==='1';}catch(e){}
+   const reflect=()=>{
+    document.body.classList.toggle('ui-sidebar-compact',compact);
+    collapse.setAttribute('aria-pressed',String(compact));
+    collapse.setAttribute('aria-label',compact?'Oldalsáv kibontása':'Oldalsáv összecsukása');
+    collapse.title=compact?'Oldalsáv kibontása':'Oldalsáv összecsukása';
+   };
+   reflect();
+   collapse.addEventListener('click',()=>{
+    compact=!compact;reflect();
+    try{localStorage.setItem('comesy-sidebar-compact',compact?'1':'0');}catch(e){}
+   });
+  }
   themeButtons.forEach(button=>button.addEventListener('click',()=>{
    const next=root.dataset.theme==='dark'?'light':'dark';
    root.dataset.theme=next;
