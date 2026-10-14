@@ -4,6 +4,13 @@
 
 Moduláris, PHP/MySQL-alapú, több webhelyet kezelő szerkesztőségi CMS. A márkanév mindig **comesy** (kisbetűvel).
 
+## Adminfelület v2 tervezés
+
+- [Admin UI v2 design system](docs/admin-design-system.md): modern SaaS layout, breakpointok, komponensek, világos/sötét színek és hozzáférhetőség.
+- [Admin redesign backlog](docs/admin-redesign-backlog.md): oldalszintű feladatok, sprint-sorrend, elfogadási feltételek és regressziós kapuk.
+
+A fenti dokumentumok **tervek**, nem az éles adminfelület jelenlegi állapotának leírásai. A vizuális átépítés modulonként, tesztkapukkal történik.
+
 ## Működő adminisztrációs részek
 
 - Felhasználói bejelentkezés, profil, szuperadmin és szerkesztőségi szerepkörök
