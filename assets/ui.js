@@ -76,7 +76,7 @@
  const selector='.success,.error,[role="alert"],[data-notice]';
  const visible=el=>!!(el.offsetWidth||el.offsetHeight||el.getClientRects().length);
  let last=null;
- const show=el=>{if(!el||!visible(el)||el===last)return;last=el;requestAnimationFrame(()=>el.scrollIntoView({behavior:'smooth',block:'start'}));};
+ const show=el=>{if(!el||!visible(el)||el===last)return;last=el;const r=el.getBoundingClientRect();if(r.top<-80||r.top>innerHeight+80)return;requestAnimationFrame(()=>el.scrollIntoView({behavior:'smooth',block:'nearest'}));};
  const check=()=>{const messages=[...document.querySelectorAll(selector)].filter(el=>visible(el)&&el.textContent.trim());if(messages.length)show(messages[0]);};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',check,{once:true});else check();
  const observer=new MutationObserver(records=>{for(const r of records){if(r.type==='attributes'&&r.target.matches?.(selector)){show(r.target);return}if(r.type==='characterData'||r.type==='childList'){const target=r.target.nodeType===1?r.target:r.target.parentElement;const notice=target?.closest?.(selector)||target?.querySelector?.(selector);if(notice&&notice.textContent.trim()){show(notice);return}}}});
