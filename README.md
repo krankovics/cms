@@ -27,3 +27,13 @@ Az első release csak egy statikus PHP ellenőrző oldalt másol. Adatbázis-kap
 
 ## Tervezett rendszer
 Multisite, blokkos tartalomszerkesztő, audit és verziózás, visual page builder, natív hirdetési modul, szabályozott nagyüzemi import és import-demó.
+
+## Első üzembe helyezés
+
+1. A GitHub Actions secret-ek között add meg a `COMESY_SETUP_KEY` értékét (legalább 32 karakter).
+2. A secret hozzáadása után indíts új deploy-t a `main` ágról. A korábban lefutott telepítés nem veszi át visszamenőleg a secretet.
+3. Nyisd meg a `https://cms.8media.hu/setup.php` címet, add meg a telepítési kulcsot és hozz létre legalább 14 karakteres jelszóval platformadmin-fiókot.
+4. Jelentkezz be a `https://cms.8media.hu/login.php` oldalon.
+5. A telepítés után töröld a `COMESY_SETUP_KEY` secretet és indíts új deploy-t, hogy a szerveren tárolt konfigurációból is eltűnjön.
+
+A `setup.php` csak akkor aktív, ha telepítési kulcs van konfigurálva és még nincs felhasználó az adatbázisban.
