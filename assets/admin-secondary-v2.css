@@ -1,0 +1,99 @@
+/* comesy Admin v2: article editor, settings, profile, sites and permission layouts */
+body.comesy-admin .ui-page.ui-editor-page,body.comesy-admin .editor-layout{max-width:1460px;margin:0 auto;padding:25px 30px 110px;min-width:0}
+body.comesy-admin .editor-top{margin:0 0 17px}
+body.comesy-admin .editor-form{display:grid;grid-template-columns:minmax(0,1fr) 315px;align-items:start;gap:18px}
+body.comesy-admin .editor-form>.panel,body.comesy-admin .ui-editor-aside>.panel{background:var(--ui-surface);border:1px solid var(--ui-border);border-radius:14px;margin:0;padding:21px;min-width:0}
+body.comesy-admin .ui-editor-aside{min-width:0;display:grid;gap:15px;position:sticky;top:86px;z-index:2}
+body.comesy-admin .ui-editor-main{min-width:0}
+body.comesy-admin .editor-form label{display:block;margin:14px 0 7px;font-size:12px;font-weight:680;color:var(--ui-text-secondary)}
+body.comesy-admin .editor-form input:not([type=checkbox]),body.comesy-admin .editor-form textarea,body.comesy-admin .editor-form select{max-width:100%;width:100%;font-size:16px;padding:11px 12px;border-radius:10px;border:1px solid var(--ui-border);color:var(--ui-text);background:var(--ui-surface-subtle)}
+body.comesy-admin .editor-form textarea{min-height:92px;resize:vertical}
+body.comesy-admin .editor-form input:focus,body.comesy-admin .editor-form textarea:focus{border-color:var(--ui-primary)}
+body.comesy-admin .ui-editor-main>h2{font-size:16px;margin:23px 0 4px}
+body.comesy-admin .editor-form .hint{font-size:12px;color:var(--ui-text-secondary);line-height:1.5}
+body.comesy-admin .ql-container.ql-snow{background:var(--ui-surface);color:var(--ui-text);border:1px solid var(--ui-border)!important;border-radius:0 0 9px 9px;font-size:16px;min-height:300px}
+body.comesy-admin .ql-editor{line-height:1.7;min-height:300px;overflow-wrap:anywhere}
+body.comesy-admin #editor-toolbar.ql-toolbar{border:1px solid var(--ui-border)!important;background:var(--ui-surface-subtle);border-radius:9px 9px 0 0;position:relative;top:auto}
+body.comesy-admin #editor-toolbar .ql-formats{margin-right:9px}
+body.comesy-admin #editor-toolbar button:not(#insert-recommendation){color:var(--ui-text)}
+body.comesy-admin #editor-toolbar #insert-recommendation{color:var(--ui-text)!important;background:var(--ui-surface)!important;border:1px solid var(--ui-border)!important;font-size:12px!important;width:auto!important;min-height:27px}
+body.comesy-admin .ed-fieldset{border-bottom:1px solid var(--ui-border);padding-bottom:16px;margin-bottom:17px}
+body.comesy-admin .ed-fieldset h3,body.comesy-admin .ui-editor-aside h3{font-size:14px;font-weight:750;margin:0 0 9px;color:var(--ui-text)}
+body.comesy-admin .ed-check{display:flex!important;gap:9px;align-items:flex-start;font-size:13px!important;font-weight:500!important;margin:10px 0!important;color:var(--ui-text)!important}
+body.comesy-admin .ed-check input{width:18px;height:18px;accent-color:var(--ui-primary);flex:none}
+body.comesy-admin .ed-category-list{max-height:230px;overflow-y:auto}
+body.comesy-admin .ed-tag-chips{display:flex;gap:7px;flex-wrap:wrap}
+body.comesy-admin .ed-seo{border-bottom:1px solid var(--ui-border);padding-bottom:13px;margin-bottom:15px}
+body.comesy-admin .ed-seo>summary,body.comesy-admin .ed-add>summary{cursor:pointer;color:var(--ui-primary);font-size:13px;font-weight:700;padding:8px 0}
+body.comesy-admin .ed-seo-body{padding-top:4px}
+body.comesy-admin #preview-button{width:100%;min-height:43px;background:var(--ui-surface);color:var(--ui-text);border:1px solid var(--ui-border);border-radius:10px;font-size:13px;font-weight:680;margin-top:12px}
+body.comesy-admin .editor-save-button{width:100%;margin-top:12px;min-height:46px;color:var(--ui-primary-on)!important;background:var(--ui-primary)!important}
+body.comesy-admin .editor-form button:not(.editor-save-button):not(.ui-editor-preview){border-radius:9px}
+body.comesy-admin .revision{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--ui-border);font-size:12px}
+body.comesy-admin .revision button{padding:8px 11px;border:1px solid var(--ui-border);border-radius:8px;background:var(--ui-surface-subtle);color:var(--ui-text);font-size:12px}
+body.comesy-admin .ui-editor-mobile-action{display:none}
+body.comesy-admin .ui-editor-header-save:disabled,body.comesy-admin .editor-save-button:disabled{opacity:.5;cursor:not-allowed}
+body.comesy-admin .ui-admin-section{max-width:1400px;margin:0 auto;padding:26px 30px 48px}
+body.comesy-admin .ui-admin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+body.comesy-admin .ui-admin-panel{padding:20px;border:1px solid var(--ui-border);border-radius:14px;background:var(--ui-surface);min-width:0}
+body.comesy-admin .ui-admin-panel h2{margin:0 0 14px;font-size:16px}
+body.comesy-admin .ui-admin-panel p{font-size:13px;line-height:1.55;color:var(--ui-text-secondary)}
+body.comesy-admin .ui-admin-form{display:grid;gap:13px}
+body.comesy-admin .ui-admin-form .ui-field{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--ui-text-secondary);font-weight:670}
+body.comesy-admin .ui-admin-form input:not([type=checkbox]),body.comesy-admin .ui-admin-form select,body.comesy-admin .ui-admin-form textarea{min-height:43px;width:100%;font-size:16px;padding:10px 12px;border:1px solid var(--ui-border);border-radius:10px;color:var(--ui-text);background:var(--ui-surface-subtle)}
+body.comesy-admin .ui-admin-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:7px}
+body.comesy-admin .ui-admin-list{display:grid;gap:0}
+body.comesy-admin .ui-admin-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0;border-bottom:1px solid var(--ui-border)}
+body.comesy-admin .ui-admin-row:last-child{border-bottom:0}
+body.comesy-admin .ui-admin-row-main{min-width:0}
+body.comesy-admin .ui-admin-row strong{display:block;color:var(--ui-text);font-size:13px;overflow-wrap:anywhere}
+body.comesy-admin .ui-admin-row small{display:block;color:var(--ui-text-secondary);font-size:11px;margin-top:5px;overflow-wrap:anywhere}
+body.comesy-admin .ui-admin-row a{font-size:12px;color:var(--ui-primary);text-decoration:none;font-weight:690;white-space:nowrap}
+body.comesy-admin .ui-admin-form input[type=file]{border:1px dashed var(--ui-border);background:var(--ui-surface-subtle);padding:10px;max-width:100%}
+body.comesy-admin .ui-admin-form input[type=file]::file-selector-button{padding:9px;border:1px solid var(--ui-border);border-radius:8px;background:var(--ui-surface);color:var(--ui-text);margin-right:10px}
+body.comesy-admin .ui-profile-summary{display:flex;align-items:center;gap:14px;margin:0 0 18px}
+body.comesy-admin .ui-profile-summary .avatar{height:64px;width:64px;object-fit:cover}
+body.comesy-admin .ui-profile-summary strong{color:var(--ui-text);font-size:16px}
+body.comesy-admin .ui-profile-summary p{font-size:12px;color:var(--ui-text-secondary);margin:5px 0}
+body.comesy-admin .ui-admin-card-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+body.comesy-admin .ui-admin-navcard{display:block;padding:19px;border:1px solid var(--ui-border);border-radius:14px;background:var(--ui-surface);color:var(--ui-text);text-decoration:none;min-width:0}
+body.comesy-admin .ui-admin-navcard:hover{border-color:var(--ui-primary)}
+body.comesy-admin .ui-admin-navcard strong{display:block;font-size:15px;margin-bottom:8px}
+body.comesy-admin .ui-admin-navcard p{font-size:12px;color:var(--ui-text-secondary);line-height:1.55;margin:0}
+body.comesy-admin .ui-admin-navcard span{display:block;color:var(--ui-primary);font-size:12px;font-weight:720;margin-top:16px}
+body.comesy-admin .ui-permission-grid{display:grid;gap:10px}
+body.comesy-admin .ui-permission-item{padding:15px;border:1px solid var(--ui-border);border-radius:11px}
+body.comesy-admin .ui-permission-item h3{font-size:14px;margin:0 0 12px}
+body.comesy-admin .ui-permission-checks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+body.comesy-admin .ui-permission-checks label{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ui-text);cursor:pointer}
+body.comesy-admin .ui-permission-checks input{width:18px;height:18px;flex:none;accent-color:var(--ui-primary)}
+body.comesy-admin .ui-maintenance-note{padding:15px;border-radius:11px;border:1px solid rgba(190,140,40,.3);background:rgba(190,140,40,.07);font-size:13px}
+body.comesy-admin .ui-maintenance-note p{font-size:12px;color:var(--ui-text-secondary)}
+body.comesy-admin .ui-admin-full{grid-column:1/-1}
+@media(max-width:1199px){
+ body.comesy-admin .editor-form{grid-template-columns:minmax(0,1fr) 290px;gap:13px}
+ body.comesy-admin .editor-layout,body.comesy-admin .ui-admin-section{padding:23px}
+}
+@media(max-width:900px){
+ body.comesy-admin .editor-form{display:flex;flex-direction:column;gap:13px}
+ body.comesy-admin .editor-form>.panel,body.comesy-admin .editor-form>.ui-editor-aside{width:100%}
+ body.comesy-admin .ui-editor-aside{position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+ body.comesy-admin .ui-editor-aside>.panel{margin:0}
+ body.comesy-admin .ui-admin-grid{grid-template-columns:1fr}
+}
+@media(max-width:767px){
+ body.comesy-admin .editor-layout,body.comesy-admin .ui-admin-section{padding:17px 13px 110px}
+ body.comesy-admin .editor-top{margin-bottom:13px}
+ body.comesy-admin .ui-editor-header-save{display:none}
+ body.comesy-admin .editor-form{gap:12px}
+ body.comesy-admin .editor-form>.panel,body.comesy-admin .ui-editor-aside>.panel{padding:14px;margin:0}
+ body.comesy-admin .ui-editor-aside{grid-template-columns:1fr}
+ body.comesy-admin .editor-form label{margin:11px 0 6px}
+ body.comesy-admin .ql-editor,body.comesy-admin .ql-container.ql-snow{min-height:230px}
+ body.comesy-admin .ui-editor-mobile-action{display:block;position:fixed;bottom:0;left:0;right:0;z-index:35;padding:10px 13px calc(10px + env(safe-area-inset-bottom));background:var(--ui-surface);border-top:1px solid var(--ui-border);box-shadow:0 -10px 24px rgba(0,0,0,.06)}
+ body.comesy-admin .ui-editor-mobile-action button{width:100%;min-height:46px}
+ body.comesy-admin .ui-admin-card-links{grid-template-columns:1fr}
+ body.comesy-admin .ui-admin-panel{padding:16px}
+ body.comesy-admin .ui-permission-checks{gap:6px}
+ body.comesy-admin .ui-permission-checks label{flex-direction:column;align-items:center;text-align:center;gap:6px;font-size:11px}
+}
