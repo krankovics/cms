@@ -12,9 +12,9 @@ const browser=await chromium.launch({
 });
 mkdirSync('ui-preview',{recursive:true});
 const base='http://127.0.0.1:8765';
-async function login(page){
+async function login(page,role='editor'){
  await page.goto(base+'/login.php',{waitUntil:'networkidle'});
- await page.getByLabel('E-mail cím').fill('editor@testing.invalid');
+ await page.getByLabel('E-mail cím').fill(role+'@testing.invalid');
  await page.getByLabel('Jelszó').fill('StrongTestingPwd!2026');
  await page.getByRole('button',{name:/Bejelentkezés/}).click();
  await page.waitForURL(base+'/');
@@ -70,5 +70,40 @@ try{
  await mobile.setViewportSize({width:320,height:740});
  await overflow(mobile,'320 mobile');
  await mobile.close();
+ const admin=await browser.newPage({viewport:{width:1366,height:850},deviceScaleFactor:1});
+ await login(admin,'platform_admin');
+ for(const [name,path] of [['articles','/articles.php'],['taxonomy','/taxonomy.php?type=tag&site_id=1'],['media','/media.php'],['users','/users.php']]){
+  await admin.goto(base+path,{waitUntil:'networkidle'});
+  await overflow(admin,'desktop '+name);
+  assert(await admin.locator('.ui-page-title').isVisible(),name+': missing SaaS page header');
+  await admin.screenshot({path:'ui-preview/desktop-'+name+'.png',fullPage:true});
+ }
+ await admin.setViewportSize({width:390,height:844});
+ for(const [name,path] of [['articles','/articles.php'],['taxonomy','/taxonomy.php?type=tag&site_id=1'],['media','/media.php'],['users','/users.php']]){
+  await admin.goto(base+path,{waitUntil:'networkidle'});
+  await overflow(admin,'mobile '+name);
+  await admin.screenshot({path:'ui-preview/mobile-'+name+'.png',fullPage:true});
+ }
+ await admin.goto(base+'/taxonomy.php?type=tag&site_id=1',{waitUntil:'networkidle'});
+ assert(await admin.locator('.ui-taxonomy-row').count()>0,'Taxonomy data not shown');
+ await admin.locator('[data-panel-open="taxonomy-editor"]').first().click();
+ assert(await admin.locator('#taxonomy-editor').evaluate(el=>el.classList.contains('is-open')),'Taxonomy edit drawer did not open');
+ await admin.locator('[data-panel-close]').first().click();
+ assert(!(await admin.locator('#taxonomy-editor').evaluate(el=>el.classList.contains('is-open'))),'Taxonomy drawer not closed');
+ await admin.goto(base+'/media.php',{waitUntil:'networkidle'});
+ await admin.locator('[data-ui-dialog-open="media-upload-dialog"]').first().click();
+ assert(await admin.locator('#media-upload-dialog').evaluate(el=>el.open),'Upload dialog did not open');
+ await admin.locator('#media-upload-dialog [data-ui-dialog-close]').first().click();
+ assert(!(await admin.locator('#media-upload-dialog').evaluate(el=>el.open)),'Upload dialog did not close');
+ await admin.goto(base+'/users.php',{waitUntil:'networkidle'});
+ await admin.locator('[data-ui-search="user-list"]').fill('editor');
+ assert((await admin.locator('.ui-person-row:not([hidden])').count())===1,'User search filtering incorrect');
+ await admin.locator('[data-ui-search="user-list"]').fill('');
+ await admin.locator('[data-panel-open="user-editor"]').first().click();
+ assert(await admin.locator('#user-editor').evaluate(el=>el.classList.contains('is-open')),'User drawer did not open');
+ await admin.locator('[data-panel-close]').first().click();
+ await admin.setViewportSize({width:320,height:740});
+ await overflow(admin,'320 users');
+ await admin.close();
  console.log('PASS: desktop 1366/1100, mobile 390/320, menu/escape, dark mode, KPI and overflow checks.');
 }finally{await browser.close();}
