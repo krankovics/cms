@@ -13,7 +13,7 @@ if(!isset($u))$u=require_user();
 </header>
 <div class="nav-overlay" data-nav-overlay></div>
 <aside class="mobile-nav sidebar">
- <div class="logo">comesy</div><div class="sub">Content. Media. System.</div>
+ <div class="mobile-nav-head"><strong>comesy</strong><button type="button" class="mobile-nav-close" data-menu-close aria-label="Menü bezárása">×</button></div><p class="mobile-nav-sub">Content. Media. System.</p>
  <nav class="nav" aria-label="Mobil navigáció">
   <a href="/">Áttekintés</a><a href="/articles.php">comesy Editor</a><a href="/editor.php">Új cikk</a><a href="/?view=sites">comesy Sites</a><a href="/?view=media">comesy Media</a><a href="/?view=ads">comesy Ads</a><a href="/?view=analytics">comesy Analytics</a><a href="/profile.php">Profilbeállítások</a>
  </nav>
