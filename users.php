@@ -15,14 +15,40 @@ try{
  $edit=max(0,(int)($_GET['edit']??0));
  foreach($users as $item)if((int)$item['id']===$edit)$selected=$item;
 }catch(Throwable $e){error_log('user management: '.$e->getMessage());$error=$e instanceof PDOException?'A mentés adatbázishiba miatt nem sikerült.':$e->getMessage();}
-?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Felhasználók | comesy</title><link rel="stylesheet" href="/assets/ui.css"><script src="/assets/ui.js" defer></script>
-<style>body{margin:0;font-family:system-ui}.wrap{max-width:900px;margin:auto;padding:16px}.panel{padding:18px;background:var(--surface);border:1px solid var(--line);border-radius:12px;margin:12px 0}.user-form{display:grid;gap:11px}.user-form label{display:grid;gap:5px}.user-form input:not([type=checkbox]),.user-form select{width:100%;box-sizing:border-box;font-size:16px;padding:10px;border-radius:8px}.user-form button{padding:12px;background:var(--blue);color:white;border:0;border-radius:8px}.user-list{display:grid;gap:6px}.user-row{padding:12px;border-bottom:1px solid var(--line)}.user-row strong{display:block}.user-row small{display:block;color:var(--muted);margin-top:5px}.user-row a{color:var(--blue)}.user-form .active-label{display:flex;align-items:center;gap:9px}.user-form .active-label input{width:18px;height:18px}@media(min-width:700px){.user-form{grid-template-columns:repeat(2,minmax(0,1fr))}.user-form .full{grid-column:1/-1}}</style>
-</head><body><?php require __DIR__.'/app/header.php';?><main class="wrap"><h1>Felhasználók</h1><?php if($error):?><p class="error" role="alert"><?=h($error)?></p><?php endif;?><?php if(isset($_GET['saved'])):?><p class="success" role="status">A felhasználó mentve.</p><?php endif;?>
-<section class="panel"><h2><?=$selected?'Felhasználó szerkesztése':'Új felhasználó'?></h2><form class="user-form" method="post"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="user_id" value="<?=(int)($selected['id']??0)?>">
-<label>Név<input name="name" required minlength="2" maxlength="190" value="<?=h($selected['name']??'')?>"></label>
-<label>E-mail cím<input type="email" name="email" required value="<?=h($selected['email']??'')?>"></label>
-<label>Szerepkör<select name="role"><?php foreach($roles as $key=>$label):?><option value="<?=$key?>" <?=($selected['role']??'author')===$key?'selected':''?>><?=h($label)?></option><?php endforeach;?></select></label>
-<label><?= $selected?'Új jelszó (üresen hagyható)':'Kezdő jelszó' ?><input type="password" name="new_password" minlength="14" autocomplete="new-password" <?=$selected?'':'required'?>></label>
-<?php if($selected):?><label class="active-label full"><input type="checkbox" name="active" value="1" <?=$selected['active']?'checked':''?>> Aktív fiók</label><?php endif;?>
-<div class="full"><button type="submit">Mentés</button> <?php if($selected):?><a href="/users.php">Mégse</a><?php endif;?></div></form><p>A szerkesztők és szerzők webhelyét a <a href="/site-permissions.php">webhely-hozzáféréseknél</a> add meg.</p></section>
-<section class="panel"><h2>Felhasználók (<?=count($users)?>)</h2><label class="comesy-search"><span>Keresés</span><input type="search" data-list-search="user-list" placeholder="Név vagy e-mail…"></label><div class="user-list" id="user-list"><?php foreach($users as $item):?><div class="user-row" data-search="<?=h($item['name'].' '.$item['email'].' '.($roles[$item['role']]??''))?>"><strong><?=h($item['name'])?></strong><small><?=h($item['email'])?> · <?=h($roles[$item['role']]??$item['role'])?> · <?=$item['active']?'Aktív':'Inaktív'?></small><a href="/users.php?edit=<?=(int)$item['id']?>">Szerkesztés</a></div><?php endforeach;?></div></section></main></body></html>
+?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Felhasználók | comesy</title><link rel="stylesheet" href="/assets/ui.css"><link rel="stylesheet" href="/assets/admin-pages-v2.css"><script src="/assets/ui.js" defer></script><script src="/assets/admin-pages-v2.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
+<main class="ui-page" id="main-content">
+<header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Adminisztráció</p><h1 class="ui-page-title">Felhasználók</h1><p class="ui-page-description">Csapattagok, szerepkörök és fiókállapotok kezelése.</p></div>
+<div class="ui-page-actions"><?php if($selected):?><a class="ui-btn ui-btn-primary" href="/users.php?new=1"><svg class="ui-icon" aria-hidden="true"><use href="#cs-plus"></use></svg>Új felhasználó</a><?php else:?><button class="ui-btn ui-btn-primary ui-compact-action" type="button" data-panel-open="user-editor" aria-controls="user-editor" aria-expanded="false"><svg class="ui-icon" aria-hidden="true"><use href="#cs-plus"></use></svg>Új felhasználó</button><?php endif;?></div>
+</header>
+<?php if($error):?><p class="ui-notice error" role="alert"><?=h($error)?></p><?php endif;?>
+<?php if(isset($_GET['saved'])):?><p class="ui-notice success" role="status">A felhasználó adatait mentettük.</p><?php endif;?>
+<label class="ui-field ui-field-search ui-users-search">Keresés a csapatban <input type="search" data-ui-search="user-list" placeholder="Név, e-mail vagy szerepkör…" autocomplete="off"></label>
+<div class="ui-result-bar"><span><strong data-ui-visible-for="user-list"><?=count($users)?></strong> felhasználó</span><a class="ui-panel-link" href="/site-permissions.php">Webhely-hozzáférések →</a></div>
+<div class="ui-workbench">
+<section class="ui-panel ui-data-panel ui-workbench-list" aria-label="Felhasználók listája">
+<div id="user-list"><?php foreach($users as $item):?>
+<div class="ui-person-row ui-filter-row" data-search="<?=h($item['name'].' '.$item['email'].' '.($roles[$item['role']]??''))?>">
+<div class="ui-person-avatar" aria-hidden="true"><?=h(mb_strtoupper(mb_substr($item['name'],0,1)))?></div>
+<div class="ui-person-details"><strong><?=h($item['name'])?></strong><small><?=h($item['email'])?></small><small><?=h($roles[$item['role']]??$item['role'])?></small></div>
+<span class="ui-status <?=$item['active']?'ui-status-published':'ui-status-archived'?>"><?=$item['active']?'Aktív':'Inaktív'?></span>
+<a class="ui-panel-link" href="/users.php?edit=<?=(int)$item['id']?>">Szerkesztés</a>
+</div>
+<?php endforeach;?></div>
+<div class="ui-panel-state" data-ui-empty-for="user-list" <?=$users?'hidden':''?>>Nincs a keresésnek megfelelő felhasználó.</div>
+</section>
+<aside class="ui-panel ui-workbench-pane" id="user-editor" data-ui-pane data-panel-default-open="<?=$selected||isset($_GET['new'])?'1':'0'?>" aria-label="<?=$selected?'Felhasználó szerkesztése':'Új felhasználó'?>">
+<div class="ui-pane-header"><div><h2><?=$selected?'Felhasználó szerkesztése':'Új felhasználó'?></h2><p>Csapattag és jogosultsági szerepkör</p></div><button class="ui-pane-close" type="button" data-panel-close aria-label="Szerkesztőpanel bezárása">✕</button></div>
+<form method="post" id="user-edit-form">
+<input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="user_id" value="<?=(int)($selected['id']??0)?>">
+<div class="ui-pane-body">
+<label class="ui-field">Név <input name="name" data-pane-first required minlength="2" maxlength="190" value="<?=h($selected['name']??'')?>" autocomplete="name"></label>
+<label class="ui-field">E-mail cím <input type="email" name="email" required value="<?=h($selected['email']??'')?>" autocomplete="email"></label>
+<label class="ui-field">Szerepkör <select name="role"><?php foreach($roles as $key=>$label):?><option value="<?=h($key)?>" <?=($selected['role']??'author')===$key?'selected':''?>><?=h($label)?></option><?php endforeach;?></select></label>
+<label class="ui-field"><?=$selected?'Új jelszó (nem kötelező)':'Kezdő jelszó'?> <input type="password" name="new_password" minlength="14" autocomplete="new-password" <?=$selected?'':'required'?>><small>Legalább 14 karakter. Szerkesztéskor üresen hagyva nem változik.</small></label>
+<?php if($selected):?><label class="ui-account-active"><input type="checkbox" name="active" value="1" <?=$selected['active']?'checked':''?>> Aktív fiók</label><?php endif;?>
+<p class="ui-text-muted ui-account-help">A felhasználó szerkeszthető webhelyeit a <a href="/site-permissions.php">webhely-hozzáféréseknél</a> állíthatod be.</p>
+</div>
+<div class="ui-pane-footer"><button class="ui-btn ui-btn-primary" type="submit">Mentés</button><?php if($selected):?><a class="ui-btn ui-btn-secondary" href="/users.php">Új felhasználó</a><?php endif;?></div>
+</form></aside>
+</div><button type="button" class="ui-pane-dim" data-ui-pane-dim aria-label="Panel bezárása"></button>
+</main></body></html>
