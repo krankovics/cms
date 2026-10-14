@@ -15,6 +15,39 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   if(ops.length)quill.setContents({ops},'silent');
  }
+ const imagePicker=document.createElement('input');
+ imagePicker.type='file';imagePicker.accept='image/jpeg,image/png,image/webp,image/gif';imagePicker.hidden=true;
+ document.body.append(imagePicker);
+ let uploadingImage=false;
+ quill.getModule('toolbar').addHandler('image',()=>imagePicker.click());
+ imagePicker.addEventListener('change',async()=>{
+  const file=imagePicker.files?.[0];if(!file)return;
+  imagePicker.value='';
+  if(file.size>10485760){await showDialog('Túl nagy kép',[],[{label:'Rendben',primary:true}]);return}
+  const site=document.querySelector('.ed-site-check:checked')?.value;
+  if(!site){await showDialog('Válassz webhelyet',[],[{label:'Rendben',primary:true}]);return}
+  uploadingImage=true;
+  const saveButton=document.querySelector('.editor-save-button');
+  if(saveButton)saveButton.disabled=true;
+  status.textContent='Kép feltöltése folyamatban…';
+  try{
+   const data=new FormData();
+   data.append('image',file);
+   data.append('site_id',site);
+   data.append('csrf',form.querySelector('[name=csrf]').value);
+   const response=await fetch('/editor-upload.php',{method:'POST',body:data,credentials:'same-origin'});
+   const result=await response.json();
+   if(!response.ok||!result.ok)throw new Error(result.error||'Feltöltési hiba');
+   const index=quill.getSelection(true)?.index??quill.getLength();
+   quill.insertEmbed(index,'image',new URL(result.url,location.origin).href,'user');
+   quill.setSelection(index+1);
+   status.textContent='Kép feltöltve a médiatárba';
+  }catch(error){
+   status.textContent='A kép feltöltése sikertelen';
+   await showDialog('Nem sikerült feltölteni a képet',[{label:'Hiba',value:error.message}],[{label:'Rendben',primary:true}]);
+  }finally{uploadingImage=false;if(saveButton)saveButton.disabled=false}
+ });
+ form.addEventListener('submit',e=>{if(uploadingImage){e.preventDefault();showDialog('Kép feltöltése folyamatban',[],[{label:'Rendben',primary:true}])}});
  const modal=document.getElementById('ed-modal');
  const modalTitle=document.getElementById('ed-modal-title');
  const modalBody=document.getElementById('ed-modal-body');
