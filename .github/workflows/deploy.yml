@@ -31,7 +31,7 @@ jobs:
       - name: Prepare public release
         run: |
           mkdir -p deploy
-          cp index.php login.php logout.php setup.php profile.php avatar.php editor.php articles.php deploy/
+          cp index.php login.php logout.php setup.php profile.php avatar.php editor.php articles.php migrate.php deploy/
           mkdir -p deploy/app/avatars deploy/database deploy/assets
           cp app/bootstrap.php app/.htaccess deploy/app/
           cp app/avatars/.htaccess deploy/app/avatars/
@@ -45,6 +45,7 @@ jobs:
           php -l deploy/avatar.php
           php -l deploy/editor.php
           php -l deploy/articles.php
+          php -l deploy/migrate.php
           php -l deploy/app/bootstrap.php
 
       - name: Generate protected PHP configuration
