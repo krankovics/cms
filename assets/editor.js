@@ -17,6 +17,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   form.addEventListener('submit',e=>e.preventDefault());
   return;
  }
+ const featured=document.querySelector('#og-image-url');
+ featured?.addEventListener('change',()=>{
+  const preview=document.querySelector('#featured-image-preview');
+  if(!preview)return;
+  preview.hidden=!(featured.value.trim().startsWith('https://')||featured.value.trim().startsWith('http://'));
+  if(!preview.hidden)preview.src=featured.value.trim();
+ });
  const quill=new Quill('#rich-editor',{theme:'snow',modules:{toolbar:'#editor-toolbar'},placeholder:'Kezdd el írni a cikket…'});
  if(initial.length===1&&initial[0].type==='richtext'){
   try{const delta=JSON.parse(initial[0].text);if(Array.isArray(delta.ops))quill.setContents(delta,'silent')}catch(e){}
