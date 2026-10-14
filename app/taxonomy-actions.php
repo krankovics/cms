@@ -16,8 +16,8 @@ function tx_action(PDO $pdo,array $u,array $allowed,int $site,string $type):void
    $ids=array_values(array_unique(array_filter(array_map('intval',(array)($_POST['term_ids']??[])),fn($v)=>$v>0)));
    if(!$ids||count($ids)>500)throw new RuntimeException('Válassz ki 1–500 elemet.');
    $placeholders=implode(',',array_fill(0,count($ids),'?'));
-   $q=$pdo->prepare("SELECT id FROM taxonomy_terms WHERE type=? AND site_id IN (".implode(',',array_map('intval',$allowed?:[-1])).") AND id IN ($placeholders) FOR UPDATE");
-   $q->execute(array_merge([$type],$ids));
+   $q=$pdo->prepare("SELECT id FROM taxonomy_terms WHERE type=? AND site_id=? AND id IN ($placeholders) FOR UPDATE");
+   $q->execute(array_merge([$type,$site],$ids));
    $found=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
    if(count($found)!==count($ids))throw new RuntimeException('A kijelölésben nem elérhető elem is van.');
    $q=$pdo->prepare("DELETE FROM taxonomy_terms WHERE id IN ($placeholders)");
@@ -27,22 +27,22 @@ function tx_action(PDO $pdo,array $u,array $allowed,int $site,string $type):void
   if($action!=='create'){
    $q=$pdo->prepare('SELECT id,site_id FROM taxonomy_terms WHERE id=? AND type=?');
    $q->execute([$id,$type]);$existing=$q->fetch();
-   if(!$existing||!in_array((int)$existing['site_id'],$allowed,true))throw new RuntimeException('Nem elérhető fogalom.');
+   if(!$existing||(int)$existing['site_id']!==$site)throw new RuntimeException('Nem elérhető fogalom.');
   }
   if($action==='create'||$action==='update'){
    $name=trim((string)($_POST['name']??''));$slug=tx_slug((string)($_POST['slug']??'')?:$name);
    if(mb_strlen($name)<2||mb_strlen($name)>190||!$slug)throw new RuntimeException('Érvénytelen név vagy slug.');
    if($action==='create'){
-    $q=$pdo->prepare('INSERT INTO taxonomy_terms(site_id,type,name,slug) VALUES(0,?,?,?)');
-    $q->execute([$type,$name,$slug]);$id=(int)$pdo->lastInsertId();
+    $q=$pdo->prepare('INSERT INTO taxonomy_terms(site_id,type,name,slug) VALUES(?,?,?,?)');
+    $q->execute([$site,$type,$name,$slug]);$id=(int)$pdo->lastInsertId();
    }else{
     $q=$pdo->prepare('UPDATE taxonomy_terms SET name=?,slug=? WHERE id=?');
     $q->execute([$name,$slug,$id]);
    }
    $parent=$type==='category'?(int)($_POST['parent_id']??0):0;
    if($parent){
-    $q=$pdo->prepare("SELECT id FROM taxonomy_terms WHERE id=? AND type='category'");
-    $q->execute([$parent]);if(!$q->fetchColumn())throw new RuntimeException('Érvénytelen szülőkategória.');
+    $q=$pdo->prepare("SELECT id FROM taxonomy_terms WHERE id=? AND site_id=? AND type='category'");
+    $q->execute([$parent,$site]);if(!$q->fetchColumn())throw new RuntimeException('Érvénytelen szülőkategória.');
     $visited=[$id];$walk=$parent;
     while($walk){if(in_array($walk,$visited,true))throw new RuntimeException('Körkörös kategóriahierarchia.');$visited[]=$walk;
      $q=$pdo->prepare('SELECT parent_id FROM taxonomy_term_meta WHERE term_id=?');$q->execute([$walk]);$walk=(int)$q->fetchColumn();}
@@ -53,7 +53,7 @@ function tx_action(PDO $pdo,array $u,array $allowed,int $site,string $type):void
   }elseif($action==='merge'){
    $target=(int)($_POST['target_id']??0);
    $q=$pdo->prepare('SELECT site_id FROM taxonomy_terms WHERE id=? AND type=?');$q->execute([$target,$type]);$targetSite=$q->fetchColumn();
-   if($target===$id||$targetSite===false||!in_array((int)$targetSite,$allowed,true))throw new RuntimeException('Érvénytelen összevonási cél.');
+   if($target===$id||$targetSite===false||(int)$targetSite!==$site)throw new RuntimeException('Érvénytelen összevonási cél.');
    $q=$pdo->prepare('INSERT IGNORE INTO article_terms(article_id,term_id) SELECT article_id,? FROM article_terms WHERE term_id=?');$q->execute([$target,$id]);
    if($type==='category'){$q=$pdo->prepare('UPDATE taxonomy_term_meta SET parent_id=? WHERE parent_id=?');$q->execute([$target,$id]);}
    $pdo->prepare('DELETE FROM taxonomy_terms WHERE id=?')->execute([$id]);
