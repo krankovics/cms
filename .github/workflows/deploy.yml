@@ -43,7 +43,7 @@ jobs:
           protocol: ftp
           port: 21
           local-dir: ./deploy/
-          server-dir: ./domains/cms.8media.hu/public_html/
+          server-dir: ./
           dangerous-clean-slate: false
           exclude: |
             **/.git*
