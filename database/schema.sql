@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS articles (
  author_id BIGINT UNSIGNED NULL,
  title VARCHAR(500) NOT NULL,
  slug VARCHAR(255) NOT NULL,
- lead TEXT NULL,
+ `lead` TEXT NULL,
  content_json LONGTEXT NULL,
  status ENUM('draft','review','scheduled','published','archived') NOT NULL DEFAULT 'draft',
  published_at DATETIME NULL,
