@@ -33,7 +33,7 @@ try{
  await page.locator('input[name=name]').fill('Teszt webhely D');
  await page.locator('input[name=domain]').fill('site-d.example');
  await page.locator('input[name=slug]').fill('test-site-d');
- await Promise.all([page.waitForURL(/saved=1/),page.locator('button[type=submit]').first().click()]);
+ await Promise.all([page.waitForURL(/saved=1/),page.locator('form.ui-admin-form button[type=submit]').click()]);
  assert((await page.locator('.ui-admin-row').count())>=4,'Site creation failed');
  // Verify that an author cannot access platform administration.
  const author=await browser.newPage({viewport:{width:390,height:844}});
