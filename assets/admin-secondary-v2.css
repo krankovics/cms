@@ -111,3 +111,14 @@ body.comesy-admin .ui-editor-meta .ed-category-list{max-height:230px;overflow:au
  body.comesy-admin .ui-editor-meta>summary{min-height:44px;padding:11px 0}
  body.comesy-admin .ui-editor-state{font-size:11px;padding:6px 8px}
 }
+
+/* Permissions cards become accordions only on narrow layouts. */
+body.comesy-admin .ui-permission-item>summary{font-size:14px;font-weight:750;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:9px;color:var(--ui-text);cursor:pointer}
+body.comesy-admin .ui-permission-item>summary::-webkit-details-marker{display:none}
+body.comesy-admin .ui-permission-item>summary::after{content:'⌄';color:var(--ui-text-secondary);font-size:17px}
+body.comesy-admin .ui-permission-item[open]>summary::after{transform:rotate(180deg)}
+body.comesy-admin .ui-permission-checks{margin-top:13px}
+@media(min-width:768px){
+ body.comesy-admin .ui-permission-item>summary{cursor:default}
+ body.comesy-admin .ui-permission-item>summary::after{display:none}
+}
