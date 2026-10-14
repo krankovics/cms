@@ -1,39 +1,45 @@
 # comesy
-
-**Content. Media. System.**
-
+**Content. Media. System.**  
 **One platform. Every story.**
 
-A márkanév mindenhol kisbetűs: comesy.
+Moduláris, PHP/MySQL-alapú, több webhelyet kezelő szerkesztőségi CMS. A márkanév mindig **comesy** (kisbetűvel).
 
-Modulok: comesy Editor, comesy Sites, comesy Media, comesy AI, comesy Ads, comesy Analytics.
+## Működő adminisztrációs részek
 
-Központi multisite kiadói CMS. A projekt jelenleg a telepítési infrastruktúra ellenőrzésének fázisában van.
+- Felhasználói bejelentkezés, profil, szuperadmin és szerkesztőségi szerepkörök
+- Webhelyek, webhelyenkénti szerkesztési és olvasási jogosultságok
+- Cikkszerkesztő: gazdag szöveg, médiafeltöltés, revíziók, kategóriák, címkék, SEO
+- Cikkstátuszok: piszkozat, ellenőrzésre vár, publikált
+- Egy cikk hozzárendelése több engedélyezett webhelyhez: közös tartalom és státusz
+- Globális (site_id=0) és helyi kategóriák/címkék. A meglévő globális fogalmakat az új címkék létrehozásakor újrahasználja
+- Médiatár: hozzáférés-alapú böngészés és feltöltés
 
-## Éles cél
-- URL: https://cms.8media.hu/
-- DirectAdmin abszolút könyvtár: /home/appwrkrft/domains/cms.8media.hu/public_html/
-- GitHub: krankovics/cms (main)
-- FTP: sima FTP, port 21
-- DB host: localhost
+**Korlát:** A többwebhelyes hozzárendelés a comesy CMS adatmodelljében működik. A publikált tartalom külső webhelyekre történő továbbítása külön frontend/API-integrációt igényel. A globális és helyi régi duplikátumokat nem egyesíti automatikusan.
 
-## Github Actions secrets
-FTP_HOST, FTP_USER, FTP_PASS, DB_NAME, DB_USER, DB_PASS.
+## Éles környezet és telepítés
 
-## Fontos
-Az FTP belépési könyvtára közvetlenül a public_html; a workflow `server-dir: ./` értéket használ.
+- Admin: https://cms.8media.hu/
+- Repository: https://github.com/krankovics/cms
+- Éles célkönyvtár: `/home/appwrkrft/domains/cms.8media.hu/public_html/`
+- MySQL kapcsolat: a védett `app/config.php` fájlban, GitHub Actions secretből generálva
+- GitHub Actions secretek: `FTP_HOST`, `FTP_USER`, `FTP_PASS`, `DB_NAME`, `DB_USER`, `DB_PASS`
 
-Az első release csak egy statikus PHP ellenőrző oldalt másol. Adatbázis-kapcsolatot nem létesít és nem futtat migrációt. A workflow nem töröl távoli fájlokat automatikusan.
+A `.github/workflows/deploy.yml` csak a **sikeres MySQL-integrációs és HTTP smoke tesztek** után telepít FTP-vel. A kód- és sémaellenőrzések külön, izolált tesztadatbázisban futnak, nem az éles adatbázison.
 
-## Tervezett rendszer
-Multisite, blokkos tartalomszerkesztő, audit és verziózás, visual page builder, natív hirdetési modul, szabályozott nagyüzemi import és import-demó.
+### Első telepítés
 
-## Első üzembe helyezés
+Az induló rendszerben a `COMESY_SETUP_KEY` secret (legalább 32 karakter) segítségével a `/setup.php` oldalon hozható létre az első szuperadmin. A létrehozás után a secretet el kell távolítani, majd új deploy szükséges.
 
-1. A GitHub Actions secret-ek között add meg a `COMESY_SETUP_KEY` értékét (legalább 32 karakter).
-2. A secret hozzáadása után indíts új deploy-t a `main` ágról. A korábban lefutott telepítés nem veszi át visszamenőleg a secretet.
-3. Nyisd meg a `https://cms.8media.hu/setup.php` címet, add meg a telepítési kulcsot és hozz létre legalább 14 karakteres jelszóval platformadmin-fiókot.
-4. Jelentkezz be a `https://cms.8media.hu/login.php` oldalon.
-5. A telepítés után töröld a `COMESY_SETUP_KEY` secretet és indíts új deploy-t, hogy a szerveren tárolt konfigurációból is eltűnjön.
+### Meglévő telepítés bővítése
 
-A `setup.php` csak akkor aktív, ha telepítési kulcs van konfigurálva és még nincs felhasználó az adatbázisban.
+A kódtelepítés után a szuperadmin nyissa meg a [migrációs oldalt](https://cms.8media.hu/migrate.php), és egyszer futtassa a migrációt. Ez létrehozza a még hiányzó táblákat, és a korábbi cikkek elsődleges webhelyeit `article_sites` kapcsolattáblába másolja. A művelet újrafuttatható, a cikkek és a meglévő közös/helyi címkék nem törlődnek.
+
+Ezután a [webhely-hozzáférések](https://cms.8media.hu/site-permissions.php) oldalon a megfelelő szerkesztőhöz több szerkeszthető webhely rendelhető. A cikkszerkesztőben ezek közül több jelölhető ki, de a cikk elsődleges webhelye nem vehető ki a hozzárendelésből.
+
+## Tesztek
+
+- `tests/integration.php`: MySQL séma, elsődleges/további webhelykapcsolatok, jogosultságok, globális fogalmak, törlés
+- `tests/http-smoke.py`: bejelentkezés, két webhelyes cikkmentés, publikálás, listaszűrés, jogosulatlan olvasás blokkolása
+- `.github/workflows/tests.yml`: PHP/JavaScript lint és az izolált tesztfolyamatok, a telepítési workflow-ból újrafelhasználva
+
+A tesztek **nem** helyettesítik az éles felhasználói elfogadási tesztet és a külső webhelyek integrációs ellenőrzését.
