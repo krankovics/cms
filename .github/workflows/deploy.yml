@@ -35,7 +35,7 @@ jobs:
           mkdir -p deploy/app/avatars deploy/database deploy/assets
           cp app/bootstrap.php app/header.php app/.htaccess deploy/app/
           cp app/avatars/.htaccess deploy/app/avatars/
-          cp assets/ui.css assets/ui.js assets/editor.js deploy/assets/
+          cp assets/ui.css assets/ui.js assets/editor.js assets/login.css deploy/assets/
           cp database/schema.sql database/editor.sql deploy/database/
           printf 'Require all denied\nDeny from all\n' > deploy/database/.htaccess
           php -l deploy/index.php
