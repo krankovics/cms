@@ -50,7 +50,7 @@ jobs:
         run: |
           test -n "$DB_NAME"
           test -n "$DB_USER"
-          php -r '$c = ["db_host"=>"localhost","db_name"=>getenv("DB_NAME"),"db_user"=>getenv("DB_USER"),"db_pass"=>getenv("DB_PASS"),"setup_key"=>getenv("COMESY_SETUP_KEY")];file_put_contents("deploy/app/config.php","<?php\\nreturn ".var_export($c,true).";\\n");'
+          php -r '$c = ["db_host"=>"localhost","db_name"=>getenv("DB_NAME"),"db_user"=>getenv("DB_USER"),"db_pass"=>getenv("DB_PASS"),"setup_key"=>getenv("COMESY_SETUP_KEY")];file_put_contents("deploy/app/config.php","<?php".PHP_EOL."return ".var_export($c,true).";".PHP_EOL);'
           php -l deploy/app/config.php
 
       - name: Upload via FTP
