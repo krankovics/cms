@@ -10,7 +10,7 @@ try{
  await page.locator('[name=password]').fill('StrongTestingPwd!2026');
  await page.locator('button[type=submit]').click();
  await page.waitForURL(base+'/');
- for(const width of [320,390,768,1366]){
+ for(const width of [320,390,768,1366,1920]){
   await page.setViewportSize({width,height:850});
   for(const route of routes){
    const response=await page.goto(base+route,{waitUntil:'domcontentloaded'});
@@ -58,5 +58,5 @@ try{
   assert.equal(editorResponse.status(),role==='site_admin'?200:403,role+' editor access');
   await rolePage.close();
  }
- console.log('PASS: all 12 admin routes at 320, 390, 768, 1366 widths.');
+ console.log('PASS: all 12 admin routes at 320, 390, 768, 1366, 1920 widths.');
 }finally{await browser.close();}
