@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   data.append('site_id',site);
   data.append('csrf',form.querySelector('[name=csrf]').value);
   const response=await fetch('/editor-upload.php',{method:'POST',body:data,credentials:'same-origin'});
-  const result=await response.json();
+  let result;try{result=await response.json();}catch(e){throw new Error(response.status===413?'A fájl túl nagy a kiszolgáló számára.':'A kiszolgáló nem tudta feldolgozni a képfeltöltést.');}
   if(!response.ok||!result.ok)throw new Error(result.error||'Kép feltöltési hiba');
   return new URL(result.url,location.origin).href;
  }
