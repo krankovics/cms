@@ -49,6 +49,14 @@ function article_page_link(array $p,int $page):string{return '/articles.php?'.ht
 <button class="ui-btn ui-btn-primary" type="submit">Szűrés</button>
 <?php if($search!==''||$statusFilter!==''||$siteFilter||$termId):?><a class="ui-btn ui-btn-ghost" href="/articles.php">Alaphelyzet</a><?php endif;?>
 </div></form>
+<?php if($search!==''||$siteFilter||$statusFilter!==''||$termId):?>
+<div class="ui-active-filters" aria-label="Aktív szűrők">
+<?php if($search!==''):?><span>Keresés: <?=h($search)?></span><?php endif;?>
+<?php if($siteFilter):?><span>Webhelyszűrő aktív</span><?php endif;?>
+<?php if($statusFilter!==''):?><span><?=h($statusLabels[$statusFilter]??$statusFilter)?></span><?php endif;?>
+<?php if($termId):?><span>Besorolás #<?=(int)$termId?></span><?php endif;?>
+<a href="/articles.php">Összes szűrő törlése</a></div>
+<?php endif;?>
 <div class="ui-result-bar"><span><strong><?=$total?></strong> cikk<?= $termId?' · Címke/kategória #'.(int)$termId:''?></span><span><?=$total?($offset+1).'–'.min($total,$offset+$perPage).' / '.$total:'Nincs találat'?></span></div>
 <section class="ui-panel ui-data-panel" aria-label="Cikklista">
 <?php if($articles):?>
