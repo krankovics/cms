@@ -69,6 +69,9 @@ try{
   $tagNames=array_filter(array_map('trim',preg_split('/[,;]+/u',(string)($_POST['tag_names']??''))));
   $seoTitle=mb_substr(trim((string)($_POST['seo_title']??'')),0,255);
   $seoDescription=mb_substr(trim((string)($_POST['seo_description']??'')),0,500);
+  $ogImageUrl=trim((string)($_POST['og_image_url']??''));
+  if(mb_strlen($ogImageUrl)>1000)throw new RuntimeException('A kiemelt kép URL-je túl hosszú.');
+  if($ogImageUrl!==''&&(!filter_var($ogImageUrl,FILTER_VALIDATE_URL)||!in_array(parse_url($ogImageUrl,PHP_URL_SCHEME),['http','https'],true)))throw new RuntimeException('Érvénytelen kiemelt kép URL.');
   $publishedAt=$status==='published'?date('Y-m-d H:i:s'):null;
   $pdo->beginTransaction();
   try{
