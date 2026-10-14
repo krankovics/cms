@@ -3,6 +3,14 @@ document.addEventListener('DOMContentLoaded',()=>{
  const status=document.getElementById('local-save');
  const raw=document.getElementById('initial-content');
  let initial=[];try{initial=JSON.parse(raw.textContent)}catch(e){}
+ if(typeof window.Quill!=='function'){
+  const error=document.createElement('p');error.className='error';error.setAttribute('role','alert');
+  error.textContent='A szövegszerkesztő nem töltődött be. Ellenőrizd a kapcsolatot, majd frissítsd az oldalt. A cikkmentést a tartalom védelmében letiltottuk.';
+  form.prepend(error);
+  const save=form.querySelector('.editor-save-button');if(save)save.disabled=true;
+  form.addEventListener('submit',e=>e.preventDefault());
+  return;
+ }
  const quill=new Quill('#rich-editor',{theme:'snow',modules:{toolbar:'#editor-toolbar'},placeholder:'Kezdd el írni a cikket…'});
  if(initial.length===1&&initial[0].type==='richtext'){
   try{const delta=JSON.parse(initial[0].text);if(Array.isArray(delta.ops))quill.setContents(delta,'silent')}catch(e){}
