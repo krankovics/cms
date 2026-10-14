@@ -9,11 +9,12 @@ try {
  $siteCount=count($allowed);
  if($allowed){
   $ids=implode(',',array_map('intval',$allowed));
-  $articleCount=(int)$pdo->query("SELECT COUNT(*) FROM articles WHERE site_id IN ($ids)")->fetchColumn();
-  $reviewCount=(int)$pdo->query("SELECT COUNT(*) FROM articles WHERE site_id IN ($ids) AND status='review'")->fetchColumn();
+  $authorScope=$u['role']==='author'?' AND author_id='.(int)$u['id']:'';
+  $articleCount=(int)$pdo->query("SELECT COUNT(*) FROM articles WHERE site_id IN ($ids)$authorScope")->fetchColumn();
+  $reviewCount=(int)$pdo->query("SELECT COUNT(*) FROM articles WHERE site_id IN ($ids)$authorScope AND status='review'")->fetchColumn();
   $mediaSites=allowed_resource_sites($pdo,$u,'media');
   if($mediaSites){$mediaIds=implode(',',array_map('intval',$mediaSites));$mediaCount=(int)$pdo->query("SELECT COUNT(*) FROM media_assets WHERE site_id IN ($mediaIds)")->fetchColumn();}
-  $recent=$pdo->query("SELECT id,title,status,updated_at FROM articles WHERE site_id IN ($ids) ORDER BY updated_at DESC LIMIT 5")->fetchAll();
+  $recent=$pdo->query("SELECT id,title,status,updated_at FROM articles WHERE site_id IN ($ids)$authorScope ORDER BY updated_at DESC LIMIT 5")->fetchAll();
  }
 }catch(Throwable $e){error_log('comesy dashboard: '.$e->getMessage());$error='Az összesítések most nem tölthetők be.';}
 $labels=['draft'=>'Piszkozat','review'=>'Ellenőrzésre vár','scheduled'=>'Időzített','published'=>'Publikált','archived'=>'Archivált'];
