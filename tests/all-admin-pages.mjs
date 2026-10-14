@@ -18,6 +18,7 @@ try{
    assert.equal(await page.locator('main h1').count()>0,true,route+' title');
    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
    assert(overflow<=2,route+' horizontal overflow '+overflow+'px at '+width);
+   if(width===390||width===1366)await page.screenshot({path:'ui-preview/audit-'+width+'-'+route.replace(/[^a-z]/g,'')+'.png',fullPage:true});
   }
  }
  console.log('PASS: all 12 admin routes at 320, 390, 768, 1366 widths.');
