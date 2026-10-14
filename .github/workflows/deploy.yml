@@ -31,12 +31,12 @@ jobs:
       - name: Prepare public release
         run: |
           mkdir -p deploy
-          cp index.php login.php logout.php setup.php profile.php avatar.php editor.php articles.php migrate.php settings.php deploy/
-          mkdir -p deploy/app/avatars deploy/database deploy/assets
+          cp index.php login.php logout.php setup.php profile.php avatar.php editor.php articles.php migrate.php settings.php taxonomy.php media.php media-file.php deploy/
+          mkdir -p deploy/app/avatars deploy/database deploy/assets deploy/storage/media
           cp app/bootstrap.php app/header.php app/.htaccess deploy/app/
           cp app/avatars/.htaccess deploy/app/avatars/
           cp assets/ui.css assets/ui.js assets/editor.js assets/login.css deploy/assets/
-          cp database/schema.sql database/editor.sql deploy/database/
+          cp database/schema.sql database/editor.sql database/content.sql deploy/database/
           printf 'Require all denied\nDeny from all\n' > deploy/database/.htaccess
           php -l deploy/index.php
           php -l deploy/login.php
@@ -47,8 +47,12 @@ jobs:
           php -l deploy/articles.php
           php -l deploy/migrate.php
           php -l deploy/settings.php
+          php -l deploy/taxonomy.php
+          php -l deploy/media.php
+          php -l deploy/media-file.php
           php -l deploy/app/bootstrap.php
           php -l deploy/app/header.php
+          printf 'Require all denied\nDeny from all\nOptions -Indexes\n' > deploy/storage/media/.htaccess
 
       - name: Generate protected PHP configuration
         env:
