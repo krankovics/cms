@@ -19,7 +19,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 ?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Adatbázis-migráció | comesy</title><link rel="stylesheet" href="/assets/ui.css"><script src="/assets/ui.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
 <main class="ui-admin-section" id="main-content">
 <header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Rendszerkarbantartás</p><h1 class="ui-page-title">Adatbázis-migráció</h1><p class="ui-page-description">A comesy adatmodelljének frissítése.</p></div><div class="ui-page-actions"><a href="/settings.php" class="ui-btn ui-btn-secondary">Beállítások</a></div></header>
-<section class="ui-admin-panel" style="max-width:760px">
+<section class="ui-admin-panel ui-maintenance-panel">
 <h2>Adatbázisszerkezet ellenőrzése és kiegészítése</h2>
 <div class="ui-maintenance-note"><strong>Fontos művelet</strong><p>A hiányzó adattáblák létrejönnek, és a korábbi cikkek elsődleges webhelye a többwebhelyes kapcsolótáblába kerül. A meglévő cikkek és fogalmak nem törlődnek vagy olvadnak össze.</p><p>Éles rendszeren a futtatás előtt ajánlott adatbázis-mentést készíteni.</p></div>
 <?php if($message):?><p class="success" role="status"><?=h($message)?></p><?php endif;?>
