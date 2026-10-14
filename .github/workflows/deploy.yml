@@ -38,7 +38,7 @@ jobs:
           mkdir -p deploy/app/avatars deploy/database deploy/assets deploy/storage/media
           cp app/bootstrap.php app/header.php app/site-access.php app/article-sites.php app/taxonomy-actions.php app/user-actions.php app/.htaccess deploy/app/
           cp app/avatars/.htaccess deploy/app/avatars/
-          cp assets/ui.css assets/admin-v2.css assets/dashboard-v2.css assets/ui.js assets/editor.js assets/login.css deploy/assets/
+          cp assets/ui.css assets/admin-v2.css assets/admin-pages-v2.css assets/dashboard-v2.css assets/ui.js assets/admin-pages-v2.js assets/editor.js assets/login.css deploy/assets/
           cp database/schema.sql database/editor.sql database/content.sql database/site-permissions.sql deploy/database/
           printf 'Require all denied\nDeny from all\n' > deploy/database/.htaccess
           php -l deploy/index.php
@@ -65,6 +65,7 @@ jobs:
           php -l deploy/app/header.php
           node --check deploy/assets/editor.js
           node --check deploy/assets/ui.js
+          node --check deploy/assets/admin-pages-v2.js
           printf 'Require all denied\nDeny from all\nOptions -Indexes\n' > deploy/storage/media/.htaccess
 
       - name: Generate protected PHP configuration
