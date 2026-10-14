@@ -31,14 +31,18 @@ jobs:
       - name: Prepare public release
         run: |
           mkdir -p deploy
-          cp index.php login.php logout.php setup.php deploy/
-          mkdir -p deploy/app deploy/database
+          cp index.php login.php logout.php setup.php profile.php avatar.php deploy/
+          mkdir -p deploy/app/avatars deploy/database deploy/assets
           cp app/bootstrap.php app/.htaccess deploy/app/
+          cp app/avatars/.htaccess deploy/app/avatars/
+          cp assets/ui.css assets/ui.js deploy/assets/
           cp database/schema.sql deploy/database/
           printf 'Require all denied\nDeny from all\n' > deploy/database/.htaccess
           php -l deploy/index.php
           php -l deploy/login.php
           php -l deploy/setup.php
+          php -l deploy/profile.php
+          php -l deploy/avatar.php
           php -l deploy/app/bootstrap.php
 
       - name: Generate protected PHP configuration
