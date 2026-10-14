@@ -1,6 +1,6 @@
 <?php
 require __DIR__.'/app/bootstrap.php';require __DIR__.'/app/site-access.php';require __DIR__.'/app/article-sites.php';$u=require_user();header('Content-Type: text/html; charset=utf-8');
-$error='';$articles=[];$siteFilter=max(0,(int)($_GET['site_id']??0));$statusFilter=(string)($_GET['status']??'');$search=trim((string)($_GET['q']??''));$termId=max(0,(int)($_GET['term_id']??0));$sites=[];$total=0;
+$error='';$articles=[];$siteFilter=max(0,(int)($_GET['site_id']??0));$statusFilter=(string)($_GET['status']??'');$search=trim((string)($_GET['q']??''));$termId=max(0,(int)($_GET['term_id']??0));$sites=[];$total=0;$page=max(1,min(10000,(int)($_GET['page']??1)));$perPage=40;
 try{
  $pdo=db();
  $allowed=allowed_primary_sites($pdo,$u);
@@ -19,7 +19,8 @@ try{
  if($termId){$where[]='EXISTS (SELECT 1 FROM article_terms at WHERE at.article_id=a.id AND at.term_id=?)';$params[]=$termId;}
  $sql=' FROM articles a JOIN sites s ON s.id=a.site_id WHERE '.implode(' AND ',$where);
  $q=$pdo->prepare('SELECT COUNT(*)'.$sql);$q->execute($params);$total=(int)$q->fetchColumn();
- $q=$pdo->prepare('SELECT a.id,a.title,a.site_id,a.status,a.updated_at,s.name site,'.($mapped?'(SELECT COUNT(*) FROM article_sites ai WHERE ai.article_id=a.id) site_count':'1 site_count').$sql.' ORDER BY a.updated_at DESC LIMIT 100');$q->execute($params);$articles=$q->fetchAll();
+ $lastPage=max(1,(int)ceil($total/$perPage));$page=min($page,$lastPage);$offset=($page-1)*$perPage;
+ $q=$pdo->prepare('SELECT a.id,a.title,a.site_id,a.status,a.updated_at,s.name site,'.($mapped?'(SELECT COUNT(*) FROM article_sites ai WHERE ai.article_id=a.id) site_count':'1 site_count').$sql.' ORDER BY a.updated_at DESC,a.id DESC LIMIT '.$perPage.' OFFSET '.$offset);$q->execute($params);$articles=$q->fetchAll();
  $editableIds=array_map('intval',$allowed);
  foreach($articles as &$entry){
   $entry['can_edit']=in_array((int)$entry['site_id'],$editableIds,true);
@@ -30,4 +31,35 @@ try{
  }
  unset($entry);
 }catch(Throwable $e){$error=$e instanceof PDOException?'Az adatbázis nem érhető el.':$e->getMessage();error_log('articles: '.$e->getMessage());}
-?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>comesy Editor · Cikkek</title><link rel="stylesheet" href="/assets/ui.css"><script src="/assets/ui.js" defer></script><style>body{font-family:system-ui;margin:0}.wrap{max-width:1100px;margin:auto;padding:24px}.head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.btn{background:#315fd6;color:white;padding:12px 17px;border-radius:8px}.card{padding:24px;margin-top:20px}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:13px;border-bottom:1px solid var(--line)}@media(max-width:600px){.wrap{padding:14px}th:nth-child(3),td:nth-child(3){display:none}}</style></head><body><?php require __DIR__.'/app/header.php'; ?><main class="wrap"><div class="head"><h1>Cikkek<?php if(!empty($termId)):?> · Besorolás #<?=(int)$termId?><?php endif;?></h1><a class="btn" href="/editor.php">+ Új cikk</a></div><?php if($error):?><p><?=h($error)?></p><?php endif;?><form method="get" class="comesy-filters"><label class="comesy-search"><span>Keresés</span><input name="q" type="search" value="<?=h($search)?>" placeholder="Cím keresése…"></label><label><span>Webhely</span><select name="site_id"><option value="0">Összes webhely</option><?php foreach($sites as $s):?><option value="<?=(int)$s['id']?>" <?=$siteFilter===(int)$s['id']?'selected':''?>><?=h($s['name'])?></option><?php endforeach;?></select></label><label><span>Státusz</span><select name="status"><option value="">Összes státusz</option><?php foreach(['draft'=>'Piszkozat','review'=>'Ellenőrzés','scheduled'=>'Időzített','published'=>'Publikált','archived'=>'Archivált'] as $key=>$label):?><option value="<?=$key?>" <?=$statusFilter===$key?'selected':''?>><?=$label?></option><?php endforeach;?></select></label><button type="submit">Szűrés</button></form><p><?=$total?> találat<?= $total>100?' · az első 100 látható':''?></p><div class="card comesy-list-card"><table class="comesy-article-table"><thead><tr><th>Cím</th><th>Webhely</th><th>Státusz</th><th>Utolsó módosítás</th></tr></thead><tbody id="article-list"><?php foreach($articles as $a):?><tr data-status="<?=h($a['status'])?>"><td><?php if($a['can_edit']):?><a href="/editor.php?id=<?=(int)$a['id']?>"><?=h($a['title'])?></a><?php else:?><?=h($a['title'])?> <small>(csak olvasás)</small><?php endif;?></td><td><?=h($a['site'])?><?php if((int)$a['site_count']>1):?> <small>+<?=((int)$a['site_count']-1)?> webhely</small><?php endif;?></td><td><?=h(['draft'=>'Piszkozat','review'=>'Ellenőrzés','scheduled'=>'Időzített','published'=>'Publikált','archived'=>'Archivált'][$a['status']]??$a['status'])?></td><td><?=h($a['updated_at'])?></td></tr><?php endforeach;?></tbody></table><p class="comesy-empty-filter" data-empty-for="article-list" hidden>Nincs a szűrésnek megfelelő cikk.</p><?php if(!$articles):?><p>Még nincs mentett cikk.</p><?php endif;?></div></main></body></html>
+$canWrite=in_array($u['role'],['platform_admin','site_admin','editor','author'],true);
+$statusLabels=['draft'=>'Piszkozat','review'=>'Ellenőrzés','scheduled'=>'Időzített','published'=>'Publikált','archived'=>'Archivált'];
+$pagerParams=['q'=>$search,'site_id'=>$siteFilter,'status'=>$statusFilter,'term_id'=>$termId];
+function article_page_link(array $p,int $page):string{return '/articles.php?'.http_build_query(array_merge($p,['page'=>$page]));}
+?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cikkek | comesy</title><link rel="stylesheet" href="/assets/ui.css"><link rel="stylesheet" href="/assets/admin-pages-v2.css"><script src="/assets/ui.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
+<main class="ui-page" id="main-content">
+<header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Tartalomkezelés</p><h1 class="ui-page-title">Cikkek</h1><p class="ui-page-description">Keresés, státuszok és többwebhelyes publikációk egy helyen.</p></div>
+<?php if($canWrite):?><div class="ui-page-actions"><a class="ui-btn ui-btn-primary" href="/editor.php"><svg class="ui-icon" aria-hidden="true"><use href="#cs-plus"></use></svg>Új cikk</a></div><?php endif;?></header>
+<?php if($error):?><p class="ui-notice error" role="alert"><?=h($error)?></p><?php endif;?>
+<form method="get" class="ui-filterbar" aria-label="Cikkek szűrése">
+<?php if($termId):?><input type="hidden" name="term_id" value="<?=(int)$termId?>"><?php endif;?>
+<label class="ui-field ui-field-search">Keresés <input type="search" name="q" value="<?=h($search)?>" placeholder="Cikk címe…" autocomplete="off"></label>
+<label class="ui-field">Webhely <select name="site_id"><option value="0">Összes webhely</option><?php foreach($sites as $siteItem):?><option value="<?=(int)$siteItem['id']?>" <?=$siteFilter===(int)$siteItem['id']?'selected':''?>><?=h($siteItem['name'])?></option><?php endforeach;?></select></label>
+<label class="ui-field">Státusz <select name="status"><option value="">Összes státusz</option><?php foreach($statusLabels as $key=>$label):?><option value="<?=h($key)?>" <?=$statusFilter===$key?'selected':''?>><?=h($label)?></option><?php endforeach;?></select></label>
+<button class="ui-btn ui-btn-primary" type="submit">Szűrés</button>
+<?php if($search!==''||$statusFilter!==''||$siteFilter||$termId):?><a class="ui-btn ui-btn-ghost" href="/articles.php">Alaphelyzet</a><?php endif;?>
+</form>
+<div class="ui-result-bar"><span><strong><?=$total?></strong> cikk<?= $termId?' · Címke/kategória #'.(int)$termId:''?></span><span><?=$total?($offset+1).'–'.min($total,$offset+$perPage).' / '.$total:'Nincs találat'?></span></div>
+<section class="ui-panel ui-data-panel" aria-label="Cikklista">
+<?php if($articles):?>
+<div class="ui-table-wrap"><table class="ui-data-table"><thead><tr><th>Cikk címe</th><th>Webhely</th><th>Státusz</th><th>Utolsó módosítás</th></tr></thead><tbody id="article-list">
+<?php foreach($articles as $a):?>
+<tr><td class="ui-cell-title">
+<?php if($canWrite&&$a['can_edit']):?><a class="ui-table-title" href="/editor.php?id=<?=(int)$a['id']?>"><?=h($a['title'])?></a><?php else:?><span class="ui-table-title"><?=h($a['title'])?></span><?php endif;?>
+<?php if(!$a['can_edit']):?><p class="ui-table-meta">Csak olvasás</p><?php endif;?></td>
+<td class="ui-cell-site"><span class="ui-cell-secondary"><?=h($a['site'])?><?php if((int)$a['site_count']>1):?> · +<?=((int)$a['site_count']-1)?> webhely<?php endif;?></span></td>
+<td class="ui-cell-status"><span class="ui-status ui-status-<?=h($a['status'])?>"><?=h($statusLabels[$a['status']]??$a['status'])?></span></td>
+<td class="ui-cell-date"><span class="ui-cell-secondary"><?=h($a['updated_at'])?></span></td></tr>
+<?php endforeach;?></tbody></table></div>
+<?php else:?><div class="ui-empty-state"><strong>Nincs a feltételeknek megfelelő cikk.</strong><p>Próbálj más keresési kifejezést vagy szűrőt.</p><a class="ui-btn ui-btn-secondary" href="/articles.php">Szűrés törlése</a></div><?php endif;?>
+<?php if($total>$perPage):?><nav class="ui-pagination" aria-label="Cikklista lapozása"><span><?=$page?> / <?=$lastPage?>. oldal</span><div class="ui-pagination-links"><?php if($page>1):?><a href="<?=h(article_page_link($pagerParams,$page-1))?>" rel="prev">← Előző</a><?php endif;?><?php if($page<$lastPage):?><a href="<?=h(article_page_link($pagerParams,$page+1))?>" rel="next">Következő →</a><?php endif;?></div></nav><?php endif;?>
+</section></main></body></html>
