@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS article_revisions (
  editor_id BIGINT UNSIGNED NULL,
  revision_number INT UNSIGNED NOT NULL,
  title VARCHAR(500) NOT NULL,
- lead TEXT NULL,
+ `lead` TEXT NULL,
  content_json LONGTEXT NULL,
  status VARCHAR(30) NOT NULL,
  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
