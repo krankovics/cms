@@ -9,8 +9,29 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
    $pdo=db();
    $sql=file_get_contents(__DIR__.'/database/editor.sql')."\n".file_get_contents(__DIR__.'/database/content.sql')."\n".file_get_contents(__DIR__.'/database/site-permissions.sql');
    foreach(array_filter(array_map('trim',explode(';',$sql))) as $statement)$pdo->exec($statement);
-   $pdo->exec('INSERT IGNORE INTO taxonomy_terms(site_id,type,name,slug) SELECT 0,type,MIN(name),slug FROM taxonomy_terms WHERE site_id<>0 GROUP BY type,slug');
-   $pdo->exec('INSERT IGNORE INTO article_terms(article_id,term_id) SELECT a.article_id,g.id FROM article_terms a JOIN taxonomy_terms t ON t.id=a.term_id JOIN taxonomy_terms g ON g.site_id=0 AND g.type=t.type AND g.slug=t.slug');
+   // Legacy global terms were created with site_id=0. Assign only if there is one site.
+   $siteIds=$pdo->query('SELECT id FROM sites ORDER BY id')->fetchAll(PDO::FETCH_COLUMN);
+   if(count($siteIds)===1){
+    $sid=(int)$siteIds[0];
+    $pdo->beginTransaction();
+    try{
+     $q=$pdo->prepare('SELECT id,type,name,slug FROM taxonomy_terms WHERE site_id=0');
+     $q->execute();
+     foreach($q->fetchAll() as $legacy){
+      $find=$pdo->prepare('SELECT id FROM taxonomy_terms WHERE site_id=? AND type=? AND slug=?');
+      $find->execute([$sid,$legacy['type'],$legacy['slug']]);
+      $target=(int)$find->fetchColumn();
+      if(!$target){
+       $pdo->prepare('UPDATE taxonomy_terms SET site_id=? WHERE id=?')->execute([$sid,$legacy['id']]);
+       continue;
+      }
+      $pdo->prepare('INSERT IGNORE INTO article_terms(article_id,term_id) SELECT article_id,? FROM article_terms WHERE term_id=?')->execute([$target,$legacy['id']]);
+      $pdo->prepare('UPDATE taxonomy_term_meta SET parent_id=? WHERE parent_id=?')->execute([$target,$legacy['id']]);
+      $pdo->prepare('DELETE FROM taxonomy_terms WHERE id=?')->execute([$legacy['id']]);
+     }
+     $pdo->commit();
+    }catch(Throwable $e){$pdo->rollBack();throw $e;}
+   }
    $message='A comesy Editor adatbázis-migrációja sikeresen lefutott.';
   }catch(Throwable $e){error_log('comesy migration: '.$e->getMessage());$error='A migráció sikertelen. Ellenőrizd az adatbázis jogosultságait.';}
  }
