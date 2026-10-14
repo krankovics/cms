@@ -38,7 +38,7 @@ try{
 <?php if($error):?><p class="error" role="alert"><?=h($error)?></p><?php endif;?>
 <?php if(isset($_GET['saved'])):?><p class="success" role="status">A jogosultságokat elmentettük.</p><?php endif;?>
 <?php if(!$users):?><section class="ui-admin-panel"><p>Nincs szerkesztői vagy szerzői szerepkörű aktív felhasználó. <a href="/users.php">Felhasználó létrehozása</a></p></section><?php else:?>
-<section class="ui-admin-panel" style="margin-bottom:15px"><form method="get" class="ui-admin-form"><label class="ui-field">Felhasználó <select name="user_id" onchange="this.form.submit()"><?php foreach($users as $item):?><option value="<?=(int)$item['id']?>" <?=$uid===(int)$item['id']?'selected':''?>><?=h($item['name'].' ('.$item['email'].')')?></option><?php endforeach;?></select></label></form></section>
+<section class="ui-admin-panel ui-permissions-picker"><form method="get" class="ui-admin-form"><label class="ui-field">Felhasználó <select name="user_id" onchange="this.form.submit()"><?php foreach($users as $item):?><option value="<?=(int)$item['id']?>" <?=$uid===(int)$item['id']?'selected':''?>><?=h($item['name'].' ('.$item['email'].')')?></option><?php endforeach;?></select></label></form></section>
 <?php if($uid):?><form method="post" class="ui-admin-panel" id="permissions-form">
 <input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="user_id" value="<?=$uid?>">
 <div class="ui-panel-header"><div><h2>Jogosultsági mátrix</h2><p class="ui-page-description">Jelöld ki legalább egy webhely szerkesztési jogát. A címke- és médiatárhozzáférés további webhelyekre is adható.</p></div></div>
