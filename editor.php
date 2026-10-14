@@ -42,20 +42,21 @@ try{
   $blocks=ed_blocks($_POST['blocks']??'[]');
   $json=json_encode($blocks,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
   $status=(string)($_POST['status']??'draft');
-  if(!in_array($status,['draft','review'],true))throw new RuntimeException('Nem támogatott státusz.');
+  if(!in_array($status,in_array($u['role'],['platform_admin','site_admin','editor'],true)?['draft','review','published']:['draft','review'],true))throw new RuntimeException('Nem támogatott státusz.');
   $siteId=(int)($_POST['site_id']??0);
   $q=$pdo->prepare('SELECT id FROM sites WHERE id=?');$q->execute([$siteId]);if(!$q->fetch())throw new RuntimeException('Válassz webhelyet.');
+  $publishedAt=$status==='published'?date('Y-m-d H:i:s'):null;
   $pdo->beginTransaction();
   try{
    if($id){
     $q=$pdo->prepare('SELECT updated_at FROM articles WHERE id=? FOR UPDATE');$q->execute([$id]);$current=$q->fetchColumn();
     if(!$current||$current!==(string)($_POST['expected_updated_at']??''))throw new RuntimeException('A cikket időközben módosították. Frissítsd az oldalt.');
-    $q=$pdo->prepare('UPDATE articles SET title=?,lead=?,content_json=?,status=?,site_id=?,updated_at=NOW() WHERE id=?');
-    $q->execute([$title,$lead,$json,$status,$siteId,$id]);
+    $q=$pdo->prepare('UPDATE articles SET title=?,lead=?,content_json=?,status=?,site_id=?,published_at=CASE WHEN ?='published' THEN COALESCE(published_at,?) ELSE NULL END,updated_at=NOW() WHERE id=?');
+    $q->execute([$title,$lead,$json,$status,$siteId,$status,$publishedAt,$id]);
    }else{
     $slug=ed_slug($title).'-'.bin2hex(random_bytes(3));
-    $q=$pdo->prepare('INSERT INTO articles(site_id,author_id,title,slug,lead,content_json,status) VALUES(?,?,?,?,?,?,?)');
-    $q->execute([$siteId,$u['id'],$title,$slug,$lead,$json,$status]);$id=(int)$pdo->lastInsertId();
+    $q=$pdo->prepare('INSERT INTO articles(site_id,author_id,title,slug,lead,content_json,status,published_at) VALUES(?,?,?,?,?,?,?,?)');
+    $q->execute([$siteId,$u['id'],$title,$slug,$lead,$json,$status,$publishedAt]);$id=(int)$pdo->lastInsertId();
    }
    $q=$pdo->prepare('SELECT COALESCE(MAX(revision_number),0)+1 FROM article_revisions WHERE article_id=?');$q->execute([$id]);$num=(int)$q->fetchColumn();
    $q=$pdo->prepare('INSERT INTO article_revisions(article_id,editor_id,revision_number,title,lead,content_json,status) VALUES(?,?,?,?,?,?,?)');
