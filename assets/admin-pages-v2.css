@@ -171,3 +171,6 @@ body.comesy-admin .ui-row-menu-items a:hover{background:var(--ui-surface-subtle)
  body.comesy-admin .ui-data-table .ui-cell-title{grid-column:1;grid-row:1}
  body.comesy-admin .ui-data-table .ui-cell-status{grid-row:2}
 }
+
+body.comesy-admin .ui-taxonomy-indent{font-size:14px;font-weight:500;color:var(--ui-text-secondary);letter-spacing:.12em;padding-right:8px;white-space:nowrap}
+body.comesy-admin .ui-taxonomy-row:has(.ui-taxonomy-indent){background:color-mix(in srgb,var(--ui-surface-subtle) 30%,var(--ui-surface))}
