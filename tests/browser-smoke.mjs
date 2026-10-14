@@ -124,7 +124,7 @@ try{
  await admin.locator('#user-edit-form [name="email"]').fill('ui.smoke@testing.invalid');
  await admin.locator('#user-edit-form [name="new_password"]').fill('UniqueStrongTest2026!');
  await Promise.all([admin.waitForURL(/saved=1/),admin.locator('#user-edit-form button[type="submit"]').click()]);
- assert((await admin.locator('.ui-person-row').count())===4,'Created user missing');
+ assert((await admin.locator('.ui-person-row').count())===6,'Created user missing');
  await admin.setViewportSize({width:320,height:740});
  await overflow(admin,'320 users');
  await admin.goto(base+'/settings.php',{waitUntil:'networkidle'});
