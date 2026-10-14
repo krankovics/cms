@@ -31,14 +31,14 @@ try{
 <div class="ui-person-avatar" aria-hidden="true"><?=h(mb_strtoupper(mb_substr($item['name'],0,1)))?></div>
 <div class="ui-person-details"><strong><?=h($item['name'])?></strong><small><?=h($item['email'])?></small><small><?=h($roles[$item['role']]??$item['role'])?></small></div>
 <span class="ui-status <?=$item['active']?'ui-status-published':'ui-status-archived'?>"><?=$item['active']?'Aktív':'Inaktív'?></span>
-<a class="ui-panel-link" href="/users.php?edit=<?=(int)$item['id']?>">Szerkesztés</a>
+<div class="ui-person-actions"><a class="ui-panel-link" href="/users.php?edit=<?=(int)$item['id']?>">Szerkesztés</a><?php if(in_array($item['role'],['site_admin','editor','author'],true)):?><a class="ui-panel-link" href="/site-permissions.php?user_id=<?=(int)$item['id']?>">Hozzáférés</a><?php endif;?></div>
 </div>
 <?php endforeach;?></div>
 <div class="ui-panel-state" data-ui-empty-for="user-list" <?=$users?'hidden':''?>>Nincs a keresésnek megfelelő felhasználó.</div>
 </section>
 <aside class="ui-panel ui-workbench-pane" id="user-editor" data-ui-pane data-panel-default-open="<?=$selected||isset($_GET['new'])?'1':'0'?>" aria-label="<?=$selected?'Felhasználó szerkesztése':'Új felhasználó'?>">
 <div class="ui-pane-header"><div><h2><?=$selected?'Felhasználó szerkesztése':'Új felhasználó'?></h2><p>Csapattag és jogosultsági szerepkör</p></div><button class="ui-pane-close" type="button" data-panel-close aria-label="Szerkesztőpanel bezárása">✕</button></div>
-<form method="post" id="user-edit-form">
+<form method="post" id="user-edit-form" data-editing-user="<?=$selected?'1':'0'?>">
 <input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="user_id" value="<?=(int)($selected['id']??0)?>">
 <div class="ui-pane-body">
 <label class="ui-field">Név <input name="name" data-pane-first required minlength="2" maxlength="190" value="<?=h($selected['name']??'')?>" autocomplete="name"></label>
@@ -51,4 +51,10 @@ try{
 <div class="ui-pane-footer"><button class="ui-btn ui-btn-primary" type="submit">Mentés</button><?php if($selected):?><a class="ui-btn ui-btn-secondary" href="/users.php">Új felhasználó</a><?php endif;?></div>
 </form></aside>
 </div><button type="button" class="ui-pane-dim" data-ui-pane-dim aria-label="Panel bezárása"></button>
-</main></body></html>
+<script>
+document.getElementById('user-edit-form')?.addEventListener('submit',function(e){
+ if(this.dataset.editingUser!=='1')return;
+ const active=this.querySelector('[name="active"]');
+ if(active&&!active.checked&&!confirm('Biztosan inaktiválod ezt a felhasználót? Nem fog tudni bejelentkezni.'))e.preventDefault();
+});
+</script></main></body></html>
