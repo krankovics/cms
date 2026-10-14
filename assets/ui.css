@@ -118,3 +118,14 @@
  .profile-trigger .avatar{width:32px;height:32px}
  .wrap form.panel select{max-width:100%;min-width:0}
 }
+
+/* Two-level mobile drawer navigation */
+.mobile-nav .nav-group{width:100%;min-width:0;border:0;margin:0}
+.mobile-nav .nav-group-toggle{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;border-radius:10px;color:#eaf0ff;font-size:15px;font-weight:650;cursor:pointer;user-select:none}
+.mobile-nav .nav-group-toggle::-webkit-details-marker{display:none}
+.mobile-nav .nav-group-toggle:hover,.mobile-nav .nav-group-toggle:focus-visible{background:#ffffff1b;outline-offset:2px}
+.mobile-nav .nav-group-chevron{font-size:20px;line-height:1;transition:transform .18s}
+.mobile-nav .nav-group[open] .nav-group-chevron{transform:rotate(180deg)}
+.mobile-nav .nav-submenu{display:flex;flex-direction:column;gap:2px;margin:2px 0 8px 12px;padding-left:12px;border-left:1px solid #ffffff38}
+.mobile-nav .nav-submenu a{font-size:14px!important;font-weight:450!important;padding:10px 12px!important;color:#cddaf1!important}
+.mobile-nav .nav-submenu a:hover,.mobile-nav .nav-submenu a:focus-visible{background:#ffffff1b!important;color:#fff!important}
