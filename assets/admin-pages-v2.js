@@ -50,6 +50,12 @@
   panels.forEach(panel=>{if(panel.dataset.panelDefaultOpen==='1'&&narrow.matches){panel.inert=false;setPane(panel,true);}});
 
   const normalize=s=>(s||'').toLocaleLowerCase('hu').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  document.querySelectorAll('[data-filter-toggle]').forEach(button=>{
+   const panel=document.getElementById(button.dataset.filterToggle);if(!panel)return;
+   const set=open=>{panel.classList.toggle('is-open',open);button.setAttribute('aria-expanded',String(open));};
+   set(!!panel.querySelector('select option:checked:not([value=""]):not([value="0"])'));
+   button.addEventListener('click',()=>set(!panel.classList.contains('is-open')));
+  });
   document.querySelectorAll('[data-ui-search]').forEach(input=>{
    const list=document.getElementById(input.dataset.uiSearch);
    if(!list)return;
