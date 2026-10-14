@@ -1,52 +1,24 @@
 <?php
 declare(strict_types=1);
 require __DIR__.'/app/bootstrap.php';
-$loggedInUser=require_user();
-header('Content-Type: text/html; charset=utf-8');
-header('X-Content-Type-Options: nosniff');
-header('Referrer-Policy: strict-origin-when-cross-origin');
-$sections = [
- 'overview'=>['Áttekintés','layout-dashboard'],
- 'articles'=>['comesy Editor','file-text'],
- 'settings'=>['Beállítások','settings']
-];
-$active = $_GET['view'] ?? 'overview';
-if (!isset($sections[$active])) $active='overview';
-function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
-$demo = [
- ['title'=>'Egy új kiadói platform alapjai','site'=>'Minta Magazin','section'=>'Technológia','status'=>'Demó','date'=>'2026.10.14'],
- ['title'=>'Hogyan működik a blokkos szerkesztés?','site'=>'Minta Magazin','section'=>'Szerkesztőség','status'=>'Demó','date'=>'2026.10.14'],
- ['title'=>'Vizuális oldalépítés több képernyőre','site'=>'Minta Magazin','section'=>'Digitális','status'=>'Demó','date'=>'2026.10.14']
-];
-?><!doctype html>
-<html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title><?=e($sections[$active][0])?> | comesy</title>
-<style>
-:root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#20283b;background:#f5f7fb}*{box-sizing:border-box}body{margin:0}a{text-decoration:none;color:inherit}.shell{display:grid;grid-template-columns:255px 1fr;min-height:100vh}.sidebar{background:#101c35;color:#e6ebf4;padding:28px 17px;display:flex;flex-direction:column}.logo{font-size:24px;font-weight:800;letter-spacing:-1px;margin:0 12px 5px}.logo span{color:#75a7ff}.sub{font-size:12px;color:#91a0bd;margin:0 12px 30px}.nav a{display:flex;align-items:center;gap:12px;border-radius:9px;padding:13px 14px;font-size:14px;margin:4px 0;color:#b9c6de}.nav a:hover,.nav a.active{background:#263a60;color:white}.nav b{display:inline-flex;width:23px;height:23px;align-items:center;justify-content:center;font-size:14px}.sidebar-foot{margin-top:auto;color:#8799b8;font-size:12px;padding:14px}.main{padding:30px 42px;max-width:1500px;width:100%;margin:0 auto}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:30px}.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:1.4px;color:#76849c;font-weight:700}.top h1{font-size:29px;letter-spacing:-.9px;margin:5px 0}.tag{background:#fff0d6;color:#8c5909;border:1px solid #ffe0a2;padding:7px 11px;border-radius:100px;font-size:12px;font-weight:700}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.card{background:white;border:1px solid #e5eaf3;border-radius:14px;padding:23px;box-shadow:0 4px 14px #1e376109}.card h2{font-size:16px;margin:0 0 10px}.card p{font-size:14px;color:#65728a;line-height:1.6}.stat{font-size:32px;font-weight:800;margin:10px 0 2px}.wide{grid-column:1/-1}.actions{display:flex;gap:9px;flex-wrap:wrap;margin:14px 0}.btn{display:inline-flex;align-items:center;justify-content:center;border-radius:9px;padding:11px 15px;background:#315fd6;color:white;font-weight:700;font-size:13px;border:0}.btn.secondary{background:#e9effd;color:#2b50a2}.btn.disabled{background:#e8ebf1;color:#8691a4;cursor:not-allowed}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;color:#7b879a;font-size:12px;padding:12px;border-bottom:1px solid #e9edf4}td{padding:14px 12px;border-bottom:1px solid #eef1f5}.note{background:#eef4ff;border-left:4px solid #5482e5;padding:16px 18px;border-radius:7px;color:#43587b;font-size:14px;line-height:1.6;margin-bottom:20px}.check{color:#258b68;font-weight:700}.muted{color:#8994a6}.placeholder{border:1px dashed #cbd4e4;background:#f9fbff;border-radius:12px;padding:32px;text-align:center;color:#687791}.pill{background:#eaf0fb;color:#34569b;padding:5px 9px;border-radius:7px;font-size:12px}.footer{font-size:12px;color:#8994a6;margin-top:35px}@media(max-width:950px){.shell{grid-template-columns:1fr}.sidebar{padding:15px}.logo{font-size:20px}.sub,.sidebar-foot{display:none}.nav{display:flex;overflow-x:auto;gap:4px;margin-top:12px}.nav a{white-space:nowrap;padding:9px}.main{padding:22px}.grid{grid-template-columns:1fr 1fr}}@media(max-width:650px){.grid{grid-template-columns:1fr}.top{align-items:flex-start;flex-direction:column}.main{padding:16px}.card{padding:18px}}
-</style><link rel="stylesheet" href="/assets/ui.css"><script src="/assets/ui.js" defer></script></head><body><div class="nav-overlay" data-nav-overlay></div><div class="shell"><aside class="sidebar"><div class="logo">comesy</div><div class="sub">Content. Media. System.</div><nav class="nav" aria-label="Főmenü"><?php
-$icons=['overview'=>'◫','sites'=>'◎','articles'=>'▤','pages'=>'▦','import'=>'⇩','ads'=>'◈','media'=>'▧','ai'=>'✧','analytics'=>'▥','audit'=>'◷','settings'=>'⚙'];
-foreach($sections as $key=>$section):?><a class="<?= $active===$key?'active':'' ?>" href="<?= $key==='articles'?'/articles.php':($key==='settings'?'/settings.php':'/') ?>"><b><?=e($icons[$key])?></b><?=e($section[0])?></a><?php endforeach;?></nav></aside><div class="page-layout"><header class="app-header"><button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-label="Menü">☰</button><a class="brand" href="/">comesy</a><div class="app-header-right"><button type="button" class="theme-toggle" data-theme-toggle aria-label="Sötét mód">◐</button><details class="profile-menu"><summary class="profile-trigger" style="list-style:none;cursor:pointer"><img class="avatar" src="/avatar.php" alt=""><span class="profile-name"><?=h($loggedInUser['name'])?></span> ▾</summary><div class="profile-dropdown"><a href="/profile.php">Profilbeállítások</a><form method="post" action="/logout.php"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><button type="submit">Kijelentkezés</button></form></div></details></div></header><main class="main"><header class="top"><div><div class="eyebrow">One platform. Every story.</div><h1><?=e($sections[$active][0])?></h1></div></header>
-
-<?php if($active==='overview'):?>
-<div class="grid"><section class="card"><h2>Webhelyek</h2><div class="stat">1</div><p>Bemutató webhely, nem éles konfiguráció.</p></section><section class="card"><h2>Mintacikkek</h2><div class="stat">3</div><p>A szerkesztő felületének szemléltetésére.</p></section><section class="card"><h2>Importfolyamatok</h2><div class="stat">0</div><p>Még nincs bekapcsolva az importmotor.</p></section></div>
-<?php elseif($active==='articles'):?>
-<section class="card"><h2>Cikkek</h2><p>A végleges rendszerben itt lesz a státusz, szerző, rovat, webhely és dátum szerinti keresés, a blokkos szerkesztő, a verziókülönbségek és a jóváhagyás.</p><div class="table-wrap"><table><thead><tr><th>Cím</th><th>Webhely</th><th>Rovat</th><th>Státusz</th><th>Dátum</th></tr></thead><tbody><?php foreach($demo as $article):?><tr><td><strong><?=e($article['title'])?></strong></td><td><?=e($article['site'])?></td><td><?=e($article['section'])?></td><td><span class="pill"><?=e($article['status'])?></span></td><td><?=e($article['date'])?></td></tr><?php endforeach;?></tbody></table></div><div class="actions"><button class="btn disabled" disabled>Új cikk (hamarosan)</button></div></section>
-<?php elseif($active==='sites'):?>
-<div class="grid"><section class="card wide"><h2>Minta Magazin</h2><p>Bemutató konfiguráció. Az éles multisite-kezelés később kapcsolható be.</p><div class="actions"><span class="pill">Vizuális oldalépítő: tervezett</span><span class="pill">Olvasói regisztráció: tervezett</span><span class="pill">Saját domain: tervezett</span></div></section></div>
-<?php elseif($active==='import'):?>
-<div class="grid"><section class="card"><h2>1. Egy cikk URL-ből</h2><p>HTML → strukturált szerkeszthető blokkok, képek és belső linkek feltérképezése.</p><button class="btn disabled" disabled>Import demó (hamarosan)</button></section><section class="card"><h2>2. Teljes webhely</h2><p>Sitemap-felderítés, terheléskorlátos import, folytatható háttérfeladatok.</p><button class="btn disabled" disabled>Webhely import (hamarosan)</button></section><section class="card"><h2>3. Próba és költség</h2><p>100 cikkes minta, CPU, memória, forgalom, tárhely és hibaarány mérése.</p><button class="btn disabled" disabled>Próbaimport (hamarosan)</button></section></div>
-<?php elseif($active==='pages'):?>
-<section class="card"><h2>Vizuális oldalépítő</h2><p>Desktop, tablet és mobil nézet; fejléc, rovat, címlap és cikk sablonok. Webhelyenként ki-be kapcsolható.</p><div class="placeholder">A drag-and-drop szerkesztő következő fejlesztési fázisban érkezik.</div></section>
-<?php elseif($active==='media'):?>
-<section class="card"><h2>comesy Media</h2><p>Központi médiatár és képkezelés.</p><div class="placeholder">Fejlesztés alatt.</div></section>
-<?php elseif($active==='ai'):?>
-<section class="card"><h2>comesy AI</h2><p>AI-alapú szerkesztési támogatás.</p><div class="placeholder">Tervezett modul.</div></section>
-<?php elseif($active==='analytics'):?>
-<section class="card"><h2>comesy Analytics</h2><p>Tartalmi és hirdetési analitika.</p><div class="placeholder">Tervezett modul.</div></section>
-<?php elseif($active==='ads'):?>
-<section class="card"><h2>Natív hirdetéskezelő</h2><p>Hirdetők, kampányok, kreatívok, célzás, zónák, időzítés és riportok.</p><div class="placeholder">Még nincs éles hirdetéskiszolgálás.</div></section>
-<?php elseif($active==='audit'):?>
-<section class="card"><h2>Auditnapló</h2><p>Ki, mikor, melyik webhelyen, milyen tartalmat vagy beállítást változtatott; verziókülönbségek és visszaállítás.</p><div class="placeholder">Nincs rögzített éles művelet.</div></section>
-<?php else:?>
-<section class="card"><h2>Platformbeállítások</h2><p>Adatbázis, jogosultságok, webhelyenkénti modulkapcsolók és biztonsági beállítások.</p><div class="placeholder">Az éles beállítások csak hitelesített adminisztráció után lesznek elérhetők.</div></section>
-<?php endif;?></main></div></div></body></html>
+require __DIR__.'/app/site-access.php';
+$u=require_user();
+$error='';$siteCount=0;$articleCount=0;$reviewCount=0;$mediaCount=0;$recent=[];
+try {
+ $pdo=db();$allowed=allowed_primary_sites($pdo,$u);
+ $siteCount=count($allowed);
+ if($allowed){
+  $ids=implode(',',array_map('intval',$allowed));
+  $articleCount=(int)$pdo->query("SELECT COUNT(*) FROM articles WHERE site_id IN ($ids)")->fetchColumn();
+  $reviewCount=(int)$pdo->query("SELECT COUNT(*) FROM articles WHERE site_id IN ($ids) AND status='review'")->fetchColumn();
+  $mediaSites=allowed_resource_sites($pdo,$u,'media');
+  if($mediaSites){$mediaIds=implode(',',array_map('intval',$mediaSites));$mediaCount=(int)$pdo->query("SELECT COUNT(*) FROM media_assets WHERE site_id IN ($mediaIds)")->fetchColumn();}
+  $recent=$pdo->query("SELECT id,title,status,updated_at FROM articles WHERE site_id IN ($ids) ORDER BY updated_at DESC LIMIT 5")->fetchAll();
+ }
+}catch(Throwable $e){error_log('comesy dashboard: '.$e->getMessage());$error='Az összesítések most nem tölthetők be.';}
+$labels=['draft'=>'Piszkozat','review'=>'Ellenőrzésre vár','scheduled'=>'Időzített','published'=>'Publikált','archived'=>'Archivált'];
+?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Áttekintés | comesy</title><link rel="stylesheet" href="/assets/ui.css"><script src="/assets/ui.js" defer></script>
+<style>body{margin:0;font-family:system-ui}.dashboard{max-width:1120px;margin:0 auto;padding:22px}.dashboard h1{font-size:clamp(24px,4vw,32px);margin:4px 0 18px}.dashboard-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}.dash-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}.dash-card h2{font-size:14px;margin:0;color:var(--muted)}.dash-card strong{display:block;font-size:30px;margin:10px 0;font-variant-numeric:tabular-nums}.dash-card a,.dash-panel a{color:var(--blue)}.dash-panel{margin-top:18px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}.dash-panel h2{margin:0 0 12px;font-size:18px}.dash-item{padding:10px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px}.dash-item:last-child{border-bottom:0}.dash-item small{color:var(--muted);white-space:nowrap}@media(max-width:720px){.dashboard{padding:14px}.dashboard-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.dash-card{padding:14px}.dash-card strong{font-size:25px}.dash-panel{padding:14px}.dash-item{flex-direction:column;gap:3px}.dash-item small{white-space:normal}}</style>
+</head><body><?php require __DIR__.'/app/header.php';?><main class="dashboard"><h1>Áttekintés</h1><?php if($error):?><p class="error" role="alert"><?=h($error)?></p><?php endif;?>
+<div class="dashboard-grid"><section class="dash-card"><h2>Elérhető webhelyek</h2><strong><?=$siteCount?></strong><?php if($u['role']==='platform_admin'):?><a href="/sites.php">Webhelyek →</a><?php endif;?></section><section class="dash-card"><h2>Cikkek</h2><strong><?=$articleCount?></strong><a href="/articles.php">Cikklista →</a></section><section class="dash-card"><h2>Ellenőrzésre vár</h2><strong><?=$reviewCount?></strong><a href="/articles.php?status=review">Megnyitás →</a></section><section class="dash-card"><h2>Médiaelemek</h2><strong><?=$mediaCount?></strong><a href="/media.php">Médiatár →</a></section></div>
+<section class="dash-panel"><h2>Legutóbb módosított cikkek</h2><?php foreach($recent as $a):?><div class="dash-item"><a href="/editor.php?id=<?=(int)$a['id']?>"><?=h($a['title'])?></a><small><?=h($labels[$a['status']]??$a['status'])?> · <?=h($a['updated_at'])?></small></div><?php endforeach;?><?php if(!$recent):?><p>Még nincs megjeleníthető cikk. <a href="/editor.php">Új cikk létrehozása</a></p><?php endif;?></section></main></body></html>
