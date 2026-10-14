@@ -180,3 +180,10 @@ body.comesy-admin .ui-media-alt-form[hidden],body.comesy-admin .ui-upload-progre
 body.comesy-admin .ui-media-alt-form .ui-btn{width:fit-content}
 body.comesy-admin .ui-upload-progress{display:flex;gap:9px;align-items:center;padding:0 19px 12px;font-size:12px;color:var(--ui-text-secondary)}
 body.comesy-admin .ui-upload-progress progress{flex:1;min-width:0;max-width:250px;height:9px;accent-color:var(--ui-primary)}
+
+body.comesy-admin .ui-person-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:end}
+body.comesy-admin .ui-person-actions a{min-height:38px;display:inline-flex;align-items:center}
+@media(max-width:767px){
+ body.comesy-admin .ui-person-actions{flex-direction:column;align-items:end;gap:0}
+ body.comesy-admin .ui-person-actions a{min-height:30px}
+}
