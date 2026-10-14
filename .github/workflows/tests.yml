@@ -43,6 +43,8 @@ jobs:
           COMESY_TEST_USER: root
           COMESY_TEST_PASSWORD: test_password
         run: php tests/integration.php
+      - name: Install headless UI test runner
+        run: npm install --no-save --no-package-lock playwright-core@1.56.1
       - name: Test HTTP login and multisite publishing
         env:
           COMESY_TEST_DB: comesy_test
@@ -56,3 +58,11 @@ jobs:
           trap 'kill "$pid" || true; rm -f app/config.php' EXIT
           sleep 2
           python3 tests/http-smoke.py || { cat /tmp/comesy-php-test.log; exit 1; }
+          node tests/browser-smoke.mjs || { cat /tmp/comesy-php-test.log; exit 1; }
+      - name: Upload desktop and mobile previews
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: comesy-admin-ui-preview
+          path: ui-preview/*.png
+          if-no-files-found: ignore
