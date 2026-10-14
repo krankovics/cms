@@ -6,8 +6,9 @@ $u=require_user();$error='';$message='';
 try{
  $pdo=db();$sites=$pdo->query('SELECT id,name FROM sites ORDER BY name')->fetchAll();
  $allowed=allowed_resource_sites($pdo,$u,'tags');
- $site=(int)($_REQUEST['site_id']??(($sites[0]['id']??0)));$type=($_REQUEST['type']??'category')==='tag'?'tag':'category';
- if(!in_array($site,$allowed,true))$site=(int)($sites[0]['id']??0);
+ $defaultSite=(int)(array_values(array_filter($allowed,fn($v)=>$v>0))[0]??0);
+ $site=(int)($_REQUEST['site_id']??$defaultSite);$type=($_REQUEST['type']??'category')==='tag'?'tag':'category';
+ if(!in_array($site,$allowed,true))$site=$defaultSite;
  $canManage=in_array($u['role'],['platform_admin','site_admin','editor'],true)&&($u['role']==='platform_admin'||($site>0&&in_array($site,allowed_primary_sites($pdo,$u),true)));
  if($_SERVER['REQUEST_METHOD']==='POST'){
   tx_action($pdo,$u,$allowed,$site,$type);
