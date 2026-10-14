@@ -57,6 +57,8 @@ jobs:
           php -l deploy/app/site-access.php
           php -l deploy/app/bootstrap.php
           php -l deploy/app/header.php
+          node --check deploy/assets/editor.js
+          node --check deploy/assets/ui.js
           printf 'Require all denied\nDeny from all\nOptions -Indexes\n' > deploy/storage/media/.htaccess
 
       - name: Generate protected PHP configuration
