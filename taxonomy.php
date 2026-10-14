@@ -56,7 +56,7 @@ try{
 <div class="ui-result-bar"><span><strong data-ui-visible-for="taxonomy-list"><?=count($terms)?></strong> elem</span><span><?=$type==='category'?'Kategóriák':'Címkék'?></span></div>
 <div class="ui-workbench">
 <section class="ui-panel ui-data-panel ui-workbench-list" aria-label="Meglévő elemek">
-<?php if($canManage):?><form id="taxonomy-bulk" method="post" onsubmit="return confirm('Biztosan törlöd a kijelölt elemeket? A hozzájuk tartozó cikkbesorolások is megszűnnek.')">
+<?php if($canManage):?><form id="taxonomy-bulk" method="post">
 <input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="site_id" value="<?=$site?>"><input type="hidden" name="type" value="<?=h($type)?>"><input type="hidden" name="action" value="bulk_delete">
 <?php if($terms):?><div class="ui-selection-controls"><label><input type="checkbox" id="taxonomy-select-all"> Látható elemek kijelölése</label><span id="taxonomy-selected-count">0 kijelölve</span></div>
 <div class="ui-bulk-action" id="taxonomy-bulk-bar" hidden><strong id="taxonomy-bulk-count">0 kijelölve</strong><button class="ui-btn ui-btn-danger" type="submit" id="taxonomy-delete-selected" disabled>Kijelöltek törlése</button></div><?php endif;?>
@@ -105,6 +105,10 @@ try{
   if(all){all.checked=shown.length>0&&shown.every(el=>el.checked);all.indeterminate=shown.some(el=>el.checked)&&!all.checked;}
  };
  all?.addEventListener('change',()=>{visible().forEach(el=>el.checked=all.checked);update();});
+ form.addEventListener('submit',event=>{
+  const selected=items.filter(input=>input.checked).length;
+  if(!selected||!confirm(selected+' kiválasztott elem végleges törlése? A kapcsolódó cikkbesorolások is megszűnnek.'))event.preventDefault();
+ });
  form.addEventListener('change',update);document.addEventListener('comesy:list-filtered',e=>{if(e.detail.id==='taxonomy-list')update();});update();
 })();
 </script>
