@@ -4,22 +4,22 @@
 
 Moduláris, PHP/MySQL-alapú, több webhelyet kezelő szerkesztőségi CMS. A márkanév mindig **comesy** (kisbetűvel).
 
-## Adminfelület v2 tervezés
+## Adminfelület v2
 
 - [Admin UI v2 design system](docs/admin-design-system.md): modern SaaS layout, breakpointok, komponensek, világos/sötét színek és hozzáférhetőség.
 - [Admin redesign backlog](docs/admin-redesign-backlog.md): oldalszintű feladatok, sprint-sorrend, elfogadási feltételek és regressziós kapuk.
 
-A fenti dokumentumok **tervek**, nem az éles adminfelület jelenlegi állapotának leírásai. A vizuális átépítés modulonként, tesztkapukkal történik.
+Az adminfelület modulonként elkészült. A listák, szerkesztőpanelek, navigáció és szerepkörös működés reszponzív kialakítása élesíthető, tesztkapus GitHub Actions telepítéssel.
 
 ## Működő adminisztrációs részek
 
 - Felhasználói bejelentkezés, profil, szuperadmin és szerkesztőségi szerepkörök
 - Webhelyek, webhelyenkénti szerkesztési és olvasási jogosultságok
-- Cikkszerkesztő: gazdag szöveg, médiafeltöltés, revíziók, kategóriák, címkék, SEO
+- Cikkszerkesztő: gazdag szöveg, médiafeltöltés, revíziók, kategóriák, címkék, SEO, kiemelt kép, mobil meta-accordionok és mentetlen módosítások védelme
 - Cikkstátuszok: piszkozat, ellenőrzésre vár, publikált
 - Egy cikk hozzárendelése több engedélyezett webhelyhez: közös tartalom és státusz
 - Globális (site_id=0) és helyi kategóriák/címkék. A meglévő globális fogalmakat az új címkék létrehozásakor újrahasználja
-- Médiatár: hozzáférés-alapú böngészés és feltöltés
+- Médiatár: hozzáférés-alapú böngészés, feltöltési előrehaladás, képrészletező panel, alt szöveg mentése
 
 **Korlát:** A többwebhelyes hozzárendelés a comesy CMS adatmodelljében működik. A publikált tartalom külső webhelyekre történő továbbítása külön frontend/API-integrációt igényel. A globális és helyi régi duplikátumokat nem egyesíti automatikusan.
 
@@ -50,3 +50,9 @@ Ezután a [webhely-hozzáférések](https://cms.8media.hu/site-permissions.php) 
 - `.github/workflows/tests.yml`: PHP/JavaScript lint és az izolált tesztfolyamatok, a telepítési workflow-ból újrafelhasználva
 
 A tesztek **nem** helyettesítik az éles felhasználói elfogadási tesztet és a külső webhelyek integrációs ellenőrzését.
+
+## Admin UI v2 minőségbiztosítás
+
+A GitHub Actions izolált MySQL 8 tesztadatbázison ellenőrzi a webhely-jogosultságokat, a szerepköröket, a cikkek mentését és publikálását, a címke- és médiakezelést, a képek alternatív szövegének módosítását, a felhasználókezelést, valamint a profiladatok mentését. A böngészős teszt 12 adminnézetet jár be 320, 390, 768, 1366 és 1920 px szélességen, és ellenőrzi a navigáció, panelek, sötét mód, keresés és feltöltés működését. Az automatikus tesztek Chromium alatt futnak; a tényleges iPhone Safari kézi ellenőrzése ettől különböző elfogadási teszt.
+
+A teljes cikk tartalmának külső kiadói webhelyek felé való publikálása külön integrációt igényel.
