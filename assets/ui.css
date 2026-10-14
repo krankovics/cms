@@ -58,3 +58,8 @@
 .ed-modal-primary{background:#315fd6;color:white;border-color:#315fd6!important}
 .ed-modal-secondary{background:var(--bg);color:var(--ink)}
 @media(max-width:600px){#ed-modal-actions{flex-direction:column-reverse}#ed-modal-actions button{width:100%}}
+
+/* Keep global navigation visible on mobile and offset notification scroll targets */
+@media(max-width:950px){.comesy-global-header{position:sticky!important;top:0!important;z-index:60!important;box-shadow:0 2px 12px rgba(15,23,42,.07)}html{scroll-padding-top:82px}}
+@media(max-width:480px){html{scroll-padding-top:74px}}
+.success,.error,[role="alert"],[data-notice]{scroll-margin-top:90px}
