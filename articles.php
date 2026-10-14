@@ -9,6 +9,7 @@ try{
  if($siteFilter&&!in_array($siteFilter,$allowed,true))throw new RuntimeException('Nincs jogosultság a webhelyhez.');
  if(!in_array($statusFilter,['','draft','review','scheduled','published','archived'],true))$statusFilter='';
  $where=['a.site_id IN ('.implode(',',array_map('intval',$allowed?:[-1])).')'];$params=[];
+ if($u['role']==='author'){$where[]='a.author_id=?';$params[]=(int)$u['id'];}
  if($siteFilter){$where[]='a.site_id=?';$params[]=$siteFilter;}
  if($statusFilter!==''){$where[]='a.status=?';$params[]=$statusFilter;}
  if($search!==''){$where[]='a.title LIKE ?';$params[]='%'.mb_substr($search,0,100).'%';}
