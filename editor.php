@@ -75,11 +75,11 @@ try{
    if($id){
     $q=$pdo->prepare('SELECT updated_at FROM articles WHERE id=? FOR UPDATE');$q->execute([$id]);$current=$q->fetchColumn();
     if(!$current||$current!==(string)($_POST['expected_updated_at']??''))throw new RuntimeException('A cikket időközben módosították. Frissítsd az oldalt.');
-    $q=$pdo->prepare('UPDATE articles SET title=?,lead=?,content_json=?,status=?,site_id=?,published_at=CASE WHEN ?=\'published\' THEN COALESCE(published_at,?) ELSE NULL END,updated_at=NOW() WHERE id=?');
+    $q=$pdo->prepare('UPDATE articles SET title=?,`lead`=?,content_json=?,status=?,site_id=?,published_at=CASE WHEN ?=\'published\' THEN COALESCE(published_at,?) ELSE NULL END,updated_at=NOW() WHERE id=?');
     $q->execute([$title,$lead,$json,$status,$siteId,$status,$publishedAt,$id]);
    }else{
     $slug=ed_slug($title).'-'.bin2hex(random_bytes(3));
-    $q=$pdo->prepare('INSERT INTO articles(site_id,author_id,title,slug,lead,content_json,status,published_at) VALUES(?,?,?,?,?,?,?,?)');
+    $q=$pdo->prepare('INSERT INTO articles(site_id,author_id,title,slug,`lead`,content_json,status,published_at) VALUES(?,?,?,?,?,?,?,?)');
     $q->execute([$siteId,$u['id'],$title,$slug,$lead,$json,$status,$publishedAt]);$id=(int)$pdo->lastInsertId();
    }
    article_site_save($pdo,$id,$siteId,$siteChoices);
@@ -102,7 +102,7 @@ try{
    foreach($termIds as $tid){$check->execute([$tid]);$term=$check->fetch();if(!$term||!in_array((int)$term['site_id'],allowed_resource_sites($pdo,$u,'tags'),true))throw new RuntimeException('Érvénytelen besorolás.');$link->execute([$id,$tid]);}
    $pdo->prepare('INSERT INTO article_meta(article_id,seo_title,seo_description) VALUES(?,?,?) ON DUPLICATE KEY UPDATE seo_title=VALUES(seo_title),seo_description=VALUES(seo_description)')->execute([$id,$seoTitle,$seoDescription]);
    $q=$pdo->prepare('SELECT COALESCE(MAX(revision_number),0)+1 FROM article_revisions WHERE article_id=?');$q->execute([$id]);$num=(int)$q->fetchColumn();
-   $q=$pdo->prepare('INSERT INTO article_revisions(article_id,editor_id,revision_number,title,lead,content_json,status) VALUES(?,?,?,?,?,?,?)');
+   $q=$pdo->prepare('INSERT INTO article_revisions(article_id,editor_id,revision_number,title,`lead`,content_json,status) VALUES(?,?,?,?,?,?,?)');
    $q->execute([$id,$u['id'],$num,$title,$lead,$json,$status]);
    $q=$pdo->prepare("INSERT INTO audit_log(user_id,action,object_type,object_id,meta_json) VALUES(?,'article.save','article',?,?)");
    $q->execute([$u['id'],$id,json_encode(['revision'=>$num,'status'=>$status])]);
