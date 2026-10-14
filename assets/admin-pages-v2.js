@@ -17,14 +17,24 @@
    panel.setAttribute('aria-hidden',String(!open&&isMobile));
    if(backdrop)backdrop.classList.toggle('is-open',open);
    document.querySelectorAll('[data-panel-open="'+panel.id+'"]').forEach(el=>el.setAttribute('aria-expanded',String(open)));
-   if(open){document.body.classList.add('ui-pane-open');focusables(panel)[0]?.focus();}
+   if(open){document.body.classList.add('ui-pane-open');toggleInert();focusables(panel)[0]?.focus();}
    else{document.body.classList.remove('ui-pane-open');active=null;if(returnFocus?.isConnected)returnFocus.focus();returnFocus=null;}
   }
   panels.forEach(panel=>{
    panel.setAttribute('aria-hidden',String(narrow.matches));
    if(narrow.matches)panel.inert=true;
   });
-  function toggleInert(){panels.forEach(panel=>{panel.inert=narrow.matches&&!panel.classList.contains('is-open');panel.setAttribute('aria-hidden',String(narrow.matches&&!panel.classList.contains('is-open')));});}
+  function toggleInert(){
+   panels.forEach(panel=>{
+    const isModal=narrow.matches;
+    const visible=!isModal||panel.classList.contains('is-open');
+    panel.inert=!visible;
+    panel.setAttribute('aria-hidden',String(!visible));
+    panel.setAttribute('role',isModal?'dialog':'complementary');
+    if(isModal)panel.setAttribute('aria-modal',String(visible));
+    else panel.removeAttribute('aria-modal');
+   });
+  }
   // Inert is removed before focus moves into the active panel.
   document.querySelectorAll('[data-panel-open]').forEach(button=>button.addEventListener('click',e=>{
    const panel=paneById(button.dataset.panelOpen);if(!panel)return;
