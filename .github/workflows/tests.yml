@@ -44,3 +44,16 @@ jobs:
           COMESY_TEST_USER: root
           COMESY_TEST_PASSWORD: test_password
         run: php tests/integration.php
+      - name: Test HTTP login and multisite publishing
+        env:
+          COMESY_TEST_DB: comesy_test
+          COMESY_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=comesy_test;charset=utf8mb4
+          COMESY_TEST_USER: root
+          COMESY_TEST_PASSWORD: test_password
+        run: |
+          php -r 'file_put_contents("app/config.php", "<?php return ".var_export(["db_host"=>"127.0.0.1","db_name"=>"comesy_test","db_user"=>"root","db_pass"=>"test_password","setup_key"=>""], true).";");'
+          php -S 127.0.0.1:8765 -t . > /tmp/comesy-php-test.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" || true; rm -f app/config.php' EXIT
+          sleep 2
+          python3 tests/http-smoke.py || { cat /tmp/comesy-php-test.log; exit 1; }
