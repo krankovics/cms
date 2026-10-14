@@ -39,6 +39,11 @@ try{
  assert(Math.abs(layout.sidebar.x)<=1,'Desktop sidebar must start at left edge');
  assert(Math.abs(layout.sidebar.width-248)<=2,'Desktop sidebar must have full width');
  assert((await desktop.locator('.ui-kpi-card').count())===4,'Missing dashboard metrics');
+ await desktop.locator('[data-sidebar-collapse]').click();
+ assert(await desktop.locator('body').evaluate(el=>el.classList.contains('ui-sidebar-compact')),'Sidebar did not collapse');
+ await desktop.reload({waitUntil:'domcontentloaded'});
+ assert(await desktop.locator('body').evaluate(el=>el.classList.contains('ui-sidebar-compact')),'Sidebar preference not persisted');
+ await desktop.locator('[data-sidebar-collapse]').click();
  await desktop.screenshot({path:'ui-preview/desktop-dashboard.png',fullPage:true});
  await desktop.setViewportSize({width:1100,height:850});
  layout=await overflow(desktop,'1100 compact desktop');
