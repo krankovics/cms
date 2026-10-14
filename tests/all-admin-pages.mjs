@@ -35,6 +35,11 @@ try{
  await page.locator('input[name=slug]').fill('test-site-d');
  await Promise.all([page.waitForURL(/saved=1/),page.locator('form.ui-admin-form button[type=submit]').click()]);
  assert((await page.locator('.ui-admin-row').count())>=4,'Site creation failed');
+ await page.goto(base+'/profile.php');
+ const nameForm=page.locator('form:has(input[name="action"][value="name"])');
+ await nameForm.locator('input[name="name"]').fill('Tesztelt admin');
+ await nameForm.locator('button[type="submit"]').click();
+ assert((await page.locator('main').textContent()).includes('A nevet mentettük.'),'Profile save failed');
  // Verify that an author cannot access platform administration.
  const author=await browser.newPage({viewport:{width:390,height:844}});
  await author.goto(base+'/login.php');
