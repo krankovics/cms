@@ -28,8 +28,8 @@ function save_admin_user(PDO $pdo,array $admin):void {
  }else{
   if($password==='')throw new RuntimeException('Új felhasználóhoz jelszó szükséges.');
   $q=$pdo->prepare('INSERT INTO users(name,email,password_hash,role,active) VALUES(?,?,?,?,?)');
-  $q->execute([$name,$email,password_hash($password,PASSWORD_DEFAULT),$role,1]);$id=(int)$pdo->lastInsertId();
+  $q->execute([$name,$email,password_hash($password,PASSWORD_DEFAULT),$role,1]);$active=1;$id=(int)$pdo->lastInsertId();
  }
  $q=$pdo->prepare("INSERT INTO audit_log(user_id,action,object_type,object_id,meta_json) VALUES(?,'user.save','user',?,?)");
- $q->execute([$admin['id'],$id,json_encode(['role'=>$role,'active'=>$id?(int)$active:1])]);
+ $q->execute([$admin['id'],$id,json_encode(['role'=>$role,'active'=>(int)$active])]);
 }
