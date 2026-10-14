@@ -59,7 +59,7 @@ function media_page_link(array $p,int $page):string{return '/media.php?'.http_bu
 <?php if($items):?><div class="ui-gallery" id="media-list">
 <?php foreach($items as $asset):$url='/media-file.php?id='.(int)$asset['id'];?>
 <article class="ui-asset">
-<button type="button" class="ui-asset-preview" aria-label="<?=h($asset['original_name'])?> részletei" data-panel-open="media-inspector" data-asset-name="<?=h($asset['original_name'])?>" data-asset-alt="<?=h($asset['alt_text'])?>" data-asset-size="<?=round(((int)$asset['size_bytes'])/1024)?> KB" data-asset-type="<?=h($asset['mime_type'])?>" data-asset-site="<?=h($asset['site_name'])?>" data-asset-date="<?=h($asset['created_at'])?>" data-asset-url="<?=h($url)?>">
+<button type="button" class="ui-asset-preview" aria-label="<?=h($asset['original_name'])?> részletei" data-panel-open="media-inspector" data-asset-id="<?=(int)$asset['id']?>" data-asset-editable="<?=in_array((int)$asset['site_id'],$primary,true)?'1':'0'?>" data-asset-name="<?=h($asset['original_name'])?>" data-asset-alt="<?=h($asset['alt_text'])?>" data-asset-size="<?=round(((int)$asset['size_bytes'])/1024)?> KB" data-asset-type="<?=h($asset['mime_type'])?>" data-asset-site="<?=h($asset['site_name'])?>" data-asset-date="<?=h($asset['created_at'])?>" data-asset-url="<?=h($url)?>">
 <img src="<?=h($url)?>" loading="lazy" alt="<?=h($asset['alt_text'])?>"></button>
 <div class="ui-asset-info"><strong title="<?=h($asset['original_name'])?>"><?=h($asset['original_name'])?></strong><small><?=h($asset['site_name'])?></small><button type="button" class="ui-asset-copy" data-copy-url="<?=h($url)?>">URL másolása</button></div>
 </article>
@@ -73,6 +73,7 @@ function media_page_link(array $p,int $page):string{return '/media.php?'.http_bu
 <div class="ui-inspector-empty ui-text-muted">Válassz ki egy képet a galériából az előnézethez.</div>
 <div class="ui-inspector-detail" hidden><img class="ui-detail-image" src="" alt="" data-asset-detail-image>
 <dl class="ui-detail-data"><dt>Fájlnév</dt><dd data-asset-detail-name></dd><dt>Webhely</dt><dd data-asset-detail-site></dd><dt>Méret</dt><dd data-asset-detail-size></dd><dt>Formátum</dt><dd data-asset-detail-type></dd><dt>Feltöltés</dt><dd data-asset-detail-date></dd><dt>Alternatív szöveg</dt><dd data-asset-detail-alt></dd></dl>
+<?php if($canUpload):?><form method="post" class="ui-media-alt-form" data-asset-alt-form hidden><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="action" value="update_alt"><input type="hidden" name="asset_id" value=""><label class="ui-field">Alternatív szöveg módosítása <input type="text" name="alt" maxlength="500" placeholder="Mi látható a képen?"></label><button type="submit" class="ui-btn ui-btn-primary">Alt szöveg mentése</button></form><?php endif;?>
 <button type="button" class="ui-btn ui-btn-secondary" data-asset-detail-copy>URL másolása</button></div></div>
 </aside>
 </div><button type="button" class="ui-pane-dim" data-ui-pane-dim aria-label="Panel bezárása"></button>
@@ -93,6 +94,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   const img=panel.querySelector('[data-asset-detail-image]');img.src=val('assetUrl');img.alt=val('assetAlt');
   for(const key of ['name','site','size','type','date','alt'])panel.querySelector('[data-asset-detail-'+key+']').textContent=val('asset'+key.charAt(0).toUpperCase()+key.slice(1))||'Nincs megadva';
   panel.querySelector('[data-asset-detail-copy]').dataset.copyUrl=val('assetUrl');
+  const altForm=panel.querySelector('[data-asset-alt-form]');
+  if(altForm){
+   altForm.hidden=val('assetEditable')!=='1';
+   altForm.querySelector('[name=asset_id]').value=val('assetId');
+   altForm.querySelector('[name=alt]').value=val('assetAlt');
+  }
  }));
  document.querySelector('[data-asset-detail-copy]')?.addEventListener('click',async e=>{
   const url=new URL(e.currentTarget.dataset.copyUrl,location.origin).href;
