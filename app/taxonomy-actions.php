@@ -8,6 +8,7 @@ function tx_action(PDO $pdo,array $u,array $allowed,int $site,string $type):void
  if(!valid_csrf())throw new RuntimeException('Érvénytelen munkamenet.');
  if(!in_array($u['role'],['platform_admin','site_admin','editor'],true))throw new RuntimeException('Nincs jogosultság.');
  require_resource_site($pdo,$u,'tags',$site);
+ if($site<=0||($u['role']!=='platform_admin'&&!in_array($site,allowed_primary_sites($pdo,$u),true)))throw new RuntimeException('Más webhelyek címkéit megtekintheted, de csak a saját webhelyeden módosíthatod őket.');
  $action=(string)($_POST['action']??'create');
  $id=(int)($_POST['term_id']??0);
  $pdo->beginTransaction();
