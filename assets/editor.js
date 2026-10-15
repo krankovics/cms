@@ -321,7 +321,6 @@ document.addEventListener('DOMContentLoaded',()=>{
    w.opener=null;
    return;
   }
-  const w=window.open('','_blank');if(!w)return;
   const d=w.document;d.title='comesy cikkelőnézet';
   const style=d.createElement('style');style.textContent='body{max-width:760px;margin:40px auto;padding:20px;font:18px/1.7 system-ui}img{max-width:100%}h1{line-height:1.2}';d.head.append(style);
   const title=d.createElement('h1');title.textContent=document.getElementById('title').value;d.body.append(title);
