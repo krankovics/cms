@@ -77,8 +77,8 @@ function imp_save_article(PDO $pdo,array $task,array $data,string $html):array{
      $q=$pdo->prepare("INSERT INTO articles(site_id,author_id,title,slug,`lead`,content_json,status) VALUES(?,?,?,?,?,?,'draft')");
      $q->execute([$site,$actor,$data['title'],$slug,$data['lead'],$json]);$articleId=(int)$pdo->lastInsertId();
     }
-    $q=$pdo->prepare('INSERT INTO article_meta(article_id,seo_description,canonical_url) VALUES(?,?,?) ON DUPLICATE KEY UPDATE seo_description=VALUES(seo_description),canonical_url=VALUES(canonical_url)');
-    $q->execute([$articleId,mb_substr($data['lead'],0,500),$source]);
+    $q=$pdo->prepare('INSERT INTO article_meta(article_id,seo_description,canonical_url,og_image_url) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE seo_description=VALUES(seo_description),canonical_url=VALUES(canonical_url),og_image_url=IF(VALUES(og_image_url)<>'',VALUES(og_image_url),og_image_url)');
+    $q->execute([$articleId,mb_substr($data['lead'],0,500),$source,(string)($data['og_image_url']??'')]);
     $q=$pdo->prepare('INSERT IGNORE INTO article_sites(article_id,site_id) VALUES(?,?)');$q->execute([$articleId,$site]);
     $q=$pdo->prepare('SELECT COALESCE(MAX(revision_number),0)+1 FROM article_revisions WHERE article_id=?');$q->execute([$articleId]);$rev=(int)$q->fetchColumn();
     $q=$pdo->prepare("INSERT INTO article_revisions(article_id,editor_id,revision_number,title,`lead`,content_json,status) VALUES(?,?,?,?,?,?,'draft')");
@@ -94,6 +94,10 @@ function imp_save_article(PDO $pdo,array $task,array $data,string $html):array{
     $pdo->prepare('DELETE FROM import_asset_refs WHERE article_id=?')->execute([$articleId]);
     $ref=$pdo->prepare('INSERT IGNORE INTO import_asset_refs(site_id,article_id,source_url,source_url_hash,kind,internal_link) VALUES(?,?,?,?,?,?)');
     $origin=strtolower((string)parse_url($source,PHP_URL_HOST));
+    if(!empty($data['og_image_url'])){
+     $img=(string)$data['og_image_url'];
+     $ref->execute([$site,$articleId,$img,hash('sha256',$img),'image',(int)(strtolower((string)parse_url($img,PHP_URL_HOST))===$origin)]);
+    }
     foreach($data['blocks'] as $block)if(($block['type']??'')==='image'){
      $img=(string)($block['text']??'');
      if(!filter_var($img,FILTER_VALIDATE_URL))continue;
