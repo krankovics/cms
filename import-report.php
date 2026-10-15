@@ -99,15 +99,15 @@ $total=(int)($stats['total']??0);
 <div class="ui-import-stat"><strong><?=irn($stats['completed']??0)?></strong><span>Kész</span></div>
 <div class="ui-import-stat"><strong><?=irn($stats['skipped']??0)?></strong><span>Kihagyva</span></div>
 <div class="ui-import-stat"><strong><?=irn($stats['failed']??0)?></strong><span>Hibás</span></div>
-<div class="ui-import-stat"><strong><?=irn(($stats['total_bytes']??0)/1048576)?> MB</strong><span>Letöltött HTML/XML</span></div>
-<div class="ui-import-stat"><strong><?=irn(($stats['total_ms']??0)/1000)?> mp</strong><span>Összes mért worker-idő</span></div>
+<div class="ui-import-stat"><strong><?=irn(($stats['total_bytes']??0)/1048576)?> MB</strong><span>Utolsó próbák mért forrásmérete</span></div>
+<div class="ui-import-stat"><strong><?=irn(($stats['total_ms']??0)/1000)?> mp</strong><span>Utolsó próbák mért worker-ideje</span></div>
 <div class="ui-import-stat"><strong><?=irn($stats['total_blocks']??0)?></strong><span>Importált blokkok</span></div>
 <div class="ui-import-stat"><strong><?=irn($stats['quality_issues']??0)?></strong><span>Minőségi jelzés</span></div>
 </section>
 <section class="ui-panel ui-import-report-panel"><h2>Feldolgozás minősége</h2>
 <p><strong><?=irpct($done,$total)?>%</strong> feldolgozott tétel · <?=irn($stats['pending']??0)?> várakozó · <?=irn($stats['processing']??0)?> folyamatban. A felderítő XML-feladatok nem azonosak cikkekkel.</p>
 <p><strong><?=irpct((float)($stats['failed']??0),(float)max(1,$done))?>%</strong> végleges feladathiba a feldolgozott tételekhez képest. Minőségi figyelmeztetések: rövid lead, kevés blokk, hiányzó képek vagy címsorok. Ezek szerkesztői ellenőrzésre utalnak, nem automatikus cikkhibák.</p>
-<p><strong>API-költség:</strong> ez az importútvonal jelenleg nem hív fizetős AI API-t, ezért a modellhívások díja 0. <strong>CPU, memória, szerver- és hálózati költség:</strong> nincs instrumentálva, így nem számolok becsült forintköltséget. A fenti idő az alkalmazásban mért feladatonkénti összegzett idő, nem a teljes import átfutási ideje.</p>
+<p><strong>API-költség:</strong> ez az importútvonal jelenleg nem hív fizetős AI API-t, ezért a modellhívások díja 0. <strong>CPU, memória, szerver- és hálózati költség:</strong> nincs instrumentálva, így nem számolok becsült forintköltséget. A mérések feladatonként az utolsó próbát tárolják, így újrapróbálás esetén nem a teljes forgalmat és időt mutatják. A megadott idő nem azonos a teljes import átfutási idejével.</p>
 <?php if($references):?><h3>Forrásképek és belső hivatkozások</h3>
 <div class="ui-import-ref-list"><?php foreach($references as $ref):?><span><?=h($ref['kind'])?> · <?=h($ref['status'])?>: <strong><?=irn($ref['total'])?></strong></span><?php endforeach;?></div><?php endif;?></section>
 <section class="ui-panel ui-import-report-panel"><h2>Utolsó 100 tétel mintája</h2>
