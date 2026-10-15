@@ -67,6 +67,9 @@ try{
  const csv=await page.request.get(base+'/import-report.php?site_id=1&job_id=1&format=csv');
  assert.equal(csv.status(),200,'Quality CSV must download');
  assert((await csv.text()).includes('source_url'),'Quality CSV missing header');
+ const urlMap=await page.request.get(base+'/import-report.php?site_id=1&job_id=1&format=url-map');
+ assert.equal(urlMap.status(),200,'URL mapping proposals CSV must export');
+ assert((await urlMap.text()).includes('redirect_ready'),'URL mapping must include review-only state');
  const crossSite=await page.request.get(base+'/import-report.php?site_id=2&job_id=1');
  assert.equal(crossSite.status(),404,'Wrong-site quality report must be absent');
  // Verify that an author cannot access platform administration.
