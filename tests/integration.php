@@ -12,7 +12,7 @@ require dirname(__DIR__).'/app/article-sites.php';
 require dirname(__DIR__).'/app/site-access.php';
 $tests=0;
 function ok(bool $condition,string $message):void{global $tests;$tests++;if(!$condition)throw new RuntimeException($message);}
-foreach(['schema','editor','content','site-permissions','ads'] as $schema){
+foreach(['schema','editor','content','site-permissions','ads','import'] as $schema){
  $sql=file_get_contents(dirname(__DIR__).'/database/'.$schema.'.sql');
  foreach(array_filter(array_map('trim',explode(';',$sql))) as $statement)$pdo->exec($statement);
 }
@@ -93,4 +93,13 @@ $q->execute([$campaign,$zone,'Kreatív','https://example.test/a.png','https://ex
 $q=$pdo->prepare('SELECT COUNT(*) FROM ad_creatives cr JOIN ad_campaigns c ON c.id=cr.campaign_id JOIN ad_zones z ON z.id=cr.zone_id WHERE cr.id=? AND c.site_id=z.site_id AND z.site_id=?');
 $q->execute([$creative,$sites[0]]);ok((int)$q->fetchColumn()===1,'Creative linked to matching site campaign and zone.');
 $q->execute([$creative,$sites[1]]);ok((int)$q->fetchColumn()===0,'Creative must not leak to other site.');
+$q=$pdo->prepare("INSERT INTO import_jobs(site_id,created_by,mode,source_url,max_items) VALUES(?,?,'url',?,1)");
+$q->execute([$sites[0],$uid['editor'],'https://news.example.org/example']);$importJob=(int)$pdo->lastInsertId();
+$q=$pdo->prepare("INSERT INTO import_items(job_id,site_id,source_url,source_url_hash,task_type) VALUES(?,?,?,?,'article')");
+$url='https://news.example.org/example';$q->execute([$importJob,$sites[0],$url,hash('sha256',$url)]);
+$q=$pdo->prepare('SELECT COUNT(*) FROM import_items WHERE job_id=? AND status=?');$q->execute([$importJob,'pending']);
+ok((int)$q->fetchColumn()===1,'Durable import queue must preserve pending URL task.');
+$q=$pdo->prepare('SELECT COUNT(*) FROM import_items i JOIN import_jobs j ON j.id=i.job_id WHERE j.site_id=? AND i.site_id=?');
+$q->execute([$sites[1],$sites[0]]);
+ok((int)$q->fetchColumn()===0,'Import task must not leak across sites.');
 echo "PASS: $tests database integration assertions.\n";
