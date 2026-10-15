@@ -86,7 +86,7 @@ if(($_GET['format']??'')==='csv'){
  }
  fclose($out);exit;
 }
-function irn(int|float|null $value):string{return number_format((float)$value,0,',',' ');}
+function irn(int|float|string|null $value):string{return number_format(is_numeric($value)?(float)$value:0,0,',',' ');}
 function irpct(float $numerator,float $denominator):string{return $denominator>0?number_format(100*$numerator/$denominator,1,',',' '):'0,0';}
 $done=(int)($stats['completed']??0)+(int)($stats['skipped']??0)+(int)($stats['failed']??0);
 $total=(int)($stats['total']??0);
