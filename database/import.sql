@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS import_article_map (
  source_url_hash CHAR(64) NOT NULL,
  article_id BIGINT UNSIGNED NULL,
  source_hash CHAR(64) NOT NULL,
+ snapshot_path VARCHAR(500) NULL,
  imported_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
  UNIQUE KEY uq_import_source (site_id,source_url_hash),
