@@ -56,6 +56,13 @@ function pub_article_list(PDO $pdo,int $siteId,string $slug,int $limit,string $s
  $sql='SELECT a.id,a.title,a.slug,a.`lead`,a.published_at,m.og_image_url FROM articles a LEFT JOIN article_meta m ON m.article_id=a.id WHERE '.$scope.$filter.' ORDER BY a.published_at DESC,a.id DESC LIMIT '.max(1,min(30,$limit));
  $q=$pdo->prepare($sql);$q->execute($section!==''?[$siteId,$siteId,$section,$siteId]:[$siteId,$siteId]);return $q->fetchAll();
 }
+function pub_featured_meta(string $json,string $url):array{
+ $all=json_decode($json,true);
+ if(!is_array($all)||!isset($all[0])||($all[0]['type']??'')!=='richtext')return [];
+ $delta=json_decode((string)($all[0]['text']??''),true);
+ $featured=$delta['meta']['featured']??null;
+ return is_array($featured)&&($featured['src']??'')===$url?$featured:[];
+}
 function pub_blocks(string $json):void{
  $blocks=json_decode($json,true);
  if(!is_array($blocks))return;
@@ -88,7 +95,11 @@ $title=$article?($article['title'].' | '.$site['name']):$site['name'];
 <?php elseif($type==='text'):?><section class="pub-section pub-text"><?php if($sectionTitle):?><h2><?=pub_h($sectionTitle)?></h2><?php endif;?><p><?=nl2br(pub_h((string)($block['text']??'')))?></p></section>
 <?php elseif($type==='image'&&!empty($block['image_url'])):?><section class="pub-section pub-image"><?php if($sectionTitle):?><h2><?=pub_h($sectionTitle)?></h2><?php endif;?><img src="<?=pub_h((string)$block['image_url'])?>" loading="lazy" alt="<?=pub_h($sectionTitle)?>"></section>
 <?php elseif($type==='article'):?>
-<section class="pub-article pub-section"><?php if($article):?><?php if(!empty($article['og_image_url'])):?><img class="pub-cover" loading="eager" src="<?=pub_h($article['og_image_url'])?>" alt=""><?php endif;?>
+<section class="pub-article pub-section"><?php if($article):?><?php if(!empty($article['og_image_url'])):
+$coverMeta=pub_featured_meta((string)$article['content_json'],(string)$article['og_image_url']);?>
+<figure class="pub-rich-figure pub-featured-figure"><img class="pub-cover" loading="eager" src="<?=pub_h($article['og_image_url'])?>" alt="<?=pub_h((string)($coverMeta['alt']??$article['title']))?>">
+<?php if(!empty($coverMeta['caption'])||!empty($coverMeta['credit'])):?><figcaption><?=pub_h((string)($coverMeta['caption']??''))?><?php if(!empty($coverMeta['credit'])):?><small><?=pub_h((string)$coverMeta['credit'])?></small><?php endif;?></figcaption><?php endif;?></figure>
+<?php endif;?>
 <p class="pub-eyebrow"><?=pub_h($article['author_name']??'Szerkesztőség')?> · <?=pub_h($article['published_at']??'Piszkozat')?></p>
 <h1><?=pub_h($article['title'])?></h1><?php if(!empty($article['lead'])):?><p class="pub-lead"><?=pub_h($article['lead'])?></p><?php endif;?><?php pub_blocks((string)$article['content_json']);?>
 <?php else:?><h2>Cikkelőnézet</h2><p>Válassz egy cikket a nyitóoldalról az éles cikksablon megtekintéséhez.</p><?php endif;?></section>
