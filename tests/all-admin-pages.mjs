@@ -24,6 +24,24 @@ try{
    assert.equal(await page.locator('main h1').count()>0,true,route+' title');
    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
    assert(overflow<=2,route+' horizontal overflow '+overflow+'px at '+width);
+   if(['/builder.php','/audit.php','/editor.php'].includes(route)){
+    const metrics=await page.evaluate(()=>{
+     const main=document.querySelector('main');
+     const r=main.getBoundingClientRect();
+     const grid=document.querySelector('.ui-builder-grid,.editor-form,.ui-audit-filters');
+     return {left:r.left,right:r.right,width:r.width,
+      columns:grid?getComputedStyle(grid).gridTemplateColumns.split(' ').length:0,
+      viewport:innerWidth};
+    });
+    // Desktop workbenches must occupy the available shell, without a giant unused strip.
+    if(width===1366||width===1920){
+     assert(metrics.right>=width-3,route+' wasted desktop content width '+JSON.stringify(metrics));
+     if(route!=='/audit.php')assert.equal(metrics.columns,2,route+' should show editor and inspector side by side at '+width);
+     if(route==='/audit.php')assert.equal(metrics.columns,width===1920?7:3,'Audit filters should responsively wrap');
+    }
+    if(width<=390)assert(metrics.width>=width-3,route+' mobile canvas is undersized');
+    if(width===1920)await page.screenshot({path:'ui-preview/layout-'+route.replace(/[^a-z]/g,'')+'-1920.png',fullPage:true});
+   }
    if(width===390||width===1366)await page.screenshot({path:'ui-preview/audit-'+width+'-'+route.replace(/[^a-z]/g,'')+'.png',fullPage:true});
   }
  }
