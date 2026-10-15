@@ -32,3 +32,23 @@ body.comesy-admin .ui-import-items-list a{font-size:12px;white-space:nowrap;colo
  body.comesy-admin .ui-import-job-actions{margin-top:10px}
  body.comesy-admin .ui-import-job-actions button{max-width:100%}
 }
+/* Migration quality and metering report */
+body.comesy-admin .ui-import-report-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}
+body.comesy-admin .ui-import-stat{padding:17px;background:var(--ui-surface);border:1px solid var(--ui-border);border-radius:12px;display:grid;gap:6px}
+body.comesy-admin .ui-import-stat strong{font-size:24px;color:var(--ui-text);font-variant-numeric:tabular-nums;letter-spacing:-.04em}
+body.comesy-admin .ui-import-stat span{font-size:12px;color:var(--ui-text-secondary)}
+body.comesy-admin .ui-import-report-panel{padding:20px;background:var(--ui-surface);border:1px solid var(--ui-border);border-radius:14px;margin-top:14px;min-width:0}
+body.comesy-admin .ui-import-report-panel h2{font-size:17px;color:var(--ui-text);margin:0 0 13px}
+body.comesy-admin .ui-import-report-panel h3{font-size:14px;margin:20px 0 10px}
+body.comesy-admin .ui-import-report-panel p{font-size:13px;line-height:1.7;color:var(--ui-text-secondary)}
+body.comesy-admin .ui-import-ref-list{display:flex;flex-wrap:wrap;gap:8px}
+body.comesy-admin .ui-import-ref-list span{font-size:12px;color:var(--ui-text);background:var(--ui-surface-subtle);border:1px solid var(--ui-border);border-radius:9px;padding:9px 11px}
+body.comesy-admin .ui-import-report-table{width:100%;border-collapse:collapse;font-size:12px;color:var(--ui-text)}
+body.comesy-admin .ui-import-report-table th{text-align:left;background:var(--ui-surface-subtle);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+body.comesy-admin .ui-import-report-table th,body.comesy-admin .ui-import-report-table td{border-bottom:1px solid var(--ui-border);padding:11px}
+body.comesy-admin .ui-import-report-table td small{display:block;font-size:11px;color:var(--ui-text-secondary);margin-top:5px}
+body.comesy-admin .ui-import-truncate{display:block;max-width:370px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+body.comesy-admin .ui-import-job-actions{display:grid;gap:8px}
+body.comesy-admin .ui-import-job-actions>a{font-size:12px;text-align:center}
+@media(max-width:1050px){body.comesy-admin .ui-import-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:767px){body.comesy-admin .ui-import-report-panel{padding:14px}body.comesy-admin .ui-import-report-table th,body.comesy-admin .ui-import-report-table td{padding:8px}body.comesy-admin .ui-import-truncate{max-width:145px}body.comesy-admin .ui-import-stat{padding:13px}body.comesy-admin .ui-import-stat strong{font-size:20px}}
