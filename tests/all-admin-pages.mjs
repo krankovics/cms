@@ -47,7 +47,7 @@ try{
  await author.locator('[name=password]').fill('StrongTestingPwd!2026');
  await author.locator('button[type=submit]').click();
  await author.waitForURL(base+'/');
- for(const route of ['/users.php','/sites.php','/site-permissions.php','/migrate.php','/ads.php']){
+ for(const route of ['/users.php','/sites.php','/site-permissions.php','/migrate.php','/ads.php','/imports.php']){
   const response=await author.goto(base+route);
   assert.equal(response.status(),403,'Author must not access '+route);
  }
