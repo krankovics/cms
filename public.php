@@ -2,9 +2,10 @@
 declare(strict_types=1);
 require __DIR__.'/app/bootstrap.php';
 require __DIR__.'/app/layouts.php';
+require_once __DIR__.'/app/rich-content.php';
 header('Content-Type: text/html; charset=utf-8');
 header('X-Frame-Options: SAMEORIGIN');
-header("Content-Security-Policy: default-src 'none'; style-src 'self' 'unsafe-inline'; img-src https: http: data:; frame-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'");
+header("Content-Security-Policy: default-src 'none'; style-src 'self' 'unsafe-inline'; img-src https: http: data:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://embed.spotify.com https://w.soundcloud.com https://www.facebook.com https://facebook.com https://www.instagram.com https://instagram.com https://www.tiktok.com https://player.simplecast.com https://embed.podcasts.apple.com https://www.podbean.com; media-src https: http:; frame-ancestors 'self'; base-uri 'none'; form-action 'none'");
 header('X-Robots-Tag: noindex, nofollow');
 $pdo=db();
 $siteSlug=trim((string)($_GET['site']??''));
@@ -60,6 +61,12 @@ function pub_blocks(string $json):void{
  if(!is_array($blocks))return;
  foreach($blocks as $block){
   $type=(string)($block['type']??'');$text=(string)($block['text']??'');
+  if($type==='richhtml'){
+   // Stored markup is sanitized at write time and again on public render.
+   $safe=cms_rich_sanitize_html($text);
+   if($safe!=='')echo '<div class="pub-rich-content">'.$safe.'</div>';
+   continue;
+  }
   if($type==='richtext'){
    $delta=json_decode($text,true);if(!is_array($delta))continue;
    echo '<div class="pub-article-rich">';
