@@ -17,6 +17,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   form.addEventListener('submit',e=>e.preventDefault());
   return;
  }
+ const statusInput=document.getElementById('status'),scheduleFields=document.getElementById('editor-schedule-fields');
+ const scheduleInput=document.getElementById('schedule-at');
+ const syncSchedule=()=>{
+  const visible=statusInput?.value==='scheduled';
+  if(scheduleFields)scheduleFields.hidden=!visible;
+  if(scheduleInput){scheduleInput.required=!!visible;scheduleInput.disabled=!visible;}
+ };
+ statusInput?.addEventListener('change',syncSchedule);syncSchedule();
  const featured=document.querySelector('#og-image-url');
  featured?.addEventListener('change',()=>{
   const preview=document.querySelector('#featured-image-preview');
