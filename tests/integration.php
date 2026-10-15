@@ -12,7 +12,7 @@ require dirname(__DIR__).'/app/article-sites.php';
 require dirname(__DIR__).'/app/site-access.php';
 $tests=0;
 function ok(bool $condition,string $message):void{global $tests;$tests++;if(!$condition)throw new RuntimeException($message);}
-foreach(['schema','editor','content','site-permissions','ads','import'] as $schema){
+foreach(['schema','editor','content','site-permissions','ads','import','layouts'] as $schema){
  $sql=file_get_contents(dirname(__DIR__).'/database/'.$schema.'.sql');
  foreach(array_filter(array_map('trim',explode(';',$sql))) as $statement)$pdo->exec($statement);
 }
@@ -111,4 +111,30 @@ $second=imp_save_article($pdo,$task,$parsed,'<article><p>Test</p></article>');
 ok($second['status']==='skipped'&&$second['article_id']===$first['article_id'],'Second identical import must skip duplicate.');
 $q=$pdo->prepare('SELECT status FROM articles WHERE id=?');
 $q->execute([$first['article_id']]);ok($q->fetchColumn()==='draft','Imported article must remain draft.');
+require dirname(__DIR__).'/app/layouts.php';
+$pdo->prepare('UPDATE sites SET settings_json=? WHERE id=?')->execute([json_encode(['builder_enabled'=>true,'accent_color'=>'#325de6']),$sites[0]]);
+$initialLayout=cms_default_layout('home');
+$initialJson=json_encode($initialLayout,JSON_UNESCAPED_UNICODE);
+$templateId=cms_template_save($pdo,$editor,$sites[0],'home','save',$initialJson,0);
+ok($templateId>0,'Builder should create a draft template.');
+$q=$pdo->prepare('SELECT published_json,revision_number FROM site_templates WHERE id=?');$q->execute([$templateId]);$t=$q->fetch();
+ok($t['published_json']===null&&(int)$t['revision_number']===1,'Draft save must not publish.');
+$newJson=json_encode([['type'=>'text','title'=>'Változott címlap','text'=>'Saját blokkok','columns'=>1,'limit'=>10]],JSON_UNESCAPED_UNICODE);
+cms_template_save($pdo,$editor,$sites[0],'home','publish',$newJson,1);
+$q->execute([$templateId]);$t=$q->fetch();
+ok((int)$t['revision_number']===2&&str_contains($t['published_json'],'Változott'),'Publish creates versioned live template.');
+$r=$pdo->prepare('SELECT id FROM site_template_revisions WHERE template_id=? AND revision_number=1');
+$r->execute([$templateId]);$firstRev=(int)$r->fetchColumn();
+cms_template_save($pdo,$editor,$sites[0],'home','restore','[]',2,$firstRev);
+$q=$pdo->prepare('SELECT draft_json,published_json,revision_number FROM site_templates WHERE id=?');$q->execute([$templateId]);$t=$q->fetch();
+ok((int)$t['revision_number']===3&&str_contains($t['draft_json'],'Legfrissebb')&&str_contains($t['published_json'],'Változott'),'Restore creates a new draft version without overwriting published output.');
+try{cms_template_save($pdo,$editor,$sites[0],'home','save',$newJson,2);throw new RuntimeException('Expected version conflict');}
+catch(RuntimeException $e){ok(str_contains($e->getMessage(),'időközben'),'Concurrent layout edits must reject outdated versions.');}
+try{cms_template_save($pdo,$editor,$sites[1],'home','save',$initialJson,0);throw new RuntimeException('Expected disabled builder');}
+catch(RuntimeException $e){ok(str_contains($e->getMessage(),'kapcsolva'),'Site toggle must disable authoring without deleting templates.');}
+cms_menu_replace($pdo,$editor,$sites[0],[['label'=>'Főoldal','url'=>'/'],['label'=>'Rovat','url'=>'/section/hirek']]);
+$q=$pdo->prepare('SELECT COUNT(*) FROM site_menu_items WHERE site_id=?');$q->execute([$sites[0]]);
+ok((int)$q->fetchColumn()===2,'Site navigation must persist ordered links.');
+try{cms_menu_url('javascript:alert(1)');throw new RuntimeException('Expected unsafe URL rejection');}
+catch(RuntimeException $e){ok(str_contains($e->getMessage(),'menüpont'),'Javascript URLs must be forbidden.');}
 echo "PASS: $tests database integration assertions.\n";
