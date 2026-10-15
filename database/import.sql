@@ -1,0 +1,52 @@
+CREATE TABLE IF NOT EXISTS import_jobs (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ site_id BIGINT UNSIGNED NOT NULL,
+ created_by BIGINT UNSIGNED NULL,
+ mode ENUM('url','rss','sitemap','demo') NOT NULL,
+ source_url VARCHAR(1000) NOT NULL,
+ status ENUM('queued','running','paused','finished','failed') NOT NULL DEFAULT 'queued',
+ max_items INT UNSIGNED NOT NULL DEFAULT 100,
+ discovered INT UNSIGNED NOT NULL DEFAULT 0,
+ completed INT UNSIGNED NOT NULL DEFAULT 0,
+ skipped INT UNSIGNED NOT NULL DEFAULT 0,
+ failed INT UNSIGNED NOT NULL DEFAULT 0,
+ last_error VARCHAR(1000) NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ KEY idx_import_jobs_site (site_id,created_at),
+ KEY idx_import_jobs_status (status,updated_at),
+ FOREIGN KEY(site_id) REFERENCES sites(id) ON DELETE CASCADE,
+ FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS import_items (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ job_id BIGINT UNSIGNED NOT NULL,
+ site_id BIGINT UNSIGNED NOT NULL,
+ source_url VARCHAR(1000) NOT NULL,
+ status ENUM('pending','processing','completed','skipped','failed') NOT NULL DEFAULT 'pending',
+ attempts INT UNSIGNED NOT NULL DEFAULT 0,
+ available_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ last_error VARCHAR(1000) NULL,
+ source_hash CHAR(64) NULL,
+ article_id BIGINT UNSIGNED NULL,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_import_job_url (job_id,source_url(250)),
+ KEY idx_import_queue (status,available_at,id),
+ KEY idx_import_site (site_id,id),
+ FOREIGN KEY(job_id) REFERENCES import_jobs(id) ON DELETE CASCADE,
+ FOREIGN KEY(site_id) REFERENCES sites(id) ON DELETE CASCADE,
+ FOREIGN KEY(article_id) REFERENCES articles(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS import_article_map (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ site_id BIGINT UNSIGNED NOT NULL,
+ source_url VARCHAR(1000) NOT NULL,
+ source_url_hash CHAR(64) NOT NULL,
+ article_id BIGINT UNSIGNED NULL,
+ source_hash CHAR(64) NOT NULL,
+ imported_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_import_source (site_id,source_url_hash),
+ FOREIGN KEY(site_id) REFERENCES sites(id) ON DELETE CASCADE,
+ FOREIGN KEY(article_id) REFERENCES articles(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
