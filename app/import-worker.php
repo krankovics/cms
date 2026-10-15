@@ -128,6 +128,7 @@ function imp_save_article(PDO $pdo,array $task,array $data,string $html):array{
   $pdo->commit();return ['status'=>$status,'article_id'=>$articleId,'hash'=>$contentHash,'error'=>$message];
  }catch(Throwable $e){$pdo->rollBack();throw $e;}
 }
+require_once __DIR__.'/import-source-style.php';
 function imp_process(PDO $pdo,array $task):array{
  $url=(string)$task['source_url'];$mode=(string)$task['mode'];$type=(string)$task['task_type'];
  if($type==='discover'){
@@ -156,6 +157,11 @@ function imp_process(PDO $pdo,array $task):array{
  if(!str_contains($contentType,'html'))throw new RuntimeException('A forrás nem HTML-cikk.');
  $data=imp_extract($result['body'],$result['url']);
  $saved=imp_save_article($pdo,$task,$data,$result['body']);
+ if($saved['status']!=='skipped'){
+  try{cms_source_style_collect((int)$task['site_id'],$result['body'],$result['url']);}
+  catch(Throwable $e){error_log('comesy source design snapshot: '.$e->getMessage());}
+ }
+
  $pdo->prepare('UPDATE import_items SET status=?,article_id=?,source_hash=?,last_error=?,claimed_at=NULL WHERE id=?')
   ->execute([$saved['status'],$saved['article_id'],$saved['hash'],$saved['error'],$task['id']]);
  $col=$saved['status']==='skipped'?'skipped':'completed';
