@@ -26,6 +26,23 @@ $falsePositive='<!doctype html><html><head><meta property="og:title" content="K�
 try{imp_extract($falsePositive,'https://example.org/empty');throw new RuntimeException('Related-only stub was saved as a valid article.');}
 catch(RuntimeException $e){ensure(str_contains($e->getMessage(),'cikktörzs'),'Thin/related-only pages must fail visibly.');}
 
+// Some publishers expose the actual article text only in schema.org JSON-LD.
+// Accept it when it contains a complete story; never manufacture missing text.
+$fullText=str_repeat('Ez egy tényszerű, teljes cikkbekezdés több ellenőrizhető állítással. A következő mondat folytatja az ismertetést. ',7);
+$jsonLd=json_encode(['@context'=>'https://schema.org','@type'=>'NewsArticle','headline'=>'Részletes szerkesztőségi hír','articleBody'=>$fullText],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
+$structuredPage='<!doctype html><html><head><title>Részletes szerkesztőségi hír</title><script type="application/ld+json">'.$jsonLd.'</script></head><body><main><h1>Részletes szerkesztőségi hír</h1><aside>Kapcsolódó cikkek</aside></main></body></html>';
+$fromSchema=imp_extract($structuredPage,'https://example.org/structured-story');
+ensure(count($fromSchema['blocks'])===1&&mb_strlen($fromSchema['blocks'][0]['text'])>450,'Full articleBody may rescue a source without narrative DOM paragraphs.');
+ensure($fromSchema['blocks'][0]['type']==='paragraph','JSON-LD fallback must produce editable plain paragraphs.');
+$briefSchema=json_encode(['@type'=>'NewsArticle','headline'=>'Csak lead van','articleBody'=>'Rövid összefoglaló, de nem teljes cikk.'],JSON_THROW_ON_ERROR);
+$briefPage='<!doctype html><html><head><title>Csak lead van</title><script type="application/ld+json">'.$briefSchema.'</script></head><body><main><h1>Csak lead van</h1></main></body></html>';
+try{imp_extract($briefPage,'https://example.org/brief');throw new RuntimeException('Summary-only metadata was incorrectly imported.');}
+catch(ImportContentRejected $e){ensure(str_contains($e->getMessage(),'cikktörzs'),'Summary-only pages must be classified as source rejections.');}
+$wrongSchema=json_encode(['@type'=>'NewsArticle','headline'=>'Idegen cikk címe','articleBody'=>$fullText],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
+$wrongPage='<!doctype html><html><head><title>Másik cikk</title><script type="application/ld+json">'.$wrongSchema.'</script></head><body></body></html>';
+try{imp_extract($wrongPage,'https://example.org/other');throw new RuntimeException('Unrelated articleBody was wrongly selected.');}
+catch(ImportContentRejected $e){ensure(true,'Wrong headline must not become an imported story.');}
+
 $rss='<?xml version="1.0"?><rss version="2.0"><channel><item><link>https://example.org/a</link></item><item><link>https://example.org/b</link></item></channel></rss>';
 $feed=imp_discover($rss,'https://example.org/rss.xml');
 ensure(count($feed['urls'])===2,'RSS links not discovered.');

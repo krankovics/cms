@@ -193,6 +193,14 @@ function imp_work_once(PDO $pdo):bool{
  catch(Throwable $e){
   $message=mb_substr($e->getMessage(),0,1000);
   error_log('comesy import task #'.$task['id'].': '.$message);
+  // A missing article body is not a temporary transport error: retrying it
+  // every minute wastes requests and does not make missing source text appear.
+  if($e instanceof ImportContentRejected){
+   $pdo->prepare("UPDATE import_items SET status='skipped',claimed_at=NULL,last_error=? WHERE id=?")->execute([$message,$task['id']]);
+   $pdo->prepare('UPDATE import_jobs SET skipped=skipped+1 WHERE id=?')->execute([$task['job_id']]);
+   try{imp_store_metrics($pdo,$task,['result'=>'failed','quality_flags'=>['source_content_rejected']],(int)round((microtime(true)-$started)*1000));}
+   catch(Throwable $metricError){error_log('comesy import metric save #'.$task['id'].': '.$metricError->getMessage());}
+  }else{
   $attempt=(int)$task['attempts']+1;$retry=$attempt<3;
   if($retry){
    $delay=min(3600,60*(2**$attempt));
@@ -204,6 +212,7 @@ function imp_work_once(PDO $pdo):bool{
   }
   try{imp_store_metrics($pdo,$task,['result'=>$retry?'retry':'failed','quality_flags'=>[$retry?'retry_pending':'processing_failed']],(int)round((microtime(true)-$started)*1000));}
   catch(Throwable $metricError){error_log('comesy import metric save #'.$task['id'].': '.$metricError->getMessage());}
+  }
  }
  $q=$pdo->prepare("SELECT COUNT(*) FROM import_items WHERE job_id=? AND status IN ('pending','processing')");
  $q->execute([$task['job_id']]);$remaining=(int)$q->fetchColumn();
