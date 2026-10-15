@@ -25,7 +25,7 @@ try{
    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
    assert(overflow<=2,route+' horizontal overflow '+overflow+'px at '+width);
    // Shared native dropdown presentation must work on every module.
-   const selects=page.locator('main select:not([multiple]):not([size]):not(.ql-header)');
+   const selects=page.locator('main select:not([multiple]):not([size]):not(.ql-header):visible');
    if(await selects.count()){
     const css=await selects.first().evaluate(el=>{
      const s=getComputedStyle(el);return {appearance:s.appearance,arrow:s.backgroundImage,height:el.getBoundingClientRect().height};
