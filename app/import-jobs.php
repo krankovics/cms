@@ -20,8 +20,8 @@ function imp_mutate(PDO $pdo,array $user,int $site,array $post):int{
    $max=$mode==='url'?1:($mode==='demo'?10:max(1,min(1000000,(int)($post['max_items']??100))));
    $q=$pdo->prepare('INSERT INTO import_jobs(site_id,created_by,mode,source_url,max_items) VALUES(?,?,?,?,?)');
    $q->execute([$site,$user['id'],$mode,$url,$max]);$id=(int)$pdo->lastInsertId();
-   $q=$pdo->prepare('INSERT INTO import_items(job_id,site_id,source_url,task_type) VALUES(?,?,?,?)');
-   $q->execute([$id,$site,$url,$mode==='url'?'article':'discover']);
+   $q=$pdo->prepare('INSERT INTO import_items(job_id,site_id,source_url,source_url_hash,task_type) VALUES(?,?,?,?,?)');
+   $q->execute([$id,$site,$url,hash('sha256',$url),$mode==='url'?'article':'discover']);
   }else{
    $id=max(0,(int)($post['job_id']??0));
    $q=$pdo->prepare('SELECT id,status FROM import_jobs WHERE id=? AND site_id=? FOR UPDATE');
