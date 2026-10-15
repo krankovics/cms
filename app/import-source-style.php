@@ -137,7 +137,15 @@ function cms_source_style_write(int $site,string $url,array $profile):void{
  $path=cms_source_style_path($site,$url);
  $profile['host']=strtolower((string)parse_url($url,PHP_URL_HOST));
  $profile['site_id']=$site;
- cms_source_style_write($site,$url,$profile);
+ $dir=dirname($path);
+ if(!is_dir($dir)&&!mkdir($dir,0750,true)&&!is_dir($dir))throw new RuntimeException('A forrásstílusok tárolója nem írható.');
+ $tmp=tempnam($dir,'.source-');if(!$tmp)throw new RuntimeException('Forrásstílus ideiglenes fájl nem írható.');
+ try{
+  $json=json_encode($profile,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
+  if(file_put_contents($tmp,$json,LOCK_EX)===false)throw new RuntimeException('Forrásstílus mentési hiba.');
+  chmod($tmp,0640);
+  if(!rename($tmp,$path))throw new RuntimeException('Forrásstílus atomikus mentési hiba.');
+ }finally{if(is_file($tmp))@unlink($tmp);}
 }
 function cms_source_style_collect(int $site,string $html,string $url,bool $force=false,?string $homepageHtml=null):?array{
  $path=cms_source_style_path($site,$url);
@@ -172,14 +180,6 @@ function cms_source_style_collect(int $site,string $html,string $url,bool $force
   if(!empty($previous['site_design_reviewed'])&&is_array($previous['site_design']??null))$design=$previous['site_design'];
  $profile=['host'=>strtolower((string)parse_url($url,PHP_URL_HOST)),'site_id'=>$site,
   'source_url'=>$url,'saved_at'=>time(),'css'=>$css,'css_files'=>$count,'site_design'=>$design,'site_design_reviewed'=>(bool)($previous['site_design_reviewed']??false),'site_design_reviewed_at'=>$previous['site_design_reviewed_at']??null,'version'=>2];
- $dir=dirname($path);
- if(!is_dir($dir)&&!mkdir($dir,0750,true)&&!is_dir($dir))throw new RuntimeException('A forrásstílusok tárolója nem írható.');
- $tmp=tempnam($dir,'.source-');if(!$tmp)throw new RuntimeException('Forrásstílus ideiglenes fájl nem írható.');
- try{
-  $json=json_encode($profile,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
-  if(file_put_contents($tmp,$json,LOCK_EX)===false)throw new RuntimeException('Forrásstílus mentési hiba.');
-  chmod($tmp,0640);
-  if(!rename($tmp,$path))throw new RuntimeException('Forrásstílus atomikus mentési hiba.');
- }finally{if(is_file($tmp))@unlink($tmp);}
+ cms_source_style_write($site,$url,$profile);
  return $profile;
 }
