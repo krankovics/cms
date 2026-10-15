@@ -163,6 +163,11 @@ ok(count($nestedClean)===2&&count($nestedClean[0]['columns'])===2&&$nestedClean[
 $invalid=$nested;$invalid[0]['columns'][1]['span']=13;
 try{cms_layout_validate(json_encode($invalid),'home');throw new RuntimeException('Oversized box was accepted.');}
 catch(RuntimeException $e){ok(str_contains($e->getMessage(),'szélessége'),'Builder must reject invalid box spans.');}
+
+$overfull=$nested;$overfull[0]['columns'][1]['span']=8;
+try{cms_layout_validate(json_encode($overfull),'home');throw new RuntimeException('Overfull row was accepted.');}
+catch(RuntimeException $e){ok(str_contains($e->getMessage(),'összes szélessége'),'Combined row width must never exceed 12 columns.');}
+
 $invalid=$nested;$invalid[1]['columns'][0]['blocks'][0]['type']='article';
 try{cms_layout_validate(json_encode($invalid),'home');throw new RuntimeException('Article slot was accepted on homepage.');}
 catch(RuntimeException $e){ok(str_contains($e->getMessage(),'cikkoldalon'),'Nested blocks must retain template content restrictions.');}
