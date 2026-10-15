@@ -197,5 +197,14 @@ ok(count($sourceProfile['site_design']['header_links']??[])===2&&($sourceProfile
 $insertMap=$pdo->prepare('INSERT INTO import_article_map(site_id,source_url,source_url_hash,article_id,source_hash) VALUES(?,?,?,?,?)');
 $insertMap->execute([$sites[0],$sourcePage,hash('sha256',$sourcePage),$richArticleId,hash('sha256',$sourceDoc)]);
 ok(cms_source_style_read($sites[0],$sourcePage)!==null,'Saved profile should be discoverable from mapped article origin.');
+$reviewUrl='https://curated-source.invalid/story';
+$review= cms_source_style_collect($sites[1],$sourceDoc,$reviewUrl);
+$review['site_design']['name']='Jóváhagyott forráswebhely';
+$review['site_design_reviewed']=true;$review['site_design_reviewed_at']=gmdate('c');
+cms_source_style_write($sites[1],$reviewUrl,$review);
+$refreshed=cms_source_style_collect($sites[1],$sourceDoc,$reviewUrl,true);
+ok(($refreshed['site_design']['name']??'')==='Jóváhagyott forráswebhely','Reimport must not overwrite approved site shell overrides.');
+ok(!empty($refreshed['site_design_reviewed']),'A refreshed source profile retains its approval flag.');
+
 
 echo "PASS: $tests database integration assertions.\n";
