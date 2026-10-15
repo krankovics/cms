@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  // Preserve every supported imported figure, table, emphasis and media embed.
  // Unlike Quill's default import, the contenteditable DOM retains these nodes.
  const richMode=initial.length===1&&initial[0].type==='richhtml';
- let richSource=null;
+ let richSource=null,insertRichHTML=null;
  if(richMode){
   document.getElementById('editor-toolbar').hidden=true;
   document.getElementById('rich-editor').hidden=true;
@@ -63,6 +63,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   ['keyup','mouseup','focusout'].forEach(type=>edit.addEventListener(type,remember));
   bar.addEventListener('mousedown',e=>{if(e.target.closest('button'))e.preventDefault()});
   const command=(cmd,value=null)=>{restore();document.execCommand(cmd,false,value);remember();edit.dispatchEvent(new Event('input',{bubbles:true}))};
+  insertRichHTML=html=>{restore();document.execCommand('insertHTML',false,html);remember();edit.dispatchEvent(new Event('input',{bubbles:true}))};
   const tool=(label,title,action)=>{
    const button=document.createElement('button');button.type='button';button.className='ed-rich-tool';
    button.textContent=label;button.title=title;button.setAttribute('aria-label',title);
@@ -142,9 +143,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   status.textContent='Kép feltöltése folyamatban…';
   try{
    const url=await uploadImage(file,site);
-   const index=quill.getSelection(true)?.index??quill.getLength();
-   quill.insertEmbed(index,'image',url,'user');
-   quill.setSelection(index+1);
+   if(richMode){
+    const safeURL=new URL(url,location.href).href.replaceAll('&','&amp;').replaceAll('"','&quot;');
+    insertRichHTML('<figure><img src="'+safeURL+'" alt=""></figure><p></p>');
+   }else{
+    const index=quill.getSelection(true)?.index??quill.getLength();
+    quill.insertEmbed(index,'image',url,'user');
+    quill.setSelection(index+1);
+   }
    status.textContent='Kép feltöltve a médiatárba';
   }catch(error){
    status.textContent='A kép feltöltése sikertelen';
@@ -262,7 +268,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  allTags.forEach(l=>l.querySelector('input').addEventListener('change',refreshTags));
  syncSite();
  form.addEventListener('submit',e=>{if(!siteChecks.some(x=>x.checked)){e.preventDefault();showDialog('Válassz webhelyet',[],[{label:'Rendben',primary:true}]);return}if(search.value.trim())chooseTag(search.value)});
- const serialize=()=>richMode?[{type:'richhtml',text:richSource.value}]:[{type:'richtext',text:JSON.stringify(quill.getContents())}];
+ const serialize=()=>richMode?[{type:'richhtml',text:richSource.innerHTML}]:[{type:'richtext',text:JSON.stringify(quill.getContents())}];
  let dirty=false,unsaved=false,isSubmitting=false;
  const markChanged=()=>{dirty=true;unsaved=true;};
  quill.on('text-change',(_delta,_old,source)=>{if(source==='user')markChanged();});
@@ -283,7 +289,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  if(answer===null)return;
   document.getElementById('title').value=saved.title||'';
   document.getElementById('lead').value=saved.lead||'';
-  if(richMode&&typeof saved.richHTML==='string'){richSource.value=saved.richHTML;updateRichPreview();}
+  if(richMode&&typeof saved.richHTML==='string'){richSource.innerHTML=saved.richHTML;}
   else if(saved.delta?.ops)quill.setContents(saved.delta);
   markChanged();
  }
@@ -292,9 +298,29 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(!e.defaultPrevented)isSubmitting=true;
   try{localStorage.setItem('comesy-pending-save',backupKey)}catch(error){}
  });
- setInterval(()=>{if(!dirty)return;try{localStorage.setItem(backupKey,JSON.stringify({title:document.getElementById('title').value,lead:document.getElementById('lead').value,delta:richMode?null:quill.getContents(),richHTML:richMode?richSource.value:null,time:Date.now()}));status.textContent='Helyi piszkozat mentve';dirty=false;}catch(e){}},15000);
+ setInterval(()=>{if(!dirty)return;try{localStorage.setItem(backupKey,JSON.stringify({title:document.getElementById('title').value,lead:document.getElementById('lead').value,delta:richMode?null:quill.getContents(),richHTML:richMode?richSource.innerHTML:null,time:Date.now()}));status.textContent='Helyi piszkozat mentve';dirty=false;}catch(e){}},15000);
  document.getElementById('preview-button').addEventListener('click',()=>{
-  if(richMode){updateRichPreview();richFrame.scrollIntoView({behavior:'smooth',block:'center'});return;}
+  // Separate tab, only on demand. Rich HTML stays inside an isolated sandbox
+  // with no script execution and no access to the authenticated CMS origin.
+  const titleText=document.getElementById('title').value;
+  const leadText=document.getElementById('lead').value;
+  const w=window.open('','_blank');
+  if(!w)return;
+  if(richMode){
+   const d=w.document;d.title=(titleText||'Cikkelőnézet')+' · comesy';
+   d.documentElement.lang='hu';
+   const headStyle=d.createElement('style');
+   headStyle.textContent='body{margin:0;background:#f5f7fb;color:#1d2a3c;font-family:system-ui}main{max-width:900px;margin:24px auto;padding:26px;background:white;border:1px solid #e2e8f0;border-radius:12px}h1{font-size:clamp(22px,4vw,34px)}.lead{font-size:18px;color:#5d6777;line-height:1.6}iframe{width:100%;height:75vh;border:0}';
+   d.head.append(headStyle);
+   const main=d.createElement('main'),h=d.createElement('h1'),lead=d.createElement('p');
+   h.textContent=titleText;lead.textContent=leadText;lead.className='lead';main.append(h,lead);
+   const frame=d.createElement('iframe');frame.title='A cikk biztonságos előnézete';
+   frame.setAttribute('sandbox','');frame.setAttribute('referrerpolicy','no-referrer');
+   frame.srcdoc='<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; img-src https: http: data:; style-src &#39;unsafe-inline&#39;; media-src https: http:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://embed.spotify.com https://www.facebook.com https://www.instagram.com https://w.soundcloud.com https://www.tiktok.com"><style>body{font:16px/1.7 system-ui;margin:10px;color:#1b2636}img,video{max-width:100%;height:auto}figure{margin:20px 0}figcaption{font-size:13px;color:#637083}table{border-collapse:collapse;display:block;overflow:auto;max-width:100%}td,th{border:1px solid #d3dce8;padding:9px}iframe{border:1px solid #d3dce8;max-width:100%;width:100%;min-height:260px}blockquote{border-left:3px solid #5067a2;padding-left:18px}mark{background:#fff1af}</style>'+richSource.innerHTML;
+   main.append(frame);d.body.append(main);
+   w.opener=null;
+   return;
+  }
   const w=window.open('','_blank');if(!w)return;
   const d=w.document;d.title='comesy cikkelőnézet';
   const style=d.createElement('style');style.textContent='body{max-width:760px;margin:40px auto;padding:20px;font:18px/1.7 system-ui}img{max-width:100%}h1{line-height:1.2}';d.head.append(style);
