@@ -56,6 +56,9 @@ def login(role):
 
 
 editor = login("editor")
+imports_page, _ = get(editor, "/imports.php?site_id=1")
+assert "Importworker állapota" in imports_page, "Worker status dashboard not visible"
+assert "Feldolgozható várakozók" in imports_page, "Per-site queue diagnostics missing"
 page, _ = get(editor, "/editor.php")
 assert "Új cikk" in page, "Editor inaccessible"
 blocks = json.dumps(
