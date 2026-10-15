@@ -136,6 +136,37 @@ function imp_fetch(string $url,int $maxBytes=3145728):array{
  if($result['status']!==200)throw new RuntimeException('Forrás HTTP hibakód: '.$result['status']);
  return $result;
 }
+/**
+ * Choose the narrative article body, not a card/related-news <article>.
+ * Fail closed for thin pages rather than creating a misleading "successful" draft.
+ */
+function imp_body_stats(DOMXPath $xpath,DOMNode $node):array{
+ $total=0;$long=0;$longest=0;
+ foreach($xpath->query('.//p',$node) as $p){
+  $text=trim((string)preg_replace('/\s+/u',' ',$p->textContent));
+  $length=mb_strlen($text);
+  if($length<45)continue;
+  $total+=$length;$longest=max($longest,$length);
+  if($length>=70)$long++;
+ }
+ return ['total'=>$total,'long'=>$long,'longest'=>$longest];
+}
+function imp_select_article_body(DOMXPath $xpath):?DOMNode{
+ $best=null;$bestScore=-1;
+ foreach($xpath->query('//*[@class or @id or @itemprop] | //article | //main') as $node){
+  if(!$node instanceof DOMElement)continue;
+  $tag=strtolower($node->tagName);
+  $attrs=strtolower($node->getAttribute('class').' '.$node->getAttribute('id'));
+  $semantic=strtolower($node->getAttribute('itemprop'))==='articlebody';
+  $content=(bool)preg_match('/(?:article|post|entry|story|content|cikk)[\s_-]*(?:body|content|text|szoveg)|(?:body|content)[\s_-]*(?:article|story)/i',$attrs);
+  if(!$semantic&&!$content&&!in_array($tag,['article','main'],true))continue;
+  $stats=imp_body_stats($xpath,$node);
+  if($stats['total']<200||($stats['long']<2&&$stats['longest']<280))continue;
+  $score=($semantic?300000:0)+($content?200000:0)+($tag==='article'?100000:0)+min(50000,$stats['total']);
+  if($score>$bestScore){$best=$node;$bestScore=$score;}
+ }
+ return $best;
+}
 function imp_extract(string $html,string $url):array{
  if(!extension_loaded('dom'))throw new RuntimeException('A DOM PHP-kiegészítő szükséges.');
  $doc=new DOMDocument('1.0','UTF-8');
@@ -143,18 +174,28 @@ function imp_extract(string $html,string $url):array{
  $doc->loadHTML('<?xml encoding="utf-8"?>'.$html,LIBXML_NONET|LIBXML_NOWARNING|LIBXML_NOERROR);
  libxml_clear_errors();libxml_use_internal_errors($before);
  $xpath=new DOMXPath($doc);
- foreach($xpath->query('//script|//style|//noscript|//iframe|//nav|//footer|//aside|//form') as $node)$node->parentNode?->removeChild($node);
+ // Remove navigation, recommendations and commerce widgets before scoring body candidates.
+ $discard=[];
+ foreach($xpath->query('//script|//style|//noscript|//iframe|//nav|//footer|//aside|//form|//*[@class or @id]') as $node){
+  if(!$node instanceof DOMElement)continue;
+  $tag=strtolower($node->tagName);
+  $attrs=strtolower($node->getAttribute('class').' '.$node->getAttribute('id'));
+  if(in_array($tag,['script','style','noscript','iframe','nav','footer','aside','form'],true)||
+     preg_match('/(?:^|[\s_-])(?:related|recommended|recommendations|more-news|more-articles|latest-news|most-read|read-more|also-read|sidebar|newsletter|social-share|share-buttons|comments|advertisement|ad-slot|sticky-ad|cookie-banner)(?:$|[\s_-])/i',$attrs))$discard[]=$node;
+ }
+ foreach($discard as $node)if($node->parentNode)$node->parentNode->removeChild($node);
  $head=(string)$xpath->evaluate('string(//meta[@property="og:title"]/@content)');
  $title=trim($head?:$xpath->evaluate('string(//article//h1[1])')?:$xpath->evaluate('string(//h1[1])')?:$xpath->evaluate('string(//title)'));
  $lead=trim((string)$xpath->evaluate('string(//meta[@name="description"]/@content)'));
- $article=$xpath->query('//article[1]')->item(0)??$xpath->query('//main[1]')->item(0)??$xpath->query('//body[1]')->item(0);
- if(!$article||mb_strlen($title)<3)throw new RuntimeException('A cikk fő tartalma vagy címe nem ismerhető fel.');
+ $article=imp_select_article_body($xpath);
+ if(!$article||mb_strlen($title)<3)throw new RuntimeException('Nem sikerült megbízható cikktörzset felismerni; a kapcsolódó ajánlók nem számítanak cikknek.');
  $blocks=[];$seen=[];
  $nodes=$xpath->query('.//h2|.//h3|.//h4|.//p|.//ul|.//ol|.//blockquote|.//img',$article);
  foreach($nodes as $node){
   $tag=strtolower($node->nodeName);
   if(in_array($tag,['p','img'],true)&&$xpath->evaluate('boolean(ancestor::ul or ancestor::ol or ancestor::blockquote)',$node))continue;
   $text=trim(preg_replace('/\s+/u',' ',$node->textContent));
+  if(in_array($tag,['h2','h3','h4'],true)&&preg_match('/^(?:További .*híreink|Kapcsolódó cikkek|Ajánlott (?:cikkek|tartalmak)|Legfrissebb hírek|Olvassa el (?:ezeket is|még))/iu',$text))break;
   $type=match($tag){'h2','h3','h4'=>'heading','blockquote'=>'quote','ul','ol'=>'list','img'=>'image',default=>'paragraph'};
   if($tag==='img'){
    $text=(string)($node->getAttribute('data-src')?:$node->getAttribute('src'));
@@ -166,7 +207,13 @@ function imp_extract(string $html,string $url):array{
   $seen[$type.$text]=true;$blocks[]=['type'=>$type,'text'=>$text];
   if(count($blocks)>=200)break;
  }
- if(!$blocks)throw new RuntimeException('Nincs biztonságosan kinyerhető cikkblokk.');
+ $narrative=0;$textLength=0;$longParagraphs=0;
+ foreach($blocks as $block)if(($block['type']??'')==='paragraph'){
+  $length=mb_strlen((string)$block['text']);$textLength+=$length;$narrative++;
+  if($length>=70)$longParagraphs++;
+ }
+ if(!$blocks||$textLength<200||($longParagraphs<2&&$textLength<280))
+  throw new RuntimeException('Hiányos cikktörzs: az oldal nem tartalmaz elég önálló cikkbekezdést; nem menthető sikeres importként.');
  $links=[];$sourceHost=strtolower((string)parse_url($url,PHP_URL_HOST));
  foreach($xpath->query('.//a[@href]',$article) as $linkNode){
   $raw=trim($linkNode->getAttribute('href'));
