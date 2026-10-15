@@ -159,6 +159,21 @@ try{
  assert(await admin.locator('#media-inspector').evaluate(el=>el.classList.contains('is-open')),'Desktop image details should open on demand.');
  await admin.keyboard.press('Escape');
  assert(await admin.locator('#media-inspector').evaluate(el=>!el.classList.contains('is-open')),'Escape should close media details.');
+ await admin.goto(base+'/articles.php');
+ await admin.locator('a.ui-table-title',{hasText:'Szerkesztői gazdag tartalom próba'}).click();
+ await admin.locator('#featured-choose').click();
+ await admin.locator('#featured-media-picker').waitFor({state:'visible'});
+ await admin.locator('#featured-picker-search').fill('comesy-test');
+ await admin.locator('.ui-picker-asset:visible').first().waitFor({state:'visible'});
+ await admin.locator('.ui-picker-asset:visible').first().click();
+ const imageUrl=await admin.locator('#og-image-url').inputValue();
+ assert(imageUrl.startsWith(base)&&imageUrl.includes('/media-file.php?id='),'Picked image must have a saveable URL.');
+ await Promise.all([admin.waitForURL(/saved=1/),admin.locator('.editor-save-button').click()]);
+ assert.equal(await admin.locator('#og-image-url').inputValue(),imageUrl,'Featured image must persist.');
+ await admin.locator('#featured-clear').click();
+ await Promise.all([admin.waitForURL(/saved=1/),admin.locator('.editor-save-button').click()]);
+ assert.equal(await admin.locator('#og-image-url').inputValue(),'','Cleared image must stay cleared.');
+
 
  await admin.goto(base+'/users.php',{waitUntil:'networkidle'});
  await admin.locator('[data-ui-search="user-list"]').fill('editor');
