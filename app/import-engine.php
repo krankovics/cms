@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/import-rich.php';
 /* Public-source import utilities. No arbitrary remote URL may bypass the public-IP check. */
 function imp_url_metadata(string $url):string{
  $url=trim($url);
@@ -314,19 +315,22 @@ function imp_extract(string $html,string $url):array{
  $doc->loadHTML('<?xml encoding="utf-8"?>'.$html,LIBXML_NONET|LIBXML_NOWARNING|LIBXML_NOERROR);
  libxml_clear_errors();libxml_use_internal_errors($before);
  $xpath=new DOMXPath($doc);
+ $featuredImage=imp_rich_meta_image($xpath,$url);
  $head=(string)$xpath->evaluate('string(//meta[@property="og:title"]/@content)');
  $title=trim($head?:$xpath->evaluate('string(//article//h1[1])')?:$xpath->evaluate('string(//h1[1])')?:$xpath->evaluate('string(//title)'));
  $lead=trim((string)$xpath->evaluate('string(//meta[@name="description"]/@content)'));
  // JSON-LD is gathered before the sanitizer removes script elements.
  $structuredBody=imp_jsonld_article_blocks($xpath,$title);
  $hydratedBody=imp_ng_state_article_blocks($xpath,$title,$url);
+ $richRecord=imp_rich_ng_data($xpath,$title,$url);
+ $richSource=$richRecord?imp_rich_ng_html($richRecord):'';
  // Remove navigation, recommendations and commerce widgets before scoring body candidates.
  $discard=[];
  foreach($xpath->query('//script|//style|//noscript|//iframe|//nav|//footer|//aside|//form|//*[@class or @id]') as $node){
   if(!$node instanceof DOMElement)continue;
   $tag=strtolower($node->tagName);
   $attrs=strtolower($node->getAttribute('class').' '.$node->getAttribute('id'));
-  if(in_array($tag,['script','style','noscript','iframe','nav','footer','aside','form'],true)||
+  if(in_array($tag,['script','style','noscript','nav','footer','aside','form'],true)||
      preg_match('/(?:^|[\s_-])(?:related|recommended|recommendations|more-news|more-articles|latest-news|most-read|read-more|also-read|sidebar|newsletter|social-share|share-buttons|comments|advertisement|ad-slot|sticky-ad|cookie-banner)(?:$|[\s_-])/i',$attrs))$discard[]=$node;
  }
  foreach($discard as $node)if($node->parentNode)$node->parentNode->removeChild($node);
@@ -354,6 +358,12 @@ function imp_extract(string $html,string $url):array{
  elseif(!imp_blocks_are_substantive($blocks)&&$structuredBody){$blocks=$structuredBody;$article=null;}
  if(!imp_blocks_are_substantive($blocks))
   throw new ImportContentRejected('Hiányos cikktörzs: nem található elég forrásból ellenőrizhető, önálló cikkbekezdés; csak cím és lead nem importálható teljes cikként.');
+ $richHtml=$richSource!==''?$richSource:($article?$doc->saveHTML($article):'');
+ $richDelta=imp_rich_delta($richHtml,$url);
+ // Metadata-only sources lack a full structured HTML body. Preserve the verified text.
+ if(!$richDelta['ops']&&$structuredBody){
+  foreach($structuredBody as $b)$richDelta['ops'][]=['insert'=>$b['text']."\n"];
+ }
  $links=[];$sourceHost=strtolower((string)parse_url($url,PHP_URL_HOST));
  if($article)foreach($xpath->query('.//a[@href]',$article) as $linkNode){
   $raw=trim($linkNode->getAttribute('href'));
@@ -364,7 +374,7 @@ function imp_extract(string $html,string $url):array{
   if(count($links)>=500)break;
  }
  $date=trim((string)$xpath->evaluate('string(//meta[@property="article:published_time"]/@content)'));
- return ['title'=>mb_substr($title,0,500),'lead'=>mb_substr($lead,0,10000),'blocks'=>$blocks,'links'=>array_values($links),'source_url'=>$url,'published_at'=>$date];
+ return ['title'=>mb_substr($title,0,500),'lead'=>mb_substr($lead,0,10000),'blocks'=>$blocks,'richtext'=>$richDelta,'featured_image'=>$featuredImage,'links'=>array_values($links),'source_url'=>$url,'published_at'=>$date];
 }
 function imp_discover(string $xml,string $base,int $max=100):array{
  if(!class_exists(XMLReader::class))throw new RuntimeException('Nagy sitemap importjához a PHP XMLReader bővítmény szükséges.');
