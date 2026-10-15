@@ -42,11 +42,13 @@ function cms_layout_validate(string $json,string $kind):string{
   }
   $columns=$entry['columns']??null;
   if(!is_array($columns)||!array_is_list($columns)||count($columns)<1||count($columns)>4)throw new RuntimeException('Egy sorban 1–4 doboz használható.');
-  $boxes=[];
+  $boxes=[];$usedWidth=0;
   foreach($columns as $column){
    if(!is_array($column)||($column['type']??'')!=='box')throw new RuntimeException('Érvénytelen doboz.');
    $span=(int)($column['span']??0);
    if($span<1||$span>12)throw new RuntimeException('A doboz szélessége 1–12 lehet.');
+   $usedWidth+=$span;
+   if($usedWidth>12)throw new RuntimeException('A sor dobozainak összes szélessége legfeljebb 12 lehet.');
    $blocks=$column['blocks']??null;
    if(!is_array($blocks)||!array_is_list($blocks)||count($blocks)>15)throw new RuntimeException('Egy dobozban legfeljebb 15 blokk lehet.');
    $cleanBlocks=[];
