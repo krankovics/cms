@@ -79,3 +79,9 @@ if($state){
   }
  }
 }
+
+try{
+ $ex=imp_extract($html,$url);
+ $n=0;foreach($ex['blocks'] as $b)if(($b['type']??'')==='paragraph')$n+=mb_strlen($b['text']??'');
+ echo 'LIVE_IMPORT_QUALITY status=passed blocks='.count($ex['blocks']).' paragraph_chars='.$n."\\n";
+}catch(Throwable $e){echo 'LIVE_IMPORT_QUALITY status=failed class='.get_class($e).' message='.$e->getMessage()."\\n";}
