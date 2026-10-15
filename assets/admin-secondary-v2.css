@@ -1,19 +1,19 @@
 /* comesy Admin v2: article editor, settings, profile, sites and permission layouts */
-body.comesy-admin .ui-page.ui-editor-page,body.comesy-admin .editor-layout{max-width:1460px;margin:0 auto;padding:25px 30px 110px;min-width:0}
-body.comesy-admin .editor-top{margin:0 0 17px}
-body.comesy-admin .editor-form{display:grid;grid-template-columns:minmax(0,1fr) 315px;align-items:start;gap:18px}
-body.comesy-admin .editor-form>.panel,body.comesy-admin .ui-editor-aside>.panel{background:var(--ui-surface);border:1px solid var(--ui-border);border-radius:14px;margin:0;padding:21px;min-width:0}
-body.comesy-admin .ui-editor-aside{min-width:0;display:grid;gap:15px;position:sticky;top:86px;z-index:2}
+body.comesy-admin .ui-page.ui-editor-page,body.comesy-admin .editor-layout{width:100%;max-width:1860px;margin:0 auto;padding:28px clamp(18px,2.1vw,36px) 110px;min-width:0}
+body.comesy-admin .editor-top{margin:0 0 22px;align-items:center}
+body.comesy-admin .editor-form{display:grid;grid-template-columns:minmax(0,1fr) 350px;align-items:start;gap:22px}
+body.comesy-admin .editor-form>.panel,body.comesy-admin .ui-editor-aside>.panel{background:var(--ui-surface);border:1px solid var(--ui-border);border-radius:14px;margin:0;padding:24px;min-width:0}
+body.comesy-admin .ui-editor-aside{min-width:0;display:grid;gap:17px;position:sticky;top:92px;z-index:2}
 body.comesy-admin .ui-editor-main{min-width:0}
 body.comesy-admin .editor-form label{display:block;margin:14px 0 7px;font-size:12px;font-weight:680;color:var(--ui-text-secondary)}
 body.comesy-admin .editor-form input:not([type=checkbox]),body.comesy-admin .editor-form textarea,body.comesy-admin .editor-form select{max-width:100%;width:100%;font-size:16px;padding:11px 12px;border-radius:10px;border:1px solid var(--ui-border);color:var(--ui-text);background:var(--ui-surface-subtle)}
 body.comesy-admin .editor-form textarea{min-height:92px;resize:vertical}
 body.comesy-admin .editor-form input:focus,body.comesy-admin .editor-form textarea:focus{border-color:var(--ui-primary)}
-body.comesy-admin .ui-editor-main>h2{font-size:16px;margin:23px 0 4px}
+body.comesy-admin .ui-editor-main>h2{font-size:17px;margin:27px 0 6px;letter-spacing:-.02em}
 body.comesy-admin .editor-form .hint{font-size:12px;color:var(--ui-text-secondary);line-height:1.5}
-body.comesy-admin .ql-container.ql-snow{background:var(--ui-surface);color:var(--ui-text);border:1px solid var(--ui-border)!important;border-radius:0 0 9px 9px;font-size:16px;min-height:300px}
-body.comesy-admin .ql-editor{line-height:1.7;min-height:300px;overflow-wrap:anywhere}
-body.comesy-admin #editor-toolbar.ql-toolbar{border:1px solid var(--ui-border)!important;background:var(--ui-surface-subtle);border-radius:9px 9px 0 0;position:relative;top:auto}
+body.comesy-admin .ql-container.ql-snow{background:var(--ui-surface);color:var(--ui-text);border:1px solid var(--ui-border)!important;border-radius:0 0 10px 10px;font-size:16px;min-height:410px}
+body.comesy-admin .ql-editor{line-height:1.75;min-height:410px;overflow-wrap:anywhere;padding:24px 26px}
+body.comesy-admin #editor-toolbar.ql-toolbar{border:1px solid var(--ui-border)!important;background:var(--ui-surface-subtle);border-radius:10px 10px 0 0;position:relative;top:auto;padding:10px 12px}
 body.comesy-admin #editor-toolbar .ql-formats{margin-right:9px}
 body.comesy-admin #editor-toolbar button:not(#insert-recommendation){color:var(--ui-text)}
 body.comesy-admin #editor-toolbar #insert-recommendation{color:var(--ui-text)!important;background:var(--ui-surface)!important;border:1px solid var(--ui-border)!important;font-size:12px!important;width:auto!important;min-height:27px}
@@ -27,7 +27,7 @@ body.comesy-admin .ed-seo{border-bottom:1px solid var(--ui-border);padding-botto
 body.comesy-admin .ed-seo>summary,body.comesy-admin .ed-add>summary{cursor:pointer;color:var(--ui-primary);font-size:13px;font-weight:700;padding:8px 0}
 body.comesy-admin .ed-seo-body{padding-top:4px}
 body.comesy-admin #preview-button{width:100%;min-height:43px;background:var(--ui-surface);color:var(--ui-text);border:1px solid var(--ui-border);border-radius:10px;font-size:13px;font-weight:680;margin-top:12px}
-body.comesy-admin .editor-save-button{width:100%;margin-top:12px;min-height:46px;color:var(--ui-primary-on)!important;background:var(--ui-primary)!important}
+body.comesy-admin .editor-save-button{width:100%;margin-top:16px;min-height:48px;color:var(--ui-primary-on)!important;background:var(--ui-primary)!important}
 body.comesy-admin .editor-form button:not(.editor-save-button):not(.ui-editor-preview){border-radius:9px}
 body.comesy-admin .revision{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--ui-border);font-size:12px}
 body.comesy-admin .revision button{padding:8px 11px;border:1px solid var(--ui-border);border-radius:8px;background:var(--ui-surface-subtle);color:var(--ui-text);font-size:12px}
@@ -71,6 +71,8 @@ body.comesy-admin .ui-maintenance-note{padding:15px;border-radius:11px;border:1p
 body.comesy-admin .ui-maintenance-note p{font-size:12px;color:var(--ui-text-secondary)}
 body.comesy-admin .ui-admin-full{grid-column:1/-1}
 @media(max-width:1199px){
+ body.comesy-admin .editor-form{grid-template-columns:minmax(0,1fr) 315px;gap:16px}
+
  body.comesy-admin .editor-form{grid-template-columns:minmax(0,1fr) 290px;gap:13px}
  body.comesy-admin .editor-layout,body.comesy-admin .ui-admin-section{padding:23px}
 }
@@ -82,6 +84,9 @@ body.comesy-admin .ui-admin-full{grid-column:1/-1}
  body.comesy-admin .ui-admin-grid{grid-template-columns:1fr}
 }
 @media(max-width:767px){
+ body.comesy-admin .ql-editor{padding:15px}
+ body.comesy-admin #editor-toolbar.ql-toolbar{padding:8px}
+
  body.comesy-admin .editor-layout,body.comesy-admin .ui-admin-section{padding:17px 13px 110px}
  body.comesy-admin .editor-top{margin-bottom:13px}
  body.comesy-admin .ui-editor-header-save{display:none}
@@ -99,7 +104,7 @@ body.comesy-admin .ui-admin-full{grid-column:1/-1}
 }
 
 /* Editor meta sections and read-only publication status. */
-body.comesy-admin .ui-editor-meta{display:block;min-width:0;border-bottom:1px solid var(--ui-border);margin-bottom:12px;padding:0 0 13px}
+body.comesy-admin .ui-editor-meta{display:block;min-width:0;border-bottom:1px solid var(--ui-border);margin-bottom:15px;padding:0 0 15px}
 body.comesy-admin .ui-editor-meta>summary{cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;list-style:none;font-size:14px;font-weight:750;line-height:1.5;color:var(--ui-text);padding:7px 0}
 body.comesy-admin .ui-editor-meta>summary::-webkit-details-marker{display:none}
 body.comesy-admin .ui-editor-meta>summary::after{content:'⌄';font-size:16px;color:var(--ui-text-secondary);transform:rotate(-90deg)}

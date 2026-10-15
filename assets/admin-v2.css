@@ -102,6 +102,19 @@ body.comesy-admin .profile-dropdown{border-color:var(--ui-border);background:var
 body.comesy-admin .profile-dropdown a,body.comesy-admin .profile-dropdown button{font-size:14px;min-height:44px}
 body.comesy-admin .profile-dropdown a:hover,body.comesy-admin .profile-dropdown button:hover{background:var(--ui-surface-subtle)}
 body.comesy-admin .menu-toggle{display:none}
+/* One consistent, fluid workspace for all CMS modules. Not every page loads
+   admin-pages-v2.css, so the shell must own this width and padding. */
+body.comesy-admin .ui-page{
+ width:100%;max-width:1860px;margin-inline:auto;min-width:0;
+ padding:28px clamp(18px,2.1vw,36px) 60px;
+}
+body.comesy-admin .ui-page>.ui-notice{
+ margin:0 0 18px;padding:13px 17px;border:1px solid var(--ui-border);
+ border-left:3px solid var(--ui-primary);border-radius:12px;
+ background:var(--ui-surface);color:var(--ui-text);
+ font-size:13px;line-height:1.6;
+}
+body.comesy-admin .ui-page>.ui-notice a{color:var(--ui-primary);font-weight:700}
 body.comesy-admin .ui-page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:22px}
 body.comesy-admin .ui-page-heading{min-width:0}
 body.comesy-admin .ui-eyebrow{margin:0 0 5px;color:var(--ui-primary);font-size:11px;font-weight:750;letter-spacing:.1em;text-transform:uppercase}
@@ -152,6 +165,7 @@ body.comesy-admin .ui-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap
  body.comesy-admin .ui-sidebar-nav{gap:14px!important}
 }
 @media (max-width:1023px) {
+ body.comesy-admin .ui-page{padding:24px 20px 45px}
  body.comesy-admin{padding-left:0}
  body.comesy-admin .comesy-sidebar{
   width:min(320px,86vw);transform:translateX(-110%)!important;
@@ -173,6 +187,7 @@ body.comesy-admin .ui-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap
  body.comesy-admin .ui-header-create span{display:none}
 }
 @media (max-width:767px){
+ body.comesy-admin .ui-page{padding:18px 14px 42px}
  body.comesy-admin .comesy-global-header{height:62px;padding:0 12px!important;gap:8px}
  body.comesy-admin .ui-header-start,body.comesy-admin .ui-header-actions{gap:7px}
  body.comesy-admin .ui-icon-button{height:39px;width:39px;min-width:39px}
