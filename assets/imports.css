@@ -1,0 +1,34 @@
+/* comesy import console */
+body.comesy-admin .ui-imports-page{max-width:1450px}
+body.comesy-admin .ui-imports-grid{display:grid;grid-template-columns:minmax(300px,.75fr) minmax(0,1.25fr);gap:15px;align-items:start}
+body.comesy-admin .ui-imports-grid>.ui-panel,body.comesy-admin .ui-import-items{padding:21px;border-radius:14px;background:var(--ui-surface);border:1px solid var(--ui-border);min-width:0}
+body.comesy-admin .ui-imports-grid h2,body.comesy-admin .ui-import-items h2{margin:0 0 18px;font-size:16px;color:var(--ui-text)}
+body.comesy-admin .ui-imports-form{display:grid;gap:15px}
+body.comesy-admin .ui-imports-form .ui-field{display:grid;gap:7px;color:var(--ui-text-secondary);font-size:12px;font-weight:690}
+body.comesy-admin .ui-imports-form input:not([type=checkbox]),body.comesy-admin .ui-imports-form select{font-size:16px;min-height:46px;padding:11px;width:100%;background:var(--ui-surface-subtle);border:1px solid var(--ui-border);border-radius:10px;color:var(--ui-text);min-width:0}
+body.comesy-admin .ui-imports-form small,body.comesy-admin .ui-import-info{font-size:12px;line-height:1.6;color:var(--ui-text-secondary)}
+body.comesy-admin .ui-import-consent{display:flex;align-items:flex-start;gap:12px;font-size:12px;line-height:1.5;color:var(--ui-text)}
+body.comesy-admin .ui-import-consent input{flex:none;width:20px;height:20px;accent-color:var(--ui-primary)}
+body.comesy-admin .ui-import-job{display:flex;align-items:start;justify-content:space-between;gap:14px;padding:15px 0;border-bottom:1px solid var(--ui-border)}
+body.comesy-admin .ui-import-job:last-child{border-bottom:0}
+body.comesy-admin .ui-import-job-main{min-width:0}
+body.comesy-admin .ui-import-job-main strong{font-size:14px}
+body.comesy-admin .ui-import-job a{color:var(--ui-primary)}
+body.comesy-admin .ui-import-job small{display:block;max-width:100%;overflow-wrap:anywhere;margin-top:5px;font-size:11px;color:var(--ui-text-secondary)}
+body.comesy-admin .ui-import-job p{font-size:12px;color:var(--ui-text-secondary);margin:10px 0 0}
+body.comesy-admin .ui-import-state{font-size:11px;display:inline-block;margin-top:8px;color:var(--ui-text);background:var(--ui-surface-subtle);border:1px solid var(--ui-border);border-radius:8px;padding:5px 8px}
+body.comesy-admin .ui-import-error{color:var(--ui-danger)!important}
+body.comesy-admin .ui-import-job-actions{flex:none}
+body.comesy-admin .ui-import-job-actions button{white-space:normal;max-width:154px;font-size:12px}
+body.comesy-admin .ui-import-items{margin-top:17px}
+body.comesy-admin .ui-import-items-list article{display:flex;align-items:start;justify-content:space-between;gap:12px;border-bottom:1px solid var(--ui-border);padding:12px 0}
+body.comesy-admin .ui-import-items-list strong{font-size:12px}
+body.comesy-admin .ui-import-items-list small{display:block;overflow-wrap:anywhere;color:var(--ui-text-secondary);font-size:11px;margin-top:5px}
+body.comesy-admin .ui-import-items-list a{font-size:12px;white-space:nowrap;color:var(--ui-primary)}
+@media(max-width:1100px){body.comesy-admin .ui-imports-grid{grid-template-columns:1fr}}
+@media(max-width:767px){
+ body.comesy-admin .ui-imports-grid>.ui-panel,body.comesy-admin .ui-import-items{padding:15px}
+ body.comesy-admin .ui-import-job{display:block}
+ body.comesy-admin .ui-import-job-actions{margin-top:10px}
+ body.comesy-admin .ui-import-job-actions button{max-width:100%}
+}
