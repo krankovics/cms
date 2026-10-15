@@ -195,7 +195,8 @@ function moveBox(source,target){
  if(a!==r&&into.length>=4){alert('Egy sor legfeljebb négy dobozt tartalmazhat.');return;}
  const node=from.splice(b,1)[0];into.splice(c,0,node);
  if(from.length===0)from.push(boxTemplate());
- balance(rows[a]);if(a!==r)balance(rows[r]);markDirty();render();
+ if(a!==r){balance(rows[a]);balance(rows[r]);}
+ markDirty();render();
 }
 function moveBlock(source,target){
  const [a,b,k]=source,[r,c,i]=target;
