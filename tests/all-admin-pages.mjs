@@ -46,6 +46,19 @@ try{
  await nameForm.locator('input[name="name"]').fill('Tesztelt admin');
  await nameForm.locator('button[type="submit"]').click();
  assert((await page.locator('main').textContent()).includes('A nevet mentettük.'),'Profile save failed');
+ // Exercise actual builder draft/save/publish and the anonymous publisher output.
+ await page.goto(base+'/builder.php?site_id=1&template=home',{waitUntil:'domcontentloaded'});
+ assert(await page.locator('[data-builder-add]').isEnabled(),'Builder should be enabled for fixture site');
+ await page.locator('#builder-new-type').selectOption('text');
+ await page.locator('[data-builder-add]').click();
+ await page.locator('.ui-builder-block').last().locator('input').first().fill('Éles előnézet tesztblokk');
+ await Promise.all([page.waitForURL(/saved=save/),page.locator('button[name=action][value=save]').click()]);
+ assert((await page.locator('.ui-builder-block').count())>=2,'Builder block not saved');
+ page.once('dialog',dialog=>dialog.accept());
+ await Promise.all([page.waitForURL(/saved=publish/),page.locator('button[name=action][value=publish]').click()]);
+ const frontend=await page.request.get(base+'/public.php?site=test-0');
+ assert.equal(frontend.status(),200,'Public site should load without login');
+ assert((await frontend.text()).includes('Éles előnézet tesztblokk'),'Published template missing from public frontend');
  // Verify that an author cannot access platform administration.
  const author=await browser.newPage({viewport:{width:390,height:844}});
  await author.goto(base+'/login.php');
