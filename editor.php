@@ -117,7 +117,7 @@ try{
    $q=$pdo->prepare('INSERT INTO article_revisions(article_id,editor_id,revision_number,title,`lead`,content_json,status) VALUES(?,?,?,?,?,?,?)');
    $q->execute([$id,$u['id'],$num,$title,$lead,$json,$status]);
    $q=$pdo->prepare("INSERT INTO audit_log(user_id,action,object_type,object_id,meta_json) VALUES(?,'article.save','article',?,?)");
-   $q->execute([$u['id'],$id,json_encode(['revision'=>$num,'status'=>$status])]);
+   $q->execute([$u['id'],$id,json_encode(['revision'=>$num,'status'=>$status,'site_id'=>$siteId,'site_ids'=>$siteChoices])]);
    $pdo->commit();header('Location: /editor.php?id='.$id.'&saved=1');exit;
   }catch(Throwable $e){$pdo->rollBack();throw $e;}
  }
