@@ -34,7 +34,7 @@ jobs:
       - name: Prepare public release
         run: |
           mkdir -p deploy
-          cp index.php login.php logout.php setup.php profile.php avatar.php editor.php articles.php migrate.php settings.php taxonomy.php media.php media-file.php editor-upload.php site-permissions.php sites.php users.php ads.php ad-slot.php ad-click.php imports.php import-worker.php import-worker.sh import-report.php api-v1.php builder.php public.php audit.php publish-worker.php deploy/
+          cp index.php login.php logout.php setup.php profile.php avatar.php editor.php articles.php migrate.php settings.php taxonomy.php media.php media-file.php editor-upload.php editor-media-search.php site-permissions.php sites.php users.php ads.php ad-slot.php ad-click.php imports.php import-worker.php import-worker.sh import-report.php api-v1.php builder.php public.php audit.php publish-worker.php deploy/
           mkdir -p deploy/app/avatars deploy/database deploy/assets deploy/storage/media deploy/storage/import
           cp app/bootstrap.php app/header.php app/site-access.php app/article-sites.php app/taxonomy-actions.php app/user-actions.php app/ad-actions.php app/import-engine.php app/rich-content.php app/import-jobs.php app/import-worker.php app/import-health.php app/site-settings.php app/layouts.php app/.htaccess deploy/app/
           cp app/avatars/.htaccess deploy/app/avatars/
@@ -54,6 +54,7 @@ jobs:
           php -l deploy/media.php
           php -l deploy/media-file.php
           php -l deploy/editor-upload.php
+          php -l deploy/editor-media-search.php
           php -l deploy/site-permissions.php
           php -l deploy/sites.php
           php -l deploy/users.php

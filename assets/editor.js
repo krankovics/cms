@@ -26,11 +26,119 @@ document.addEventListener('DOMContentLoaded',()=>{
  };
  statusInput?.addEventListener('change',syncSchedule);syncSchedule();
  const featured=document.querySelector('#og-image-url');
- featured?.addEventListener('change',()=>{
-  const preview=document.querySelector('#featured-image-preview');
-  if(!preview)return;
-  preview.hidden=!(featured.value.trim().startsWith('https://')||featured.value.trim().startsWith('http://'));
-  if(!preview.hidden)preview.src=featured.value.trim();
+ const featuredPreview=document.getElementById('featured-image-preview');
+ const featuredEmpty=document.getElementById('featured-empty-message');
+ const featuredClear=document.getElementById('featured-clear');
+ const picker=document.getElementById('featured-media-picker');
+ const updateFeatured=()=>{
+  const raw=featured?.value.trim()||'';
+  const valid=raw.startsWith('/media-file.php?id=')||raw.startsWith('https://')||raw.startsWith('http://');
+  if(featuredPreview){featuredPreview.hidden=!valid;featuredPreview.src=valid?raw:'';}
+  if(featuredEmpty)featuredEmpty.hidden=!!valid;
+  if(featuredClear)featuredClear.hidden=!valid;
+ };
+ const setFeatured=url=>{
+  if(!featured)return;
+  featured.value=url?new URL(url,location.origin).href:'';updateFeatured();
+  featured.dispatchEvent(new Event('input',{bubbles:true}));
+  if(picker?.open)picker.close();
+ };
+ featured?.addEventListener('input',updateFeatured);
+ updateFeatured();
+ featuredClear?.addEventListener('click',()=>setFeatured(''));
+ const searchMedia=document.getElementById('featured-picker-search');
+ const mediaGrid=document.getElementById('featured-picker-grid');
+ const mediaMore=document.getElementById('featured-picker-more');
+ const mediaFeedback=document.getElementById('featured-picker-feedback');
+ let mediaButtons=[...document.querySelectorAll('.ui-picker-asset')];
+ const normalizeMedia=value=>(value||'').toLocaleLowerCase('hu').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+ const filterMedia=()=>{
+  const q=normalizeMedia(searchMedia?.value.trim()||'');
+  const selected=featured?.value||'';
+  let count=0;
+  for(const button of mediaButtons){
+   const visible=!q||normalizeMedia(button.dataset.featuredFilter).includes(q);
+   button.hidden=!visible;
+   button.setAttribute('aria-pressed',String(new URL(button.dataset.featuredUrl,location.origin).href===selected));
+   if(visible)count++;
+  }
+  const empty=document.getElementById('featured-picker-no-results');
+  if(empty)empty.hidden=count!==0;
+  const counter=document.getElementById('featured-picker-count');
+  if(counter)counter.textContent=count+' megjelenített kép';
+ };
+ let mediaPage=1,mediaHasMore=false,mediaRequest=0,mediaTimer;
+ const loadMedia=async(page=1)=>{
+  const ticket=++mediaRequest;
+  if(mediaMore)mediaMore.disabled=true;
+  if(mediaFeedback)mediaFeedback.textContent='Képek betöltése…';
+  const params=new URLSearchParams({q:searchMedia?.value.trim()||'',page:String(page)});
+  try{
+   const response=await fetch('/editor-media-search.php?'+params,{credentials:'same-origin'});
+   if(!response.ok)throw new Error('A képek keresése sikertelen.');
+   const data=await response.json();
+   if(ticket!==mediaRequest||!picker?.open)return;
+   if(!data||!Array.isArray(data.items))throw new Error('Hibás médiatár-válasz.');
+   if(page===1)mediaGrid.replaceChildren();
+   for(const image of data.items){
+    const button=document.createElement('button');
+    button.type='button';button.className='ui-picker-asset';
+    button.dataset.featuredUrl=image.url;
+    button.dataset.featuredSite=String(image.site_id);
+    button.dataset.featuredFilter=[image.name,image.alt,image.site].join(' ');
+    button.setAttribute('aria-label',image.name+' kiválasztása');
+    const img=document.createElement('img');img.src=image.url;img.alt=image.alt||'';img.loading='lazy';
+    const filename=document.createElement('span');filename.textContent=image.name;
+    const site=document.createElement('small');site.textContent=image.site;
+    button.append(img,filename,site);mediaGrid.append(button);
+   }
+   mediaButtons=[...mediaGrid.querySelectorAll('.ui-picker-asset')];
+   mediaPage=data.page;mediaHasMore=!!data.has_more;
+   if(mediaMore){mediaMore.hidden=!mediaHasMore;mediaMore.disabled=false;}
+   if(mediaFeedback)mediaFeedback.textContent='';
+   filterMedia();
+   const counter=document.getElementById('featured-picker-count');
+   if(counter)counter.textContent=mediaButtons.length+' / '+data.total+' kép';
+  }catch(err){
+   if(ticket!==mediaRequest)return;
+   if(mediaFeedback)mediaFeedback.textContent=err.message||'A médiatár nem érhető el.';
+   if(mediaMore)mediaMore.disabled=false;
+   // Keep the server-rendered gallery if the network query fails.
+  }
+ };
+ searchMedia?.addEventListener('input',()=>{
+  clearTimeout(mediaTimer);
+  mediaTimer=setTimeout(()=>loadMedia(1),250);
+ });
+ mediaMore?.addEventListener('click',()=>{if(mediaHasMore)loadMedia(mediaPage+1)});
+ document.getElementById('featured-choose')?.addEventListener('click',()=>{
+  picker?.showModal();searchMedia?.focus();loadMedia(1);
+ });
+ mediaGrid?.addEventListener('click',e=>{
+  const button=e.target.closest('.ui-picker-asset');
+  if(button&&mediaGrid.contains(button))setFeatured(button.dataset.featuredUrl||'');
+ });
+ const closePicker=()=>picker?.close();
+ document.getElementById('featured-picker-close')?.addEventListener('click',closePicker);
+ document.getElementById('featured-picker-cancel')?.addEventListener('click',closePicker);
+ picker?.addEventListener('click',e=>{if(e.target===picker)closePicker();});
+ const pickerFile=document.getElementById('featured-picker-file');
+ const pickerUpload=document.getElementById('featured-picker-upload');
+ const pickerFeedback=document.getElementById('featured-picker-feedback');
+ pickerUpload?.addEventListener('click',()=>pickerFile?.click());
+ pickerFile?.addEventListener('change',async()=>{
+  const file=pickerFile.files?.[0];if(!file)return;
+  pickerFile.value='';
+  const site=(document.querySelector('.ed-site-check[data-primary="1"]:checked')||document.querySelector('.ed-site-check:checked'))?.value;
+  if(!site){pickerFeedback.textContent='Előbb válassz webhelyet a cikkhez.';return;}
+  if(file.size<1||file.size>10485760){pickerFeedback.textContent='A kép legfeljebb 10 MB lehet.';return;}
+  pickerUpload.disabled=true;pickerFeedback.textContent='A kép feltöltése folyamatban…';
+  try{
+   const url=await uploadImage(file,site);
+   pickerFeedback.textContent='Kép feltöltve, kiemelt képként kiválasztva.';
+   setFeatured(url);
+  }catch(error){pickerFeedback.textContent=error.message||'A feltöltés nem sikerült.';}
+  finally{pickerUpload.disabled=false;}
  });
  const quill=new Quill('#rich-editor',{theme:'snow',modules:{toolbar:'#editor-toolbar'},placeholder:'Kezdd el írni a cikket…'});
  // Preserve every supported imported figure, table, emphasis and media embed.
