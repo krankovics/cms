@@ -2,7 +2,7 @@ import {chromium} from 'playwright-core';
 import assert from 'node:assert/strict';
 const browser=await chromium.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
 const base='http://127.0.0.1:8765';
-const routes=['/','/articles.php','/editor.php','/taxonomy.php','/taxonomy.php?type=tag','/media.php','/sites.php','/users.php','/site-permissions.php','/profile.php','/settings.php','/migrate.php','/ads.php','/imports.php','/builder.php','/audit.php'];
+const routes=['/','/articles.php','/editor.php','/taxonomy.php','/taxonomy.php?type=tag','/media.php','/sites.php','/users.php','/site-permissions.php','/profile.php','/settings.php','/migrate.php','/ads.php','/imports.php','/builder.php','/audit.php','/import-report.php?site_id=1&job_id=1'];
 try{
  const page=await browser.newPage({viewport:{width:390,height:844}});
  await page.goto(base+'/login.php');
@@ -61,6 +61,14 @@ try{
  const frontend=await page.request.get(base+'/public.php?site=test-0');
  assert.equal(frontend.status(),200,'Public site should load without login');
  assert((await frontend.text()).includes('Éles előnézet tesztblokk'),'Published template missing from public frontend');
+ const importReport=await page.request.get(base+'/import-report.php?site_id=1&job_id=1');
+ assert.equal(importReport.status(),200,'Import quality dashboard should render');
+ assert((await importReport.text()).includes('Importminőség és erőforrások'),'Quality summary missing');
+ const csv=await page.request.get(base+'/import-report.php?site_id=1&job_id=1&format=csv');
+ assert.equal(csv.status(),200,'Quality CSV must download');
+ assert((await csv.text()).includes('source_url'),'Quality CSV missing header');
+ const crossSite=await page.request.get(base+'/import-report.php?site_id=2&job_id=1');
+ assert.equal(crossSite.status(),404,'Wrong-site quality report must be absent');
  // Verify that an author cannot access platform administration.
  const author=await browser.newPage({viewport:{width:390,height:844}});
  await author.goto(base+'/login.php');
@@ -68,7 +76,7 @@ try{
  await author.locator('[name=password]').fill('StrongTestingPwd!2026');
  await author.locator('button[type=submit]').click();
  await author.waitForURL(base+'/');
- for(const route of ['/users.php','/sites.php','/site-permissions.php','/migrate.php','/ads.php','/imports.php','/builder.php','/audit.php']){
+ for(const route of ['/users.php','/sites.php','/site-permissions.php','/migrate.php','/ads.php','/imports.php','/builder.php','/audit.php','/import-report.php?site_id=1&job_id=1']){
   const response=await author.goto(base+route);
   assert.equal(response.status(),403,'Author must not access '+route);
  }
@@ -94,5 +102,5 @@ try{
   assert.equal(editorResponse.status(),role==='site_admin'?200:403,role+' editor access');
   await rolePage.close();
  }
- console.log('PASS: all 16 admin routes at 320, 390, 768, 1366, 1920 widths.');
+ console.log('PASS: all 17 admin routes at 320, 390, 768, 1366, 1920 widths.');
 }finally{await browser.close();}
