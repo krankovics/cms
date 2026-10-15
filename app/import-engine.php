@@ -54,7 +54,7 @@ function imp_get(string $url,int $maxBytes=3145728):array{
    CURLOPT_WRITEFUNCTION=>static function($ch,$part)use(&$body,$maxBytes,&$limitExceeded){if(strlen($body)+strlen($part)>$maxBytes){$limitExceeded=true;return 0;}$body.=$part;return strlen($part);}
   ]);
   $ok=curl_exec($ch);$http=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);$error=curl_error($ch);curl_close($ch);
-  if($limitExceeded)throw new RuntimeException('A forrás túl nagy a biztonságos importhoz.');
+  if($limitExceeded)throw new RuntimeException('A forrás nagyobb a biztonságos '.(int)floor($maxBytes/1048576).' MiB-os feldolgozási korlátnál. Próbálj kisebb sitemapet vagy külön forrás-URL-t.');
   if($ok===false)throw new RuntimeException('Forrás letöltése sikertelen: '.mb_substr($error,0,120));
   if($http>=300&&$http<400&&isset($headers['location'])){
    $url=imp_resolve_url($headers['location'],$url);continue;
