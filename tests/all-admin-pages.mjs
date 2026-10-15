@@ -40,7 +40,7 @@ try{
     const rows=await tabs.evaluateAll(links=>links.map(el=>{
      const r=el.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,height:r.height,display:getComputedStyle(el).display};
     }));
-    assert(rows.every(r=>r.display==='inline-flex'&&r.height>=44),'Ad tabs must be styled as accessible click targets');
+    assert(rows.every(r=>r.display==='inline-flex'&&r.height>=44),'Ad tabs must be styled as accessible click targets: '+JSON.stringify(rows));
     assert(rows.every((r,i)=>!i||r.left>=rows[i-1].right-1),'Ad tabs must not overlap');
     const nav=page.locator('.ui-ads-navigation').first();
     assert(await nav.isVisible(),'Ads site switcher and tabs must be visible together');
