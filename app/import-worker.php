@@ -65,20 +65,20 @@ function imp_save_article(PDO $pdo,array $task,array $data,string $html):array{
     $status='skipped';$message='A forrás változott, de a publikált cikk csak kézi jóváhagyással írható felül.';
    }else{
     if($articleId){
-     $pdo->prepare('UPDATE articles SET title=?,\u0060lead\u0060=?,content_json=?,updated_at=NOW() WHERE id=? AND site_id=?')
+     $pdo->prepare('UPDATE articles SET title=?,`lead`=?,content_json=?,updated_at=NOW() WHERE id=? AND site_id=?')
       ->execute([$data['title'],$data['lead'],$json,$articleId,$site]);
     }else{
      $slug=mb_strtolower($data['title']);
      $slug=iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$slug)?:$slug;
      $slug=substr(trim((string)preg_replace('/[^a-z0-9]+/','-',$slug),'-'),0,175).'-'.substr($urlHash,0,14);
-     $q=$pdo->prepare("INSERT INTO articles(site_id,author_id,title,slug,\u0060lead\u0060,content_json,status) VALUES(?,?,?,?,?,?,'draft')");
+     $q=$pdo->prepare("INSERT INTO articles(site_id,author_id,title,slug,`lead`,content_json,status) VALUES(?,?,?,?,?,?,'draft')");
      $q->execute([$site,$actor,$data['title'],$slug,$data['lead'],$json]);$articleId=(int)$pdo->lastInsertId();
     }
     $q=$pdo->prepare('INSERT INTO article_meta(article_id,seo_description,canonical_url) VALUES(?,?,?) ON DUPLICATE KEY UPDATE seo_description=VALUES(seo_description),canonical_url=VALUES(canonical_url)');
     $q->execute([$articleId,mb_substr($data['lead'],0,500),$source]);
     $q=$pdo->prepare('INSERT IGNORE INTO article_sites(article_id,site_id) VALUES(?,?)');$q->execute([$articleId,$site]);
     $q=$pdo->prepare('SELECT COALESCE(MAX(revision_number),0)+1 FROM article_revisions WHERE article_id=?');$q->execute([$articleId]);$rev=(int)$q->fetchColumn();
-    $q=$pdo->prepare("INSERT INTO article_revisions(article_id,editor_id,revision_number,title,\u0060lead\u0060,content_json,status) VALUES(?,?,?,?,?,?,'draft')");
+    $q=$pdo->prepare("INSERT INTO article_revisions(article_id,editor_id,revision_number,title,`lead`,content_json,status) VALUES(?,?,?,?,?,?,'draft')");
     $q->execute([$articleId,$actor,$rev,$data['title'],$data['lead'],$json]);
     if(!$map){
      $q=$pdo->prepare('INSERT INTO import_article_map(site_id,source_url,source_url_hash,article_id,source_hash,snapshot_path) VALUES(?,?,?,?,?,?)');
