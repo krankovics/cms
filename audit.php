@@ -13,7 +13,7 @@ if(!preg_match('/^[a-z.]{0,60}$/',$action))$action='';
 foreach(['start','end'] as $key)if($$key!==''&&!preg_match('/^\d{4}-\d{2}-\d{2}$/', $$key))$$key='';
 $page=max(1,min(5000,(int)($_GET['page']??1)));$limit=50;
 $where=[];$bind=[];
-if($site){$where[]="CAST(JSON_UNQUOTE(JSON_EXTRACT(l.meta_json,'$.site_id')) AS UNSIGNED)=?";$bind[]=$site;}
+if($site){$where[]="CAST(JSON_UNQUOTE(JSON_EXTRACT(IF(JSON_VALID(l.meta_json),l.meta_json,'{}'),'$.site_id')) AS UNSIGNED)=?";$bind[]=$site;}
 elseif($u['role']!=='platform_admin'){
  $ids=implode(',',array_fill(0,count($siteChoices),'?'));
  $where[]="CAST(JSON_UNQUOTE(JSON_EXTRACT(l.meta_json,'$.site_id')) AS UNSIGNED) IN ($ids)";
@@ -22,13 +22,20 @@ elseif($u['role']!=='platform_admin'){
 if($action!==''){$where[]='l.action LIKE ?';$bind[]=$action.'%';}
 if($actor){$where[]='l.user_id=?';$bind[]=$actor;}
 if($start!==''){$where[]='l.created_at>=?';$bind[]=$start.' 00:00:00';}
-if($end!==''){$where[]='l.created_at<?';$bind[]=(new DateTimeImmutable($end))->modify('+1 day')->format('Y-m-d').' 00:00:00';}
+if($end!==''){
+ $d=DateTimeImmutable::createFromFormat('!Y-m-d',$end);
+ if($d&&$d->format('Y-m-d')===$end){$where[]='l.created_at<?';$bind[]=$d->modify('+1 day')->format('Y-m-d').' 00:00:00';}
+}
 $filter=$where?' WHERE '.implode(' AND ',$where):'';
 $q=$pdo->prepare('SELECT COUNT(*) FROM audit_log l'.$filter);$q->execute($bind);$total=(int)$q->fetchColumn();
 $q=$pdo->prepare('SELECT l.id,l.action,l.object_type,l.object_id,l.meta_json,l.created_at,u.name actor_name FROM audit_log l LEFT JOIN users u ON u.id=l.user_id'.$filter.' ORDER BY l.created_at DESC,l.id DESC LIMIT '.$limit.' OFFSET '.(($page-1)*$limit));
 $q->execute($bind);$events=$q->fetchAll();
 $sites=$pdo->query('SELECT id,name FROM sites ORDER BY name')->fetchAll();
-$actors=$pdo->query('SELECT id,name FROM users ORDER BY name')->fetchAll();
+if($u['role']==='platform_admin')$actors=$pdo->query('SELECT id,name FROM users ORDER BY name')->fetchAll();
+else{
+ $q=$pdo->prepare('SELECT DISTINCT u.id,u.name FROM users u JOIN user_site_permissions p ON p.user_id=u.id WHERE p.site_id IN ('.implode(',',array_fill(0,count($siteChoices),'?')).') ORDER BY u.name');
+ $q->execute($siteChoices);$actors=$q->fetchAll();
+}
 $common=['article'=>'Cikk','taxonomy'=>'Besorolás','site'=>'Webhely','user'=>'Felhasználó','site_template'=>'Sablon','import_job'=>'Import','creative'=>'Kreatív','campaign'=>'Kampány'];
 ?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Auditnapló | comesy</title><link rel="stylesheet" href="/assets/ui.css"><link rel="stylesheet" href="/assets/audit.css"><script src="/assets/ui.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
 <main class="ui-page ui-audit-page" id="main-content"><header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Rendszerbiztonság</p><h1 class="ui-page-title">Auditnapló</h1><p class="ui-page-description">Szerkesztési, jogosultsági, hirdetési, sablon- és importműveletek időrendben.</p></div></header>
