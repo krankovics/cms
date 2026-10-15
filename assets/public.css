@@ -52,3 +52,15 @@ a{color:inherit}a:focus-visible,button:focus-visible{outline:3px solid var(--pub
 .pub-rich-content audio{display:block;max-width:100%;width:100%;margin:18px 0}
 .pub-rich-content a{color:var(--pub-accent)}
 @media(max-width:520px){.pub-rich-content iframe{min-height:240px}.pub-rich-content th,.pub-rich-content td{padding:9px;font-size:13px}}
+
+
+/* The 12-track builder layout, with independent boxed content regions. */
+.pub-layout-row{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:18px;max-width:1240px;margin:20px auto;padding:0 18px;align-items:start}
+.pub-layout-box{grid-column:span var(--pub-span,12);min-width:0}
+.pub-layout-box>.pub-section,.pub-layout-box>.pub-article{max-width:100%;padding:22px 12px}
+.pub-layout-box>.pub-hero{padding:38px 23px;margin:0;border-radius:13px}
+.pub-layout-box>.pub-hero h1{font-size:clamp(23px,3.4vw,42px)}
+.pub-layout-box .pub-articles{grid-template-columns:repeat(min(var(--pub-cols,3),3),minmax(0,1fr))}
+.pub-layout-box .pub-story strong{font-size:clamp(14px,1.4vw,19px)}
+@media(max-width:900px){.pub-layout-row{gap:12px}.pub-layout-box{grid-column:1/-1!important}.pub-layout-box .pub-articles{grid-template-columns:repeat(min(2,var(--pub-cols,3)),minmax(0,1fr))}}
+@media(max-width:520px){.pub-layout-row{padding:0 10px;margin:12px auto}.pub-layout-box .pub-articles{grid-template-columns:1fr}}

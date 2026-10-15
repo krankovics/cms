@@ -149,6 +149,30 @@ $q=$pdo->prepare('SELECT status FROM articles WHERE id=?');
 $q->execute([$first['article_id']]);ok($q->fetchColumn()==='draft','Imported article must remain draft.');
 require dirname(__DIR__).'/app/layouts.php';
 $pdo->prepare('UPDATE sites SET settings_json=? WHERE id=?')->execute([json_encode(['builder_enabled'=>true,'accent_color'=>'#325de6']),$sites[0]]);
+
+// Nested page-builder structures must validate without breaking legacy templates.
+$nested=[
+ ['type'=>'row','columns'=>[
+  ['type'=>'box','span'=>6,'blocks'=>[['type'=>'hero','title'=>'Bal oldali hír','text'=>'Sor első doboza']]],
+  ['type'=>'box','span'=>6,'blocks'=>[['type'=>'text','title'=>'Jobb oldali rovat','text'=>'Sor második doboza']]]
+ ]],
+ ['type'=>'row','columns'=>[['type'=>'box','span'=>12,'blocks'=>[['type'=>'latest','title'=>'Friss cikkek','limit'=>5,'columns'=>2]]]]]
+];
+$nestedClean=json_decode(cms_layout_validate(json_encode($nested,JSON_UNESCAPED_UNICODE),'home'),true);
+ok(count($nestedClean)===2&&count($nestedClean[0]['columns'])===2&&$nestedClean[0]['columns'][0]['span']===6,'Nested row and two boxes should be stored intact.');
+$invalid=$nested;$invalid[0]['columns'][1]['span']=13;
+try{cms_layout_validate(json_encode($invalid),'home');throw new RuntimeException('Oversized box was accepted.');}
+catch(RuntimeException $e){ok(str_contains($e->getMessage(),'szélessége'),'Builder must reject invalid box spans.');}
+
+$overfull=$nested;$overfull[0]['columns'][1]['span']=8;
+try{cms_layout_validate(json_encode($overfull),'home');throw new RuntimeException('Overfull row was accepted.');}
+catch(RuntimeException $e){ok(str_contains($e->getMessage(),'összes szélessége'),'Combined row width must never exceed 12 columns.');}
+
+$invalid=$nested;$invalid[1]['columns'][0]['blocks'][0]['type']='article';
+try{cms_layout_validate(json_encode($invalid),'home');throw new RuntimeException('Article slot was accepted on homepage.');}
+catch(RuntimeException $e){ok(str_contains($e->getMessage(),'cikkoldalon'),'Nested blocks must retain template content restrictions.');}
+ok(count(json_decode(cms_layout_validate(json_encode(cms_default_layout('home')),'home'),true))===2,'Old flat layouts remain valid.');
+
 $initialLayout=cms_default_layout('home');
 $initialJson=json_encode($initialLayout,JSON_UNESCAPED_UNICODE);
 $templateId=cms_template_save($pdo,$editor,$sites[0],'home','save',$initialJson,0);

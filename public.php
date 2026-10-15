@@ -86,6 +86,23 @@ function pub_blocks(string $json):void{
   elseif($type==='paragraph')echo '<p>'.pub_h($text).'</p>';
  }
 }
+/** Flatten both legacy and nested templates into safe render operations. */
+function pub_layout_segments(array $layout):array{
+ $out=[];
+ foreach($layout as $part){
+  if(!is_array($part))continue;
+  if(($part['type']??'')!=='row'){$out[]=$part;continue;}
+  $out[]=['type'=>'__row_start'];
+  foreach(($part['columns']??[]) as $box){
+   if(!is_array($box)||($box['type']??'')!=='box')continue;
+   $out[]=['type'=>'__box_start','span'=>max(1,min(12,(int)($box['span']??12)))];
+   foreach(($box['blocks']??[]) as $block)if(is_array($block))$out[]=$block;
+   $out[]=['type'=>'__box_end'];
+  }
+  $out[]=['type'=>'__row_end'];
+ }
+ return $out;
+}
 $themeColor=preg_match('/^#[0-9a-f]{6}$/i',$settings['accent_color'])?$settings['accent_color']:'#325de6';
 $title=$article?($article['title'].' | '.$site['name']):$site['name'];
 ?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -96,7 +113,8 @@ $title=$article?($article['title'].' | '.$site['name']):$site['name'];
 <?php if($settings['logo_url']):?><img src="<?=pub_h($settings['logo_url'])?>" alt="<?=pub_h($site['name'])?>"><?php else:?><?=pub_h($site['name'])?><?php endif;?></a>
 <nav aria-label="Főmenü"><?php foreach($menu as $entry):?><a href="<?=pub_h(pub_href($entry['url'],$siteSlug))?>"><?=pub_h($entry['label'])?></a><?php endforeach;?></nav></div></header>
 <main id="content" class="pub-main">
-<?php foreach($layout as $block):$type=$block['type']??'';$sectionTitle=trim((string)($block['title']??''));$count=max(1,min(30,(int)($block['limit']??10)));$columns=max(1,min(4,(int)($block['columns']??3)));?>
+<?php foreach(pub_layout_segments($layout) as $block):$type=$block['type']??'';$sectionTitle=trim((string)($block['title']??''));$count=max(1,min(30,(int)($block['limit']??10)));$columns=max(1,min(4,(int)($block['columns']??3)));?>
+<?php if($type==='__row_start'):?><div class="pub-layout-row"><?php continue;?><?php elseif($type==='__row_end'):?></div><?php continue;?><?php elseif($type==='__box_start'):?><div class="pub-layout-box" style="--pub-span:<?=max(1,min(12,(int)($block['span']??12)))?>"><?php continue;?><?php elseif($type==='__box_end'):?></div><?php continue;?><?php endif;?>
 <?php if($type==='hero'):?><section class="pub-hero"><div class="pub-hero-inner"><p class="pub-eyebrow"><?=pub_h($site['name'])?></p><h1><?=pub_h($article['title']??($sectionSlug?:($sectionTitle?:$site['name'])))?></h1><?php if(!empty($block['text'])):?><p><?=pub_h($block['text'])?></p><?php endif;?></div></section>
 <?php elseif($type==='text'):?><section class="pub-section pub-text"><?php if($sectionTitle):?><h2><?=pub_h($sectionTitle)?></h2><?php endif;?><p><?=nl2br(pub_h((string)($block['text']??'')))?></p></section>
 <?php elseif($type==='image'&&!empty($block['image_url'])):?><section class="pub-section pub-image"><?php if($sectionTitle):?><h2><?=pub_h($sectionTitle)?></h2><?php endif;?><img src="<?=pub_h((string)$block['image_url'])?>" loading="lazy" alt="<?=pub_h($sectionTitle)?>"></section>

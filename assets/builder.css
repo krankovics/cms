@@ -63,3 +63,74 @@ body.comesy-admin .ui-builder-menu-toggle input{width:19px;height:19px;accent-co
  body.comesy-admin .ui-builder-actions>.ui-btn{flex:1}
  body.comesy-admin #builder-preview-frame{height:520px}
 }
+
+/* Nested visual builder: rows (12 tracks), resizable boxes and draggable blocks. */
+body.comesy-admin .ui-builder-page{max-width:none}
+body.comesy-admin .ui-builder-grid{grid-template-columns:minmax(0,1.34fr) minmax(380px,1fr);gap:15px}
+body.comesy-admin .ui-builder-grid .ui-panel,body.comesy-admin .ui-builder-menu{padding:15px}
+body.comesy-admin .ui-builder-toolbar{padding:11px 15px;margin-bottom:14px}
+body.comesy-admin .ui-builder-blocks{display:grid;gap:13px}
+body.comesy-admin .ui-builder-row{border:1px solid var(--ui-border);background:var(--ui-surface-subtle);border-radius:12px;padding:12px;min-width:0}
+body.comesy-admin .ui-builder-row.is-drag-target,
+body.comesy-admin .ui-builder-box.is-drag-target,
+body.comesy-admin .ui-builder-block.is-drag-target{outline:2px dashed var(--ui-primary);outline-offset:2px}
+body.comesy-admin .ui-builder-row-header,
+body.comesy-admin .ui-builder-box-header{display:flex;align-items:center;justify-content:space-between;gap:9px}
+body.comesy-admin .ui-builder-row-header{margin-bottom:11px}
+body.comesy-admin .ui-builder-struct-title{display:flex;align-items:center;gap:7px;min-width:0}
+body.comesy-admin .ui-builder-struct-title strong{font-size:12px;color:var(--ui-text);white-space:nowrap}
+body.comesy-admin .ui-builder-grip{display:inline-grid;place-items:center;min-width:29px;height:31px;color:var(--ui-text-secondary);font-size:20px;cursor:grab;user-select:none;border-radius:7px;border:1px dashed var(--ui-border)}
+body.comesy-admin .ui-builder-grip:focus-visible{outline:2px solid var(--ui-primary)}
+body.comesy-admin .ui-builder-grip:active{cursor:grabbing}
+body.comesy-admin .ui-builder-box-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:9px}
+body.comesy-admin .ui-builder-box{grid-column:span var(--builder-span,12);min-width:0;display:grid;align-content:start;gap:9px;border:1px solid var(--ui-border);border-radius:9px;background:var(--ui-surface);padding:9px}
+body.comesy-admin .ui-builder-box-header{gap:4px;flex-wrap:wrap}
+body.comesy-admin .ui-builder-box-width{display:flex;gap:4px;align-items:center;font-size:10px;color:var(--ui-text-secondary)}
+body.comesy-admin .ui-builder-box-width select{max-width:72px;min-height:30px;padding:3px 6px;font-size:12px;border:1px solid var(--ui-border);border-radius:6px;color:var(--ui-text);background:var(--ui-surface)}
+body.comesy-admin .ui-builder-block-actions{gap:3px;flex-wrap:wrap}
+body.comesy-admin .ui-builder-block-actions button{min-width:30px;height:30px;padding:2px 7px;font-size:14px;border-radius:7px}
+body.comesy-admin .ui-builder-block-actions .ui-builder-box-add{width:auto;min-width:0;padding:2px 8px;font-size:11px;font-weight:700}
+body.comesy-admin .ui-builder-box-blocks{display:grid;gap:8px;min-height:38px}
+body.comesy-admin .ui-builder-block{padding:10px;border-radius:8px;background:var(--ui-surface-subtle)}
+body.comesy-admin .ui-builder-block header{gap:7px}
+body.comesy-admin .ui-builder-block .ui-builder-struct-title strong{font-size:11px}
+body.comesy-admin .ui-builder-block-fields{gap:8px;margin-top:8px}
+body.comesy-admin .ui-builder-field input,body.comesy-admin .ui-builder-field textarea{font-size:14px;padding:7px 8px;min-height:37px}
+body.comesy-admin .ui-builder-field textarea{min-height:65px}
+body.comesy-admin .ui-builder-empty-box{margin:0;padding:11px;border:1px dashed var(--ui-border);border-radius:7px;color:var(--ui-text-secondary);font-size:11px}
+body.comesy-admin .ui-builder-box-footer{display:flex;gap:7px;align-items:center}
+body.comesy-admin .ui-builder-box-type{flex:1;min-width:0;min-height:35px;background:var(--ui-surface-subtle);color:var(--ui-text);border:1px solid var(--ui-border);border-radius:7px;font-size:12px;padding:6px}
+body.comesy-admin .ui-builder-block-add{flex:none;min-height:35px;padding:7px 10px;border:1px solid var(--ui-border);background:var(--ui-surface);border-radius:7px;color:var(--ui-text);font-size:11px;cursor:pointer}
+body.comesy-admin .ui-builder-block-add:disabled{opacity:.4}
+body.comesy-admin .ui-builder-add{padding-top:12px;gap:9px}
+body.comesy-admin .ui-builder-add label{font-size:11px}
+body.comesy-admin .ui-builder-add select{min-height:36px;font-size:13px;padding:7px}
+body.comesy-admin .ui-builder-actions{margin-top:13px;padding-top:13px}
+/* Native fullscreen where available; CSS workspace fallback otherwise. */
+@media(min-width:1000px){
+ body.comesy-admin.builder-fullscreen .ui-builder-page,
+ body.comesy-admin .ui-builder-page:fullscreen{position:fixed!important;inset:0;z-index:9999;width:100vw;max-width:none;height:100dvh;overflow:auto;margin:0!important;padding:15px 22px 20px!important;background:var(--ui-background,var(--ui-bg,#f5f7fb));}
+ body.comesy-admin.builder-fullscreen{overflow:hidden}
+ body.comesy-admin.builder-fullscreen .ui-builder-page .ui-page-header{margin-bottom:9px}
+ body.comesy-admin.builder-fullscreen .ui-builder-toolbar{margin-bottom:10px}
+ body.comesy-admin.builder-fullscreen .ui-builder-grid{grid-template-columns:minmax(540px,1.2fr) minmax(450px,1fr);align-items:start}
+ body.comesy-admin.builder-fullscreen .ui-builder-aside>.ui-panel:first-child{position:sticky;top:0}
+ body.comesy-admin.builder-fullscreen #builder-preview-frame{height:calc(100dvh - 265px);min-height:460px}
+ body.comesy-admin.builder-fullscreen .ui-builder-menu{margin-top:13px}
+}
+@media(max-width:1090px){
+ body.comesy-admin .ui-builder-grid{grid-template-columns:minmax(0,1fr)}
+ body.comesy-admin .ui-builder-box-grid{gap:8px}
+ body.comesy-admin .ui-builder-aside{grid-template-columns:1fr}
+}
+@media(max-width:767px){
+ body.comesy-admin .ui-builder-row{padding:9px}
+ body.comesy-admin .ui-builder-row-header{flex-wrap:wrap}
+ body.comesy-admin .ui-builder-box{grid-column:1/-1!important}
+ body.comesy-admin .ui-builder-box-footer{flex-wrap:wrap}
+ body.comesy-admin .ui-builder-box-type{min-width:130px}
+ body.comesy-admin .ui-builder-fullscreen-button{display:none}
+ body.comesy-admin .ui-builder-block-fields{grid-template-columns:minmax(0,1fr)}
+ body.comesy-admin .ui-builder-block-actions button{min-width:30px}
+}
+@media(prefers-reduced-motion:reduce){body.comesy-admin .ui-builder-page #builder-preview-frame{transition:none}}

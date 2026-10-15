@@ -52,3 +52,21 @@ body.comesy-admin .ui-import-job-actions{display:grid;gap:8px}
 body.comesy-admin .ui-import-job-actions>a{font-size:12px;text-align:center}
 @media(max-width:1050px){body.comesy-admin .ui-import-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:767px){body.comesy-admin .ui-import-report-panel{padding:14px}body.comesy-admin .ui-import-report-table th,body.comesy-admin .ui-import-report-table td{padding:8px}body.comesy-admin .ui-import-truncate{max-width:145px}body.comesy-admin .ui-import-stat{padding:13px}body.comesy-admin .ui-import-stat strong{font-size:20px}}
+
+
+/* Report content is now rendered in all viewport sizes. Contain long source
+   URLs and CSV actions instead of expanding the whole admin shell on phones. */
+body.comesy-admin .ui-imports-page .ui-page-description,
+body.comesy-admin .ui-imports-page .ui-import-report-panel p,
+body.comesy-admin .ui-imports-page .ui-import-stat span{overflow-wrap:anywhere}
+body.comesy-admin .ui-imports-page .ui-import-report-panel,
+body.comesy-admin .ui-imports-page .ui-table-wrap{min-width:0;max-width:100%}
+body.comesy-admin .ui-imports-page .ui-table-wrap{overflow-x:auto}
+body.comesy-admin .ui-imports-page .ui-import-report-grid>*{min-width:0}
+@media(max-width:767px){
+ body.comesy-admin .ui-imports-page .ui-page-header{display:flex;flex-direction:column;align-items:stretch}
+ body.comesy-admin .ui-imports-page .ui-page-actions{display:flex;width:100%;min-width:0;flex-wrap:wrap}
+ body.comesy-admin .ui-imports-page .ui-page-actions .ui-btn{flex:1 1 140px;min-width:0;max-width:100%;white-space:normal;overflow-wrap:anywhere;text-align:center;line-height:1.35}
+ body.comesy-admin .ui-imports-page .ui-import-report-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ body.comesy-admin .ui-imports-page .ui-import-report-table{min-width:510px}
+}

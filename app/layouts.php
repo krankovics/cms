@@ -12,26 +12,56 @@ function cms_default_layout(string $kind):array{
   default=>throw new RuntimeException('Érvénytelen oldalsablon.')
  };
 }
+/**
+ * Accepts legacy flat components and new row -> box -> block hierarchy.
+ * All values are whitelisted and normalized before saving or publishing.
+ */
+function cms_layout_clean_block(array $b,string $kind):array{
+ $type=(string)($b['type']??'');
+ if(!in_array($type,['hero','latest','text','image','ad','article'],true))throw new RuntimeException('Ismeretlen oldalkomponens.');
+ if($type==='article'&&$kind!=='article')throw new RuntimeException('A cikkkomponens csak cikkoldalon használható.');
+ $title=trim((string)($b['title']??''));$text=trim((string)($b['text']??''));
+ if(mb_strlen($title)>190||mb_strlen($text)>3000)throw new RuntimeException('A komponens szövege túl hosszú.');
+ $cols=(int)($b['columns']??1);$limit=(int)($b['limit']??10);
+ if($cols<1||$cols>4||$limit<1||$limit>30)throw new RuntimeException('Érvénytelen komponensbeállítás.');
+ $zone=preg_replace('/[^a-z0-9_-]/','',mb_strtolower(trim((string)($b['zone']??''))));
+ if(strlen($zone)>100)throw new RuntimeException('Érvénytelen hirdetési zónakód.');
+ $url=trim((string)($b['image_url']??''));
+ if(strlen($url)>1000||($url!==''&&(!filter_var($url,FILTER_VALIDATE_URL)||!in_array(parse_url($url,PHP_URL_SCHEME),['https','http'],true))))throw new RuntimeException('Érvénytelen képhivatkozás.');
+ return ['type'=>$type,'title'=>$title,'text'=>$text,'columns'=>$cols,'limit'=>$limit,'zone'=>$zone,'image_url'=>$url];
+}
 function cms_layout_validate(string $json,string $kind):string{
- if(!in_array($kind,['home','section','article'],true)||strlen($json)>100000)throw new RuntimeException('Érvénytelen oldalsablon.');
- $blocks=json_decode($json,true,64,JSON_THROW_ON_ERROR);
- if(!is_array($blocks)||!array_is_list($blocks)||count($blocks)>30||count($blocks)===0)throw new RuntimeException('A sablonnak 1–30 komponensből kell állnia.');
- $clean=[];
- foreach($blocks as $b){
-  if(!is_array($b))throw new RuntimeException('Érvénytelen komponens.');
-  $type=(string)($b['type']??'');
-  if(!in_array($type,['hero','latest','text','image','ad','article'],true))throw new RuntimeException('Ismeretlen oldalkomponens.');
-  if($type==='article'&&$kind!=='article')throw new RuntimeException('A cikkkomponens csak cikkoldalon használható.');
-  $title=trim((string)($b['title']??''));$text=trim((string)($b['text']??''));
-  if(mb_strlen($title)>190||mb_strlen($text)>3000)throw new RuntimeException('A komponens szövege túl hosszú.');
-  $cols=(int)($b['columns']??1);$limit=(int)($b['limit']??10);
-  if($cols<1||$cols>4||$limit<1||$limit>30)throw new RuntimeException('Érvénytelen komponensbeállítás.');
-  $zone=preg_replace('/[^a-z0-9_-]/','',mb_strtolower(trim((string)($b['zone']??''))));
-  if(strlen($zone)>100)throw new RuntimeException('Érvénytelen hirdetési zónakód.');
-  $url=trim((string)($b['image_url']??''));
-  if(strlen($url)>1000||($url!==''&&(!filter_var($url,FILTER_VALIDATE_URL)||!in_array(parse_url($url,PHP_URL_SCHEME),['https','http'],true))))throw new RuntimeException('Érvénytelen képhivatkozás.');
-  $clean[]=['type'=>$type,'title'=>$title,'text'=>$text,'columns'=>$cols,'limit'=>$limit,'zone'=>$zone,'image_url'=>$url];
+ if(!in_array($kind,['home','section','article'],true)||strlen($json)>150000)throw new RuntimeException('Érvénytelen oldalsablon.');
+ $layout=json_decode($json,true,64,JSON_THROW_ON_ERROR);
+ if(!is_array($layout)||!array_is_list($layout)||count($layout)>30||count($layout)===0)throw new RuntimeException('A sablonnak 1–30 sorból vagy komponensből kell állnia.');
+ $clean=[];$total=0;
+ foreach($layout as $entry){
+  if(!is_array($entry))throw new RuntimeException('Érvénytelen sablonelem.');
+  if(($entry['type']??'')!=='row'){
+   $clean[]=cms_layout_clean_block($entry,$kind);$total++;continue;
+  }
+  $columns=$entry['columns']??null;
+  if(!is_array($columns)||!array_is_list($columns)||count($columns)<1||count($columns)>4)throw new RuntimeException('Egy sorban 1–4 doboz használható.');
+  $boxes=[];$usedWidth=0;
+  foreach($columns as $column){
+   if(!is_array($column)||($column['type']??'')!=='box')throw new RuntimeException('Érvénytelen doboz.');
+   $span=(int)($column['span']??0);
+   if($span<1||$span>12)throw new RuntimeException('A doboz szélessége 1–12 lehet.');
+   $usedWidth+=$span;
+   if($usedWidth>12)throw new RuntimeException('A sor dobozainak összes szélessége legfeljebb 12 lehet.');
+   $blocks=$column['blocks']??null;
+   if(!is_array($blocks)||!array_is_list($blocks)||count($blocks)>15)throw new RuntimeException('Egy dobozban legfeljebb 15 blokk lehet.');
+   $cleanBlocks=[];
+   foreach($blocks as $block){
+    if(!is_array($block))throw new RuntimeException('Érvénytelen blokk.');
+    $cleanBlocks[]=cms_layout_clean_block($block,$kind);$total++;
+    if($total>60)throw new RuntimeException('Egy sablonban legfeljebb 60 tartalmi blokk lehet.');
+   }
+   $boxes[]=['type'=>'box','span'=>$span,'blocks'=>$cleanBlocks];
+  }
+  $clean[]=['type'=>'row','columns'=>$boxes];
  }
+ if($total===0)throw new RuntimeException('Legalább egy tartalmi blokk szükséges.');
  return json_encode($clean,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
 }
 function cms_template_save(PDO $pdo,array $user,int $site,string $kind,string $action,string $json,int $expected=0,int $revisionId=0):int{

@@ -4,6 +4,16 @@
 
 Moduláris, PHP/MySQL-alapú, több webhelyet kezelő szerkesztőségi CMS. A márkanév mindig **comesy** (kisbetűvel).
 
+## Sor–doboz–blokk alapú oldalépítő
+
+A `builder.php` oldalon desktopon a **Teljes képernyő** gomb kinyitja a szerkesztői munkaterületet (a böngésző Fullscreen API-jával, korlátozott környezetben CSS-es tartalék móddal). A szerkesztő 12-oszlopos rácsban tárolja a **sor → doboz → blokk** hierarchiát.
+
+- **+ Sor hozzáadása:** új szerkezeti sort hoz létre. A sor húzással és fel/le gombokkal mozgatható.
+- **+ Doboz:** az adott sorba 1–4 egymás melletti doboz, szabad 12-oszlopos szélességbeállítással. A dobozok sorrendje húzással vagy balra/jobbra gombokkal módosítható.
+- **+ Blokk:** a dobozba hero, dinamikus cikklista, szöveg, kép, hirdetés vagy cikkoldalon cikktartalom helyezhető. A blokkok ugyanazon vagy másik dobozba húzhatók.
+- Megmarad a gyors komponenshozzáadás, külön piszkozat mentés és sablonpublikálás, verziótörténet és reszponzív előnézet.
+- A korábbi egyszerű komponenslisták olvashatók és csak kézi mentéskor alakulnak át a soros formátummá. A szerver ellenőrzi a megengedett sablontípusokat, a dobozok számát, szélességét és a blokkok számát. A publikus felület mobilon egy oszlopba rendezi a dobozokat.
+
 ## Adminfelület v2
 
 - [Admin UI v2 design system](docs/admin-design-system.md): modern SaaS layout, breakpointok, komponensek, világos/sötét színek és hozzáférhetőség.
