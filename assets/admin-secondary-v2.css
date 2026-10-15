@@ -145,3 +145,11 @@ body.comesy-admin .ui-site-checkbox{display:flex;align-items:center;gap:11px;cur
 body.comesy-admin .ui-site-checkbox input{width:19px;height:19px;accent-color:var(--ui-primary);flex:none}
 body.comesy-admin .ui-site-features textarea{font-size:16px;min-height:76px}
 body.comesy-admin .ui-site-features input[type=color]{min-width:95px;max-width:130px;height:43px;padding:4px}
+
+/* Lossless imported HTML editing, kept separate from Quill's unsupported tables/embeds. */
+body.comesy-admin .ed-import-rich{display:grid;gap:13px;min-width:0}
+body.comesy-admin .ed-import-rich>.hint{background:var(--ui-surface-subtle);border:1px solid var(--ui-border);padding:13px 15px;border-radius:12px;line-height:1.6}
+body.comesy-admin .ed-import-rich>label{font-weight:730;color:var(--ui-text)}
+body.comesy-admin #import-html-source{display:block;width:100%;min-height:300px;max-height:65vh;padding:16px;border:1px solid var(--ui-border);border-radius:12px;background:var(--ui-surface-subtle);color:var(--ui-text);font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;resize:vertical;tab-size:2}
+body.comesy-admin .ed-import-rich-preview{display:block;width:100%;height:520px;max-width:100%;border:1px solid var(--ui-border);border-radius:12px;background:#fff}
+@media(max-width:767px){body.comesy-admin #import-html-source{min-height:230px}body.comesy-admin .ed-import-rich-preview{height:390px}}
