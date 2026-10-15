@@ -33,6 +33,33 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(!preview.hidden)preview.src=featured.value.trim();
  });
  const quill=new Quill('#rich-editor',{theme:'snow',modules:{toolbar:'#editor-toolbar'},placeholder:'Kezdd el írni a cikket…'});
+ // Imported rich markup can contain tables/figures/embeds unsupported by
+ // Quill's stock formats. Never silently flatten it during an editor save.
+ const richMode=initial.length===1&&initial[0].type==='richhtml';
+ let richSource=null,richFrame=null,updateRichPreview=null;
+ if(richMode){
+  document.getElementById('editor-toolbar').hidden=true;
+  document.getElementById('rich-editor').hidden=true;
+  const box=document.createElement('section');box.className='ed-import-rich';
+  const info=document.createElement('p');info.className='hint';
+  info.textContent='Teljes importált tartalom. A forrás HTML és az előnézet együtt őrzi meg a képeket, képaláírásokat, formázást, táblázatokat és biztonságos beágyazásokat. A módosított HTML mentéskor ismét ellenőrzésre kerül.';
+  const label=document.createElement('label');label.htmlFor='import-html-source';label.textContent='Cikktörzs HTML-forrása';
+  richSource=document.createElement('textarea');richSource.id='import-html-source';richSource.spellcheck=false;
+  richSource.value=initial[0].text||'';richSource.setAttribute('aria-label','Importált cikktörzs szerkeszthető HTML forrása');
+  const previewLabel=document.createElement('strong');previewLabel.textContent='Biztonságos előnézet';
+  richFrame=document.createElement('iframe');richFrame.className='ed-import-rich-preview';richFrame.title='Importált cikk előnézete';
+  richFrame.setAttribute('sandbox','');richFrame.setAttribute('referrerpolicy','no-referrer');
+  updateRichPreview=()=>{
+   // A sandbox blocks active scripting and prevents content from reaching the
+   // authenticated editor origin, even while source HTML is being edited.
+   richFrame.srcdoc='<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; img-src https: http: data:; style-src &#39;unsafe-inline&#39;; media-src https: http:;"><style>body{font:16px/1.65 system-ui;margin:24px;color:#1b2636}img,video{max-width:100%;height:auto}figure{margin:20px 0}figcaption{font-size:13px;color:#637083}table{border-collapse:collapse;display:block;overflow:auto;max-width:100%}td,th{border:1px solid #d3dce8;padding:9px}iframe{border:1px solid #d3dce8;max-width:100%}blockquote{border-left:3px solid #5067a2;padding-left:18px}mark{background:#fff1af}</style>'+richSource.value;
+  };
+  richSource.addEventListener('input',updateRichPreview);
+  box.append(info,label,richSource,previewLabel,richFrame);
+  document.getElementById('rich-editor').after(box);
+  updateRichPreview();
+ }
+
  if(initial.length===1&&initial[0].type==='richtext'){
   try{const delta=JSON.parse(initial[0].text);if(Array.isArray(delta.ops))quill.setContents(delta,'silent')}catch(e){}
  }else if(initial.length){
@@ -192,7 +219,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  allTags.forEach(l=>l.querySelector('input').addEventListener('change',refreshTags));
  syncSite();
  form.addEventListener('submit',e=>{if(!siteChecks.some(x=>x.checked)){e.preventDefault();showDialog('Válassz webhelyet',[],[{label:'Rendben',primary:true}]);return}if(search.value.trim())chooseTag(search.value)});
- const serialize=()=>[{type:'richtext',text:JSON.stringify(quill.getContents())}];
+ const serialize=()=>richMode?[{type:'richhtml',text:richSource.value}]:[{type:'richtext',text:JSON.stringify(quill.getContents())}];
  let dirty=false,unsaved=false,isSubmitting=false;
  const markChanged=()=>{dirty=true;unsaved=true;};
  quill.on('text-change',(_delta,_old,source)=>{if(source==='user')markChanged();});
@@ -213,7 +240,8 @@ document.addEventListener('DOMContentLoaded',()=>{
  if(answer===null)return;
   document.getElementById('title').value=saved.title||'';
   document.getElementById('lead').value=saved.lead||'';
-  if(saved.delta?.ops)quill.setContents(saved.delta);
+  if(richMode&&typeof saved.richHTML==='string'){richSource.value=saved.richHTML;updateRichPreview();}
+  else if(saved.delta?.ops)quill.setContents(saved.delta);
   markChanged();
  }
  form.addEventListener('submit',e=>{
@@ -221,8 +249,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(!e.defaultPrevented)isSubmitting=true;
   try{localStorage.setItem('comesy-pending-save',backupKey)}catch(error){}
  });
- setInterval(()=>{if(!dirty)return;try{localStorage.setItem(backupKey,JSON.stringify({title:document.getElementById('title').value,lead:document.getElementById('lead').value,delta:quill.getContents(),time:Date.now()}));status.textContent='Helyi piszkozat mentve';dirty=false;}catch(e){}},15000);
+ setInterval(()=>{if(!dirty)return;try{localStorage.setItem(backupKey,JSON.stringify({title:document.getElementById('title').value,lead:document.getElementById('lead').value,delta:richMode?null:quill.getContents(),richHTML:richMode?richSource.value:null,time:Date.now()}));status.textContent='Helyi piszkozat mentve';dirty=false;}catch(e){}},15000);
  document.getElementById('preview-button').addEventListener('click',()=>{
+  if(richMode){updateRichPreview();richFrame.scrollIntoView({behavior:'smooth',block:'center'});return;}
   const w=window.open('','_blank');if(!w)return;
   const d=w.document;d.title='comesy cikkelőnézet';
   const style=d.createElement('style');style.textContent='body{max-width:760px;margin:40px auto;padding:20px;font:18px/1.7 system-ui}img{max-width:100%}h1{line-height:1.2}';d.head.append(style);
