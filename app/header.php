@@ -16,7 +16,8 @@ $navGroups=[
  ...($isPlatformAdmin?[['title'=>'Adminisztráció','links'=>[
   ['href'=>'/sites.php','page'=>'sites.php','text'=>'Webhelyek','icon'=>'globe'],
   ['href'=>'/users.php','page'=>'users.php','text'=>'Felhasználók','icon'=>'users'],
-  ['href'=>'/site-permissions.php','page'=>'site-permissions.php','text'=>'Hozzáférések','icon'=>'shield']
+  ['href'=>'/site-permissions.php','page'=>'site-permissions.php','text'=>'Hozzáférések','icon'=>'shield'],
+  ['href'=>'/audit.php','page'=>'audit.php','text'=>'Auditnapló','icon'=>'shield']
  ]]]:[]),
  ...((in_array($u['role'],['platform_admin','site_admin','ad_manager'],true))?[['title'=>'Monetizáció','links'=>[
   ['href'=>'/ads.php','page'=>'ads.php','text'=>'Hirdetésadmin','icon'=>'ad']
