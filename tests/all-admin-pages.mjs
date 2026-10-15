@@ -140,6 +140,7 @@ try{
    },true);
   }
  });
+ await page.setViewportSize({width:1366,height:1800});
  await page.locator('.ui-builder-row').last().locator('.ui-builder-row-header .ui-builder-grip').dragTo(
   page.locator('.ui-builder-row').first().locator('.ui-builder-row-header')
  );
