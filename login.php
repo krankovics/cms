@@ -13,9 +13,11 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   else{
    try{$q=db()->prepare('SELECT id,password_hash,active FROM users WHERE email=? LIMIT 1');$q->execute([$email]);$record=$q->fetch();
     if($record&&(int)$record['active']===1&&password_verify($password,$record['password_hash'])){
+      try{$audit=db()->prepare("INSERT INTO audit_log(user_id,action,object_type,object_id,meta_json) VALUES(?,'auth.login','user',?,NULL)");$audit->execute([$record['id'],$record['id']]);}catch(Throwable $e){error_log('auth audit: '.$e->getMessage());}
       session_regenerate_id(true);$_SESSION['user_id']=(int)$record['id'];$_SESSION['login_attempts']=0;header('Location: /');exit;
     }
    }catch(Throwable $e){error_log('comesy login: '.$e->getMessage());}
+   try{db()->exec("INSERT INTO audit_log(user_id,action,object_type,object_id,meta_json) VALUES(NULL,'auth.login_failed','auth',NULL,NULL)");}catch(Throwable $e){error_log('auth audit: '.$e->getMessage());}
    $_SESSION['login_attempts']=$attempts+1;$_SESSION['login_last']=time();$error='Hibás belépési adatok vagy még nem telepített adatbázis.';
   }
  }
