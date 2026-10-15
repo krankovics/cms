@@ -10,6 +10,12 @@ try{
  await page.locator('[name=password]').fill('StrongTestingPwd!2026');
  await page.locator('button[type=submit]').click();
  await page.waitForURL(base+'/');
+ const slot=await page.request.get(base+'/ad-slot.php?site_id=1&zone=article-top');
+ assert.equal(slot.status(),200,'Active native advertisement should render');
+ assert((await slot.text()).includes('Hirdetés'),'Ad disclosure should be visible');
+ const adClick=await page.request.get(base+'/ad-click.php?id=1',{maxRedirects:0});
+ assert.equal(adClick.status(),302,'Ad click redirect');
+ assert.equal(adClick.headers()['location'],'https://example.test/go','Safe campaign destination');
  for(const width of [320,390,768,1366,1920]){
   await page.setViewportSize({width,height:850});
   for(const route of routes){
