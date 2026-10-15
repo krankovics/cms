@@ -101,19 +101,19 @@ function imp_save_article(PDO $pdo,array $task,array $data,string $html):array{
     }
     // Original image URLs and internal links stay attached to the editable article.
     $pdo->prepare('DELETE FROM import_asset_refs WHERE article_id=?')->execute([$articleId]);
-    $ref=$pdo->prepare('INSERT IGNORE INTO import_asset_refs(site_id,article_id,source_url,source_url_hash,kind,internal_link) VALUES(?,?,?,?,?,?)');
+    $ref=$pdo->prepare('INSERT IGNORE INTO import_asset_refs(site_id,article_id,source_url,source_url_hash,kind,internal_link,status) VALUES(?,?,?,?,?,?,?)');
     $origin=strtolower((string)parse_url($source,PHP_URL_HOST));
     foreach(($data['media_sources']??[]) as $imageUrl)if(filter_var($imageUrl,FILTER_VALIDATE_URL))
-     $ref->execute([$site,$articleId,$imageUrl,hash('sha256',$imageUrl),'image',(int)(strtolower((string)parse_url($imageUrl,PHP_URL_HOST))===$origin)]);
+     $ref->execute([$site,$articleId,$imageUrl,hash('sha256',$imageUrl),'image',(int)(strtolower((string)parse_url($imageUrl,PHP_URL_HOST))===$origin),isset($data['media_resolved'][$imageUrl])?'ready':'broken']);
     foreach($data['blocks'] as $block)if(($block['type']??'')==='image'){
      $img=(string)($block['text']??'');
      if(!filter_var($img,FILTER_VALIDATE_URL))continue;
-     $ref->execute([$site,$articleId,$img,hash('sha256',$img),'image',(int)(strtolower((string)parse_url($img,PHP_URL_HOST))===$origin)]);
+     $ref->execute([$site,$articleId,$img,hash('sha256',$img),'image',(int)(strtolower((string)parse_url($img,PHP_URL_HOST))===$origin),'pending']);
     }
     foreach(($data['links']??[]) as $link){
      if(!is_array($link)||!isset($link['url']))continue;
      $urlValue=(string)$link['url'];if(!filter_var($urlValue,FILTER_VALIDATE_URL))continue;
-     $ref->execute([$site,$articleId,$urlValue,hash('sha256',$urlValue),'link',(int)!empty($link['internal'])]);
+     $ref->execute([$site,$articleId,$urlValue,hash('sha256',$urlValue),'link',(int)!empty($link['internal']),'pending']);
     }
     $pdo->prepare('INSERT INTO audit_log(user_id,action,object_type,object_id,meta_json) VALUES(?,?,?,?,?)')
      ->execute([$actor,'import.article','article',$articleId,json_encode(['source_url'=>$source,'job_id'=>$task['job_id'],'revision'=>$rev],JSON_THROW_ON_ERROR)]);
@@ -158,7 +158,7 @@ function imp_process(PDO $pdo,array $task):array{
   'result'=>$saved['status']==='skipped'?'unchanged':'imported',
   'response_bytes'=>strlen($result['body']),
   'block_count'=>count($data['blocks']),
-  'image_count'=>count(array_filter($data['blocks'],fn($b)=>($b['type']??'')==='image')),
+  'image_count'=>count($data['media_sources']??[]),
   'link_count'=>count($data['links']??[]),
   'quality_flags'=>array_values(array_unique(array_merge(imp_quality_flags($data),!empty($data['media_warnings'])?['media_download_incomplete']:[])))
  ];
@@ -187,7 +187,7 @@ function imp_quality_flags(array $article):array{
  $flags=[];
  if(mb_strlen(trim((string)($article['lead']??'')))<60)$flags[]='short_lead';
  if(count($article['blocks']??[])<3)$flags[]='few_blocks';
- if(!count(array_filter($article['blocks']??[],fn($b)=>($b['type']??'')==='image')))$flags[]='no_images';
+ if(!imp_rich_media_urls($article['richtext']??['ops'=>[]],(string)($article['featured_image']??''))&&!count(array_filter($article['blocks']??[],fn($b)=>($b['type']??'')==='image')))$flags[]='no_images';
  if(!count(array_filter($article['blocks']??[],fn($b)=>($b['type']??'')==='heading')))$flags[]='no_headings';
  return $flags;
 }
