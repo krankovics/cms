@@ -178,6 +178,6 @@ $initial=json_decode($article['content_json']??'[]',true);if(!is_array($initial)
 <p class="ui-picker-no-results" id="featured-picker-no-results" hidden>Nincs egyező kép. Módosítsd a keresést, vagy tölts fel újat.</p>
 <p class="ui-picker-feedback" id="featured-picker-feedback" role="status" aria-live="polite"></p>
 <input type="file" id="featured-picker-file" hidden accept="image/jpeg,image/png,image/webp,image/gif" aria-label="Képfájl kiválasztása">
-<div class="ui-featured-picker-footer"><span id="featured-picker-count"><?=count($editorMedia)?> kép érhető el</span><button type="button" class="ui-btn ui-btn-secondary" id="featured-picker-cancel">Mégse</button></div>
+<div class="ui-featured-picker-footer"><span id="featured-picker-count"><?=count($editorMedia)?> kép érhető el</span><div class="ui-featured-picker-buttons"><button type="button" class="ui-btn ui-btn-secondary" id="featured-picker-more" hidden>További képek</button><button type="button" class="ui-btn ui-btn-secondary" id="featured-picker-cancel">Mégse</button></div></div>
 </dialog>
 <dialog id="ed-modal" class="ed-modal"><h2 id="ed-modal-title"></h2><div id="ed-modal-body"></div><div id="ed-modal-actions"></div></dialog><script src="/assets/editor.js" defer></script><script type="application/json" id="initial-content"><?=json_encode($initial,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE)?></script></body></html>
