@@ -137,4 +137,9 @@ $q=$pdo->prepare('SELECT COUNT(*) FROM site_menu_items WHERE site_id=?');$q->exe
 ok((int)$q->fetchColumn()===2,'Site navigation must persist ordered links.');
 try{cms_menu_url('javascript:alert(1)');throw new RuntimeException('Expected unsafe URL rejection');}
 catch(RuntimeException $e){ok(str_contains($e->getMessage(),'menüpont'),'Javascript URLs must be forbidden.');}
+$q=$pdo->prepare("INSERT INTO articles(site_id,author_id,title,slug,status,published_at) VALUES(?,?,?,'test-scheduled','scheduled',DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 MINUTE))");
+$q->execute([$sites[0],$uid['editor'],'Automatikusan időzített cikk']);
+$scheduledId=(int)$pdo->lastInsertId();
+$q=$pdo->prepare('SELECT status FROM articles WHERE id=?');$q->execute([$scheduledId]);
+ok($q->fetchColumn()==='scheduled','Due scheduled article must stay invisible until worker runs.');
 echo "PASS: $tests database integration assertions.\n";
