@@ -181,7 +181,8 @@ function imp_work_once(PDO $pdo):bool{
  $started=microtime(true);
  try{
   $metrics=imp_process($pdo,$task);
-  imp_store_metrics($pdo,$task,$metrics,(int)round((microtime(true)-$started)*1000));
+  try{imp_store_metrics($pdo,$task,$metrics,(int)round((microtime(true)-$started)*1000));}
+  catch(Throwable $metricError){error_log('comesy import metric save #'.$task['id'].': '.$metricError->getMessage());}
  }
  catch(Throwable $e){
   $message=mb_substr($e->getMessage(),0,1000);
@@ -195,7 +196,8 @@ function imp_work_once(PDO $pdo):bool{
    $pdo->prepare("UPDATE import_items SET status='failed',claimed_at=NULL,last_error=? WHERE id=?")->execute([$message,$task['id']]);
    $pdo->prepare('UPDATE import_jobs SET failed=failed+1,last_error=? WHERE id=?')->execute([$message,$task['job_id']]);
   }
-  imp_store_metrics($pdo,$task,['result'=>$retry?'retry':'failed','quality_flags'=>[$retry?'retry_pending':'processing_failed']],(int)round((microtime(true)-$started)*1000));
+  try{imp_store_metrics($pdo,$task,['result'=>$retry?'retry':'failed','quality_flags'=>[$retry?'retry_pending':'processing_failed']],(int)round((microtime(true)-$started)*1000));}
+  catch(Throwable $metricError){error_log('comesy import metric save #'.$task['id'].': '.$metricError->getMessage());}
  }
  $q=$pdo->prepare("SELECT COUNT(*) FROM import_items WHERE job_id=? AND status IN ('pending','processing')");
  $q->execute([$task['job_id']]);$remaining=(int)$q->fetchColumn();
