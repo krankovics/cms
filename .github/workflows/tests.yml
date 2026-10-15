@@ -43,8 +43,6 @@ jobs:
           sh import-worker.sh --check
           php tests/import-parser.php
           php tests/worker-health.php
-      - name: TEMP debug source page HTML structure
-        run: php tests/_temporary-source-diag.php
       - name: Run isolated MySQL integration checks
         env:
           COMESY_TEST_DB: comesy_test
