@@ -1,0 +1,53 @@
+CREATE TABLE IF NOT EXISTS ad_advertisers (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ site_id BIGINT UNSIGNED NOT NULL,
+ name VARCHAR(190) NOT NULL,
+ contact_email VARCHAR(190) NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ KEY idx_ad_advertiser_site (site_id),
+ CONSTRAINT fk_ad_advertiser_site FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS ad_zones (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ site_id BIGINT UNSIGNED NOT NULL,
+ code VARCHAR(100) NOT NULL,
+ name VARCHAR(190) NOT NULL,
+ placement VARCHAR(100) NOT NULL DEFAULT 'article',
+ enabled TINYINT(1) NOT NULL DEFAULT 1,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_ad_zone_code (site_id,code),
+ CONSTRAINT fk_ad_zone_site FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS ad_campaigns (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ site_id BIGINT UNSIGNED NOT NULL,
+ advertiser_id BIGINT UNSIGNED NOT NULL,
+ name VARCHAR(190) NOT NULL,
+ state ENUM('draft','active','paused','finished') NOT NULL DEFAULT 'draft',
+ priority INT NOT NULL DEFAULT 50,
+ section_slug VARCHAR(190) NOT NULL DEFAULT '',
+ starts_at DATETIME NULL,
+ ends_at DATETIME NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ KEY idx_ad_campaign_delivery (site_id,state,priority,starts_at,ends_at),
+ CONSTRAINT fk_ad_campaign_site FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE,
+ CONSTRAINT fk_ad_campaign_advertiser FOREIGN KEY (advertiser_id) REFERENCES ad_advertisers(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE IF NOT EXISTS ad_creatives (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ campaign_id BIGINT UNSIGNED NOT NULL,
+ zone_id BIGINT UNSIGNED NOT NULL,
+ name VARCHAR(190) NOT NULL,
+ image_url VARCHAR(1000) NOT NULL,
+ destination_url VARCHAR(1000) NOT NULL,
+ alt_text VARCHAR(500) NOT NULL DEFAULT '',
+ enabled TINYINT(1) NOT NULL DEFAULT 1,
+ slot_requests BIGINT UNSIGNED NOT NULL DEFAULT 0,
+ clicks BIGINT UNSIGNED NOT NULL DEFAULT 0,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ KEY idx_ad_creative_campaign (campaign_id,enabled),
+ KEY idx_ad_creative_zone (zone_id,enabled),
+ CONSTRAINT fk_ad_creative_campaign FOREIGN KEY (campaign_id) REFERENCES ad_campaigns(id) ON DELETE CASCADE,
+ CONSTRAINT fk_ad_creative_zone FOREIGN KEY (zone_id) REFERENCES ad_zones(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
