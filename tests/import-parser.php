@@ -38,6 +38,10 @@ foreach(['<strong>Félkövér</strong>','<em>dőlt</em>','<mark>kiemelt</mark>',
 ensure(!str_contains($rich,'onerror')&&!str_contains($rich,'<script')&&!str_contains($rich,'evil.example.net')&&!str_contains($rich,'javascript:'),'Dangerous markup must not survive source import.');
 ensure(strpos($rich,'Félkövér')<strpos($rich,'Fotó:')&&strpos($rich,'Fotó:')<strpos($rich,'Összesítés')&&strpos($rich,'Összesítés')<strpos($rich,'youtube.com'),'Media and text must retain editorial order.');
 ensure(cms_rich_sanitize_html($rich)===$rich,'Editor/server sanitizing must be idempotent (lossless roundtrip).');
+$assetRefs=cms_rich_references($rich);
+ensure($assetRefs['images']===['https://example.org/photos/report.jpg'],'Inline source images must be included in media provenance.');
+ensure(in_array('https://www.youtube.com/embed/abcdefghij',$assetRefs['links'],true),'Embedded video references must be recorded.');
+ensure(in_array('https://example.org/reszlet',$assetRefs['links'],true),'Inline editorial source links must be recorded.');
 $embedFixture='<iframe src="https://open.spotify.com/embed/episode/7QRXyU8DtYP8Fd1Xo3A0Yz"></iframe><iframe src="https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Fwatch"></iframe>';
 $safeEmbeds=cms_rich_sanitize_html($embedFixture);
 ensure(substr_count($safeEmbeds,'<iframe')===2,'Approved podcast/social embeds should be preserved.');
