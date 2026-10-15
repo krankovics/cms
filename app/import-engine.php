@@ -35,6 +35,28 @@ function imp_resolve_url(string $url,string $base):string{
  $path=substr($path,0,strrpos($path,'/')+1);
  return $root.$path.$url;
 }
+/**
+ * A sitemap may contain homepages, archives and feeds. These are not articles.
+ * Path-only checks stay conservative: one-segment article slugs are valid.
+ */
+function imp_is_article_candidate_url(string $url):bool{
+ $p=parse_url($url);
+ $path=rawurldecode((string)($p['path']??'/'));
+ $path=rtrim($path,'/');
+ if($path===''||preg_match('~^/(?:index\.(?:php|html?)|home|feed|rss|atom|sitemap(?:index)?(?:\.xml)?|robots\.txt)$~i',$path))return false;
+ if(preg_match('~\.(?:xml|xml\.gz|rss|atom|json|txt)$~i',$path))return false;
+ if(preg_match('~^/(?:kereses|search|cimke|tag|tags)(?:/|$)~i',$path))return false;
+ return true;
+}
+/** Latest dated child sitemap first; undated sources keep their original order. */
+function imp_sitemap_priority(string $url,string $lastmod=''):int{
+ if(preg_match('/^((?:19|20)\d{2})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])/',trim($lastmod),$m))
+  return (int)($m[1].$m[2].$m[3]);
+ $path=(string)(parse_url($url,PHP_URL_PATH)??'');
+ if(preg_match('~(?:^|/)((?:19|20)\d{2})(0[1-9]|1[0-2])[_-]sitemap(?:\d+)?\.xml(?:\.gz)?$~i',$path,$m))
+  return (int)($m[1].$m[2].'01');
+ return 0;
+}
 function imp_get(string $url,int $maxBytes=3145728):array{
  if(!extension_loaded('curl'))throw new RuntimeException('A cURL PHP-kiegészítő nem telepített.');
  for($redirect=0;$redirect<4;$redirect++){
@@ -239,10 +261,14 @@ function imp_discover(string $xml,string $base,int $max=100):array{
    if($reader->nodeType===XMLReader::ELEMENT){$root=strtolower($reader->localName);break;}
   }
   if(!in_array($root,['rss','feed','urlset','sitemapindex'],true))throw new RuntimeException('Az URL nem támogatott RSS/Atom/sitemap dokumentum.');
-  $urls=[];
+  $urls=[];$indexDates=[];$indexPositions=[];$mostRecentUrl=null;
   while($reader->read()&&count($urls)<$max){
    if($reader->nodeType!==XMLReader::ELEMENT)continue;
    $node=strtolower($reader->localName);
+   if($root==='sitemapindex'&&$node==='lastmod'&&$reader->depth===2&&$mostRecentUrl!==null){
+    $indexDates[$mostRecentUrl]=trim($reader->readString());
+    continue;
+   }
    // Read only the direct <loc> child of <url> or <sitemap>.
    // Nested video:image <loc> entries must not become article URLs.
    if(($root==='urlset'||$root==='sitemapindex')&&$node==='loc'&&$reader->depth===2){
@@ -256,7 +282,17 @@ function imp_discover(string $xml,string $base,int $max=100):array{
    if($raw==='')continue;
    $link=imp_resolve_url($raw,$base);
    try{$link=imp_url_metadata($link);}catch(Throwable $e){continue;}
+   if(!isset($urls[$link]))$indexPositions[$link]=count($urls);
    $urls[$link]=$link;
+   if($root==='sitemapindex')$mostRecentUrl=$link;
+  }
+  if($root==='sitemapindex'){
+   $ordered=array_keys($urls);
+   usort($ordered,static function(string $a,string $b)use($indexDates,$indexPositions):int{
+    $byDate=imp_sitemap_priority($b,$indexDates[$b]??'')<=>imp_sitemap_priority($a,$indexDates[$a]??'');
+    return $byDate?:($indexPositions[$a]<=>$indexPositions[$b]);
+   });
+   $urls=array_combine($ordered,$ordered);
   }
   foreach(libxml_get_errors() as $error)if($error->level>=LIBXML_ERR_ERROR)throw new RuntimeException('Érvénytelen RSS/sitemap XML.');
   return ['urls'=>array_values($urls),'index'=>$root==='sitemapindex'];
