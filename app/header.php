@@ -86,7 +86,7 @@ if($currentPage==='migrate.php')$currentTitle='Adatbázis-migráció';
   <div class="ui-header-location"><span class="ui-header-parent">Munkaterület</span><span class="ui-header-separator">/</span><strong><?=h($currentTitle)?></strong></div>
  </div>
  <div class="app-header-right ui-header-actions">
-  <?php if($canWrite):?><a class="ui-header-create" href="/editor.php"><svg class="ui-icon" aria-hidden="true"><use href="#cs-plus"></use></svg><span>Új cikk</span></a><?php endif;?>
+  <?php if($canWrite&&$currentPage!=='editor.php'):?><a class="ui-header-create" href="/editor.php"><svg class="ui-icon" aria-hidden="true"><use href="#cs-plus"></use></svg><span>Új cikk</span></a><?php endif;?>
   <button type="button" class="theme-toggle ui-icon-button" data-theme-toggle aria-label="Világos vagy sötét mód váltása" title="Téma váltása"><svg class="ui-icon" aria-hidden="true"><use href="#cs-moon"></use></svg></button>
   <details class="profile-menu"><summary class="profile-trigger ui-profile-trigger"><img class="avatar" src="/avatar.php" alt=""><span class="profile-name"><?=h($u['name'])?></span><svg class="ui-icon ui-profile-chevron" aria-hidden="true"><use href="#cs-chevron"></use></svg></summary>
    <div class="profile-dropdown"><a href="/profile.php">Profilbeállítások</a><form method="post" action="/logout.php"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><button type="submit">Kijelentkezés</button></form></div>
