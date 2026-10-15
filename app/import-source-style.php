@@ -105,9 +105,10 @@ function cms_source_style_links(string $html,string $url):array{
   $href=trim($el->getAttribute('href'));if($href==='')continue;
   $candidate=imp_resolve_url($href,$url);
   $parts=parse_url($candidate);
-  if(!is_array($parts)||strtolower((string)($parts['host']??''))!==$host||!in_array(strtolower((string)($parts['scheme']??'')),['http','https'],true))continue;
+  if(!is_array($parts)||empty($parts['host'])||!in_array(strtolower((string)($parts['scheme']??'')),['http','https'],true))continue;
+  if(strtolower((string)$parts['host'])!==$host&&strtolower((string)$parts['scheme'])!=='https')continue; // External CSS must use HTTPS.
   if(!preg_match('~\.css(?:$|\?)~i',(string)($parts['path']??'').(isset($parts['query'])?'?'.$parts['query']:'')))continue;
-  $links[$candidate]=true;if(count($links)>=2)break;
+  $links[$candidate]=true;if(count($links)>=3)break;
  }
  return array_keys($links);
 }
