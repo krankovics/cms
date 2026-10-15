@@ -34,12 +34,12 @@ jobs:
       - name: Prepare public release
         run: |
           mkdir -p deploy
-          cp index.php login.php logout.php setup.php profile.php avatar.php editor.php articles.php migrate.php settings.php taxonomy.php media.php media-file.php editor-upload.php site-permissions.php sites.php users.php ads.php ad-slot.php ad-click.php deploy/
-          mkdir -p deploy/app/avatars deploy/database deploy/assets deploy/storage/media
-          cp app/bootstrap.php app/header.php app/site-access.php app/article-sites.php app/taxonomy-actions.php app/user-actions.php app/ad-actions.php app/.htaccess deploy/app/
+          cp index.php login.php logout.php setup.php profile.php avatar.php editor.php articles.php migrate.php settings.php taxonomy.php media.php media-file.php editor-upload.php site-permissions.php sites.php users.php ads.php ad-slot.php ad-click.php imports.php import-worker.php deploy/
+          mkdir -p deploy/app/avatars deploy/database deploy/assets deploy/storage/media deploy/storage/import
+          cp app/bootstrap.php app/header.php app/site-access.php app/article-sites.php app/taxonomy-actions.php app/user-actions.php app/ad-actions.php app/import-engine.php app/import-jobs.php app/import-worker.php app/.htaccess deploy/app/
           cp app/avatars/.htaccess deploy/app/avatars/
-          cp assets/ui.css assets/admin-v2.css assets/admin-pages-v2.css assets/admin-secondary-v2.css assets/dashboard-v2.css assets/ui.js assets/admin-pages-v2.js assets/editor.js assets/login.css assets/setup.css assets/ads.css deploy/assets/
-          cp database/schema.sql database/editor.sql database/content.sql database/site-permissions.sql database/ads.sql deploy/database/
+          cp assets/ui.css assets/admin-v2.css assets/admin-pages-v2.css assets/admin-secondary-v2.css assets/dashboard-v2.css assets/ui.js assets/admin-pages-v2.js assets/editor.js assets/login.css assets/setup.css assets/ads.css assets/imports.css deploy/assets/
+          cp database/schema.sql database/editor.sql database/content.sql database/site-permissions.sql database/ads.sql database/import.sql deploy/database/
           printf 'Require all denied\nDeny from all\n' > deploy/database/.htaccess
           php -l deploy/index.php
           php -l deploy/login.php
@@ -61,6 +61,11 @@ jobs:
           php -l deploy/ad-slot.php
           php -l deploy/ad-click.php
           php -l deploy/app/ad-actions.php
+          php -l deploy/imports.php
+          php -l deploy/import-worker.php
+          php -l deploy/app/import-engine.php
+          php -l deploy/app/import-jobs.php
+          php -l deploy/app/import-worker.php
           php -l deploy/app/user-actions.php
           php -l deploy/app/taxonomy-actions.php
           php -l deploy/app/article-sites.php
@@ -71,6 +76,7 @@ jobs:
           node --check deploy/assets/ui.js
           node --check deploy/assets/admin-pages-v2.js
           printf 'Require all denied\nDeny from all\nOptions -Indexes\n' > deploy/storage/media/.htaccess
+          printf 'Require all denied\nDeny from all\nOptions -Indexes\n' > deploy/storage/import/.htaccess
 
       - name: Generate protected PHP configuration
         env:
