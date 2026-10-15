@@ -50,7 +50,13 @@ A cron a `import-worker.sh` indítószkriptet használja, mert a DirectAdmin `/u
 /bin/sh /home/appwrkrft/domains/cms.8media.hu/public_html/import-worker.sh --check
 ```
 
-Ha nincs megfelelő PHP, a hiba a `/home/appwrkrft/comesy-import.log` naplóba kerül. A DirectAdmin cronparancsát kézzel kell átállítani, az FTP-telepítés ezt nem teszi meg. A worker kizárólag CLI-ból indítható; a `storage/import/worker.lock` fájlon keresztül megakadályozza az egymásra futó importfolyamatokat. Minden futás védett állapotjelzést ír a `storage/import/worker-status.json` fájlba, amelyet az Importközpont webhelyenkénti várakozó feladatszámmal együtt jelenít meg. Operátori ellenőrzéshez:
+Ha nincs megfelelő PHP, a hiba a `/home/appwrkrft/comesy-import.log` naplóba kerül. A DirectAdmin cronparancsát kézzel kell átállítani, az FTP-telepítés ezt nem teszi meg. A sitemapek és RSS-folyamok feldolgozásakor külön, legfeljebb **32 MiB-os** forrásletöltés engedélyezett, XMLReader-rel történő streaming feldolgozással. A HTML-cikkek 3 MiB-os korlátja megmarad. A túl méretes forrásokat kisebb sitemapokra kell bontani vagy egyesével hozzáadni, nem szabad a limitet korlátlanul növelni.
+
+A cikkimport csak akkor ment el piszkozatot, ha az oldalból érdemi cikktörzs felismerhető. Navigáció, hír-ajánlók és kapcsolódó tartalmak nem helyettesíthetik a cikket. Ha a forrás dinamikus, paywallos vagy nem tartalmaz elég bekezdést, az importfeladat hibásnak minősül és szerkesztői kontrollra szorul.
+
+**Már elmentett hibás piszkozatok:** a módosítás nem írja felül automatikusan a korábban importált cikkeket és nem javítja őket csendben. A korábbi importokat szerkesztői ellenőrzéssel kell rendezni, és a sikeres korábbi elemeket nem futtatja újra a „Sikertelenek újrapróbálása” művelet. Az új validáció csak a további importálásoknál érvényes.
+
+A worker kizárólag CLI-ból indítható; a `storage/import/worker.lock` fájlon keresztül megakadályozza az egymásra futó importfolyamatokat. Minden futás védett állapotjelzést ír a `storage/import/worker-status.json` fájlba, amelyet az Importközpont webhelyenkénti várakozó feladatszámmal együtt jelenít meg. Operátori ellenőrzéshez:
 
 ```sh
 /usr/bin/php /home/appwrkrft/domains/cms.8media.hu/public_html/import-worker.php --health

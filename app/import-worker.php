@@ -114,7 +114,9 @@ function imp_process(PDO $pdo,array $task):array{
   if($mode==='site'){
    $p=parse_url($url);$url=$p['scheme'].'://'.$p['host'].'/sitemap.xml';
   }
-  $result=imp_fetch($url);
+  // XML sitemaps can legitimately be far larger than an HTML article.
+  // Keep the 3 MiB article limit; allow a bounded 32 MiB for discovery.
+  $result=imp_fetch($url,33554432);
   if($mode==='demo'&&!str_contains(strtolower((string)($result['headers']['content-type']??'')),'xml')){
    $doc=new DOMDocument();$previous=libxml_use_internal_errors(true);
    $doc->loadHTML('<?xml encoding="utf-8"?>'.$result['body'],LIBXML_NONET|LIBXML_NOERROR|LIBXML_NOWARNING);
