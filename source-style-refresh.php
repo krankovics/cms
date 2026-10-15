@@ -19,7 +19,7 @@ try{
  $response=imp_fetch($source,3145728);
  if(!str_contains(strtolower((string)($response['headers']['content-type']??'text/html')),'html'))throw new RuntimeException('A forrás már nem HTML oldal.');
  // The shared profile is cached by (comesy site, source hostname).
- $profile=cms_source_style_collect($site,$response['body'],$response['url']);
+ $profile=cms_source_style_collect($site,$response['body'],$response['url'],true);
  echo json_encode(['ok'=>true,'host'=>$profile['host'],'available'=>$profile['css']!=='' ,'css_files'=>$profile['css_files']],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
 }catch(Throwable $e){
  error_log('comesy source style refresh: '.$e->getMessage());
