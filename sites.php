@@ -23,8 +23,10 @@ try{
    $q->execute([$name,$domain,$slug,$settingsJson,$id]);
    if(!$q->rowCount()){ $check=$pdo->prepare('SELECT id FROM sites WHERE id=?');$check->execute([$id]);if(!$check->fetchColumn())throw new RuntimeException('A webhely nem található.');}
   }else{
-   $q=$pdo->prepare('INSERT INTO sites(name,domain,slug,settings_json) VALUES(?,?,?,?)');$q->execute([$name,$domain,$slug,$settingsJson]);
+   $q=$pdo->prepare('INSERT INTO sites(name,domain,slug,settings_json) VALUES(?,?,?,?)');$q->execute([$name,$domain,$slug,$settingsJson]);$id=(int)$pdo->lastInsertId();
   }
+  $audit=$pdo->prepare('INSERT INTO audit_log(user_id,action,object_type,object_id,meta_json) VALUES(?,?,?,?,?)');
+  $audit->execute([$u['id'],$current?'site.update':'site.create','site',$id,json_encode(['domain'=>$domain,'flags'=>array_intersect_key($settings,array_fill_keys(['builder_enabled','reader_accounts_enabled','comments_enabled','newsletter_enabled','ai_enabled','ad_slots_enabled'],true))],JSON_UNESCAPED_UNICODE)]);
   header('Location: /sites.php?saved=1');exit;
  }
  $sites=$pdo->query('SELECT s.id,s.name,s.domain,s.slug,s.settings_json,(SELECT COUNT(*) FROM articles a WHERE a.site_id=s.id) article_count FROM sites s ORDER BY s.name')->fetchAll();
