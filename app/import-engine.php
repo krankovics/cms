@@ -158,6 +158,62 @@ function imp_fetch(string $url,int $maxBytes=3145728):array{
  if($result['status']!==200)throw new RuntimeException('Forrás HTTP hibakód: '.$result['status']);
  return $result;
 }
+/** Permanent content-quality rejection, distinct from a retryable download/worker error. */
+class ImportContentRejected extends RuntimeException{}
+
+/** Read full articleBody only from an actual NewsArticle/Article JSON-LD record. */
+function imp_jsonld_article_blocks(DOMXPath $xpath,string $title):array{
+ $jsonScripts=$xpath->query('//script[contains(translate(@type,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"application/ld+json")]');
+ foreach($jsonScripts as $script){
+  $raw=trim((string)$script->textContent);
+  if($raw===''||strlen($raw)>1048576)continue;
+  $tree=json_decode($raw,true);
+  if(!is_array($tree))continue;
+  $queue=[$tree];$visited=0;
+  while($queue&&++$visited<=80){
+   $node=array_shift($queue);
+   if(!is_array($node))continue;
+   if(array_is_list($node)){foreach($node as $child)$queue[]=$child;continue;}
+   foreach(['@graph','mainEntity'] as $key)if(isset($node[$key])&&is_array($node[$key]))$queue[]=$node[$key];
+   $types=$node['@type']??[];
+   if(is_string($types))$types=[$types];
+   if(!is_array($types)||!array_intersect($types,['Article','NewsArticle','BlogPosting','ReportageNewsArticle','AnalysisNewsArticle']))continue;
+   $headline=trim((string)($node['headline']??''));
+   if($headline!==''){
+    $cleanTitle=mb_strtolower(trim((string)preg_replace('/[^\pL\pN]+/u',' ',$title)));
+    $cleanHeadline=mb_strtolower(trim((string)preg_replace('/[^\pL\pN]+/u',' ',$headline)));
+    if($cleanTitle!==$cleanHeadline&&!str_contains($cleanTitle,$cleanHeadline)&&!str_contains($cleanHeadline,$cleanTitle))continue;
+   }
+   $body=$node['articleBody']??null;
+   if(!is_string($body)||strlen($body)>300000)continue;
+   $text=preg_replace('~</(?:p|div|li|h[1-6])>|<br\s*/?>~iu',"\n\n",$body);
+   $text=html_entity_decode(strip_tags($text),ENT_QUOTES|ENT_HTML5,'UTF-8');
+   $paragraphs=preg_split('/\n\s*\n+/u',$text)?:[];
+   $blocks=[];$length=0;$sentences=0;
+   foreach($paragraphs as $paragraph){
+    $paragraph=trim((string)preg_replace('/\s+/u',' ',$paragraph));
+    if(mb_strlen($paragraph)<40)continue;
+    $length+=mb_strlen($paragraph);
+    $sentences+=preg_match_all('/[.!?](?:\s|$)/u',$paragraph);
+    $blocks[]=['type'=>'paragraph','text'=>mb_substr($paragraph,0,300000)];
+    if(count($blocks)>=200)break;
+   }
+   // Summaries (usually 1–2 sentences) must not masquerade as full articles.
+   if($length>=450&&$sentences>=3)return $blocks;
+  }
+ }
+ return [];
+}
+function imp_blocks_are_substantive(array $blocks):bool{
+ $textLength=0;$longParagraphs=0;
+ foreach($blocks as $block)if(($block['type']??'')==='paragraph'){
+  $length=mb_strlen((string)($block['text']??''));
+  $textLength+=$length;
+  if($length>=70)$longParagraphs++;
+ }
+ return $textLength>=200&&($longParagraphs>=2||$textLength>=280);
+}
+
 /**
  * Choose the narrative article body, not a card/related-news <article>.
  * Fail closed for thin pages rather than creating a misleading "successful" draft.
@@ -196,6 +252,11 @@ function imp_extract(string $html,string $url):array{
  $doc->loadHTML('<?xml encoding="utf-8"?>'.$html,LIBXML_NONET|LIBXML_NOWARNING|LIBXML_NOERROR);
  libxml_clear_errors();libxml_use_internal_errors($before);
  $xpath=new DOMXPath($doc);
+ $head=(string)$xpath->evaluate('string(//meta[@property="og:title"]/@content)');
+ $title=trim($head?:$xpath->evaluate('string(//article//h1[1])')?:$xpath->evaluate('string(//h1[1])')?:$xpath->evaluate('string(//title)'));
+ $lead=trim((string)$xpath->evaluate('string(//meta[@name="description"]/@content)'));
+ // JSON-LD is gathered before the sanitizer removes script elements.
+ $structuredBody=imp_jsonld_article_blocks($xpath,$title);
  // Remove navigation, recommendations and commerce widgets before scoring body candidates.
  $discard=[];
  foreach($xpath->query('//script|//style|//noscript|//iframe|//nav|//footer|//aside|//form|//*[@class or @id]') as $node){
@@ -206,13 +267,10 @@ function imp_extract(string $html,string $url):array{
      preg_match('/(?:^|[\s_-])(?:related|recommended|recommendations|more-news|more-articles|latest-news|most-read|read-more|also-read|sidebar|newsletter|social-share|share-buttons|comments|advertisement|ad-slot|sticky-ad|cookie-banner)(?:$|[\s_-])/i',$attrs))$discard[]=$node;
  }
  foreach($discard as $node)if($node->parentNode)$node->parentNode->removeChild($node);
- $head=(string)$xpath->evaluate('string(//meta[@property="og:title"]/@content)');
- $title=trim($head?:$xpath->evaluate('string(//article//h1[1])')?:$xpath->evaluate('string(//h1[1])')?:$xpath->evaluate('string(//title)'));
- $lead=trim((string)$xpath->evaluate('string(//meta[@name="description"]/@content)'));
  $article=imp_select_article_body($xpath);
- if(!$article||mb_strlen($title)<3)throw new RuntimeException('Nem sikerült megbízható cikktörzset felismerni; a kapcsolódó ajánlók nem számítanak cikknek.');
+ if((!$article&&!$structuredBody)||mb_strlen($title)<3)throw new ImportContentRejected('Nem található önálló, ellenőrizhető cikktörzs: a forrásoldalon csak lead, ajánlók vagy hiányos tartalom látható.');
  $blocks=[];$seen=[];
- $nodes=$xpath->query('.//h2|.//h3|.//h4|.//p|.//ul|.//ol|.//blockquote|.//img',$article);
+ $nodes=$article?$xpath->query('.//h2|.//h3|.//h4|.//p|.//ul|.//ol|.//blockquote|.//img',$article):[];
  foreach($nodes as $node){
   $tag=strtolower($node->nodeName);
   if(in_array($tag,['p','img'],true)&&$xpath->evaluate('boolean(ancestor::ul or ancestor::ol or ancestor::blockquote)',$node))continue;
@@ -229,15 +287,11 @@ function imp_extract(string $html,string $url):array{
   $seen[$type.$text]=true;$blocks[]=['type'=>$type,'text'=>$text];
   if(count($blocks)>=200)break;
  }
- $narrative=0;$textLength=0;$longParagraphs=0;
- foreach($blocks as $block)if(($block['type']??'')==='paragraph'){
-  $length=mb_strlen((string)$block['text']);$textLength+=$length;$narrative++;
-  if($length>=70)$longParagraphs++;
- }
- if(!$blocks||$textLength<200||($longParagraphs<2&&$textLength<280))
-  throw new RuntimeException('Hiányos cikktörzs: az oldal nem tartalmaz elég önálló cikkbekezdést; nem menthető sikeres importként.');
+ if(!imp_blocks_are_substantive($blocks)&&$structuredBody){$blocks=$structuredBody;$article=null;}
+ if(!imp_blocks_are_substantive($blocks))
+  throw new ImportContentRejected('Hiányos cikktörzs: nem található elég forrásból ellenőrizhető, önálló cikkbekezdés; csak cím és lead nem importálható teljes cikként.');
  $links=[];$sourceHost=strtolower((string)parse_url($url,PHP_URL_HOST));
- foreach($xpath->query('.//a[@href]',$article) as $linkNode){
+ if($article)foreach($xpath->query('.//a[@href]',$article) as $linkNode){
   $raw=trim($linkNode->getAttribute('href'));
   if(!$raw||str_starts_with($raw,'#'))continue;
   $href=imp_resolve_url($raw,$url);
