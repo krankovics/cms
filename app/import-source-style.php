@@ -63,7 +63,7 @@ function cms_source_style_extract_css(string $css):string{
    if($sel===''||preg_match('/[@*:>\[\]#~+]/',$sel))continue;
    // An article-specific selector is preferred; other site-wide rules are
    // retained only for body/html or simple semantic element selectors.
-   if(!preg_match('~(?:^|[\s.])(?:article|post|content|story|entry|body|text|cikk|main|header|footer|nav|brand|logo)(?:[\s_.-]|$)~i',$sel)&&
+   if(!preg_match('~(?:^|[\s.])(?:article|post|content|story|entry|body|text|cikk|main|header|footer|nav|brand|logo|site|page|menu|navbar)(?:[\s_.-]|$)~i',$sel)&&
      !preg_match('/^(?:html\s+)?(?:body|header|footer|nav|h[1-4]|p|a|figure|figcaption|blockquote|img|table|td|th|ul|ol|li)$/i',$sel))continue;
    // Most publishers style their global shell with .site-header,
    // .main-nav, .footer class names rather than semantic tag selectors.
