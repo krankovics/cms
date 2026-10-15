@@ -14,7 +14,10 @@ $navGroups=[
   ['href'=>'/users.php','page'=>'users.php','text'=>'Felhasználók','icon'=>'users'],
   ['href'=>'/site-permissions.php','page'=>'site-permissions.php','text'=>'Hozzáférések','icon'=>'shield']
  ]]]:[]),
- ['title'=>'Fiók','links'=>[
+ ...((in_array($u['role'],['platform_admin','site_admin','ad_manager'],true))?[['title'=>'Monetizáció','links'=>[
+  ['href'=>'/ads.php','page'=>'ads.php','text'=>'Hirdetésadmin','icon'=>'ad']
+ ]]]:[]),
+  ['title'=>'Fiók','links'=>[
   ['href'=>'/settings.php','page'=>'settings.php','text'=>'Beállítások','icon'=>'settings'],
   ['href'=>'/profile.php','page'=>'profile.php','text'=>'Saját profil','icon'=>'user']
  ]]
@@ -36,6 +39,7 @@ if($currentPage==='migrate.php')$currentTitle='Adatbázis-migráció';
  <symbol id="cs-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c-5 5-5 13 0 18M12 3c5 5 5 13 0 18"/></symbol>
  <symbol id="cs-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2zM17 5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 5v1"/></symbol>
  <symbol id="cs-shield" viewBox="0 0 24 24"><path d="m12 2 9 4v6c0 5-4 8-9 10-5-2-9-5-9-10V6zM9 12l2 2 4-4"/></symbol>
+ <symbol id="cs-ad" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h10M7 14h7"/></symbol>
  <symbol id="cs-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M10 2h4l.6 3 2 1 2.7-1.5 2 3.5-2.3 2v4l2.3 2-2 3.5-2.7-1.5-2 1L14 22h-4l-.6-3-2-1-2.7 1.5-2-3.5L5 14v-4L2.7 8l2-3.5L7.4 6l2-1z"/></symbol>
  <symbol id="cs-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2z"/></symbol>
  <symbol id="cs-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
