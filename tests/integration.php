@@ -102,4 +102,13 @@ ok((int)$q->fetchColumn()===1,'Durable import queue must preserve pending URL ta
 $q=$pdo->prepare('SELECT COUNT(*) FROM import_items i JOIN import_jobs j ON j.id=i.job_id WHERE j.site_id=? AND i.site_id=?');
 $q->execute([$sites[1],$sites[0]]);
 ok((int)$q->fetchColumn()===0,'Import task must not leak across sites.');
+require dirname(__DIR__).'/app/import-worker.php';
+$task=['id'=>1,'job_id'=>$importJob,'site_id'=>$sites[0],'source_url'=>$url,'created_by'=>$uid['editor']];
+$parsed=['title'=>'Forráscikk import teszt','lead'=>'Próba lead','blocks'=>[['type'=>'paragraph','text'=>'Szerkeszthető cikkrészlet.']]];
+$first=imp_save_article($pdo,$task,$parsed,'<article><p>Test</p></article>');
+ok($first['status']==='completed'&&$first['article_id']>0,'First import must create draft article.');
+$second=imp_save_article($pdo,$task,$parsed,'<article><p>Test</p></article>');
+ok($second['status']==='skipped'&&$second['article_id']===$first['article_id'],'Second identical import must skip duplicate.');
+$q=$pdo->prepare('SELECT status FROM articles WHERE id=?');
+$q->execute([$first['article_id']]);ok($q->fetchColumn()==='draft','Imported article must remain draft.');
 echo "PASS: $tests database integration assertions.\n";
