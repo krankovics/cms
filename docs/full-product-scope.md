@@ -52,3 +52,12 @@ Minden modulhoz: PHP/JS lint, MySQL-sémateszt, unit+HTTP jogosultsági teszt, m
 - **Publikus tartalom API**: `api-v1.php` listázás és részletezés, cikkek/taxonómiák, csak publikált site-scope, JSON/ETag, szűkített CORS. **Még hiányzik:** dedikált keresés, kiadói frontend, teljes frontend API-szerződés, cache/CDN/analytics.
 
 **FONTOS:** A teljes P0+P1/P2 termékspecifikáció **még nincs kész**. A teljes UI redesign lezárása nem egyenlő a fenti nagy fejlesztésekkel. A funkcionális és teljesítmény-elfogadási tesztek lezárása előtt tilos az egész platformot késznek nevezni. A `migrate.php` az új táblákat csak a platformadmin jóváhagyott futtatásával telepíti; a GitHub-FTP önmagában nem módosítja az élő adatbázist.
+
+
+## 2026-10-15: importminőség és forrásterhelési kontroll
+
+- Új, izolált `import_item_metrics` adattábla (`database/import-metrics.sql`) gyűjti a queue-feladatok mért átviteli bájtjait, időtartamát, kinyert blokkokat, képeket, linkeket és az ellenőrzést igénylő cikkminőségi jelzéseket.
+- Az `/import-report.php?site_id=...&job_id=...` csak az adott webhelyre jogosult admin/szerkesztő számára elérhető: összesítések, hibaarány, 100 legutóbbi feladat, minta-CSV és a forrásképek/hivatkozások státuszai. A CSV képletinjektálás-védelemmel készül.
+- A robots.txt feldolgozás immár figyelembe veszi a cél robothoz tartozó csoportokat, az Allow/Disallow szabályokat, a specifikusabb útvonalak prioritását, a jokerjeleket és a lezáró horgonyt. A forráselérés hibája továbbra is tiltást jelent.
+- A mérések tájékoztató jellegűek: a feldolgozási falióra-idő és a letöltött bájtszám nem azonos a CPU-költséggel, a hálózati számlával vagy az API-díjjal. Külön gépi infrastruktúra-mérés és **100 cikkes valós mintafuttatás** továbbra is szükséges.
+- Az adminfelületen megjelenő minőségriport **új adatbázis-migrációt igényel**. Az éles adatbázis és a cron-beállítás automatikusan nem módosul.
