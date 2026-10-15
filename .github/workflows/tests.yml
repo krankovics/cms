@@ -44,6 +44,8 @@ jobs:
           php tests/import-parser.php
           php tests/import-rich.php
           php tests/worker-health.php
+      - name: TEMP real publisher media diagnostics
+        run: php tests/_temporary-real-media.php
       - name: Run isolated MySQL integration checks
         env:
           COMESY_TEST_DB: comesy_test
