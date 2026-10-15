@@ -108,7 +108,7 @@ function imp_save_article(PDO $pdo,array $task,array $data,string $html):array{
   $pdo->commit();return ['status'=>$status,'article_id'=>$articleId,'hash'=>$contentHash,'error'=>$message];
  }catch(Throwable $e){$pdo->rollBack();throw $e;}
 }
-function imp_process(PDO $pdo,array $task):void{
+function imp_process(PDO $pdo,array $task):array{
  $url=(string)$task['source_url'];$mode=(string)$task['mode'];$type=(string)$task['task_type'];
  if($type==='discover'){
   if($mode==='site'){
@@ -126,7 +126,7 @@ function imp_process(PDO $pdo,array $task):void{
   $added=imp_queue_discovery($pdo,$task,$discovered['urls'],$discovered['index']);
   $pdo->prepare('UPDATE import_jobs SET discovered=discovered+? WHERE id=?')->execute([$added,$task['job_id']]);
   $pdo->prepare("UPDATE import_items SET status='completed',claimed_at=NULL WHERE id=?")->execute([$task['id']]);
-  return;
+  return ['result'=>'discovered','response_bytes'=>strlen($result['body']),'quality_flags'=>[]];
  }
  $result=imp_fetch($url);
  $contentType=strtolower((string)($result['headers']['content-type']??'text/html'));
@@ -137,12 +137,52 @@ function imp_process(PDO $pdo,array $task):void{
   ->execute([$saved['status'],$saved['article_id'],$saved['hash'],$saved['error'],$task['id']]);
  $col=$saved['status']==='skipped'?'skipped':'completed';
  $pdo->prepare('UPDATE import_jobs SET '.$col.'='.$col.'+1 WHERE id=?')->execute([$task['job_id']]);
+ return [
+  'result'=>$saved['status']==='skipped'?'unchanged':'imported',
+  'response_bytes'=>strlen($result['body']),
+  'block_count'=>count($data['blocks']),
+  'image_count'=>count(array_filter($data['blocks'],fn($b)=>($b['type']??'')==='image')),
+  'link_count'=>count($data['links']??[]),
+  'quality_flags'=>imp_quality_flags($data)
+ ];
+}
+/**
+ * Store one bounded quality and resource measurement per queue item.
+ * These are transfer and application timings, not server CPU cost estimates.
+ */
+function imp_store_metrics(PDO $pdo,array $task,array $stats,int $durationMs):void{
+ $flags=$stats['quality_flags']??[];
+ if(!is_array($flags))$flags=[];
+ $result=(string)($stats['result']??'failed');
+ if(!in_array($result,['imported','unchanged','discovered','retry','failed'],true))$result='failed';
+ $sql='INSERT INTO import_item_metrics(item_id,job_id,site_id,result,response_bytes,duration_ms,block_count,image_count,link_count,quality_flags) VALUES(?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE result=VALUES(result),response_bytes=VALUES(response_bytes),duration_ms=VALUES(duration_ms),block_count=VALUES(block_count),image_count=VALUES(image_count),link_count=VALUES(link_count),quality_flags=VALUES(quality_flags),processed_at=CURRENT_TIMESTAMP';
+ $pdo->prepare($sql)->execute([
+  (int)$task['id'],(int)$task['job_id'],(int)$task['site_id'],$result,
+  max(0,min(PHP_INT_MAX,(int)($stats['response_bytes']??0))),
+  max(0,min(4294967295,$durationMs)),
+  max(0,min(65535,(int)($stats['block_count']??0))),
+  max(0,min(65535,(int)($stats['image_count']??0))),
+  max(0,min(65535,(int)($stats['link_count']??0))),
+  json_encode(array_slice(array_values(array_unique(array_map('strval',$flags))),0,20),JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR)
+ ]);
+}
+function imp_quality_flags(array $article):array{
+ $flags=[];
+ if(mb_strlen(trim((string)($article['lead']??'')))<60)$flags[]='short_lead';
+ if(count($article['blocks']??[])<3)$flags[]='few_blocks';
+ if(!count(array_filter($article['blocks']??[],fn($b)=>($b['type']??'')==='image')))$flags[]='no_images';
+ if(!count(array_filter($article['blocks']??[],fn($b)=>($b['type']??'')==='heading')))$flags[]='no_headings';
+ return $flags;
 }
 function imp_work_once(PDO $pdo):bool{
  imp_requeue_orphaned($pdo);
  $task=imp_claim($pdo);
  if(!$task)return false;
- try{imp_process($pdo,$task);}
+ $started=microtime(true);
+ try{
+  $metrics=imp_process($pdo,$task);
+  imp_store_metrics($pdo,$task,$metrics,(int)round((microtime(true)-$started)*1000));
+ }
  catch(Throwable $e){
   $message=mb_substr($e->getMessage(),0,1000);
   error_log('comesy import task #'.$task['id'].': '.$message);
@@ -155,6 +195,7 @@ function imp_work_once(PDO $pdo):bool{
    $pdo->prepare("UPDATE import_items SET status='failed',claimed_at=NULL,last_error=? WHERE id=?")->execute([$message,$task['id']]);
    $pdo->prepare('UPDATE import_jobs SET failed=failed+1,last_error=? WHERE id=?')->execute([$message,$task['job_id']]);
   }
+  imp_store_metrics($pdo,$task,['result'=>$retry?'retry':'failed','quality_flags'=>[$retry?'retry_pending':'processing_failed']],(int)round((microtime(true)-$started)*1000));
  }
  $q=$pdo->prepare("SELECT COUNT(*) FROM import_items WHERE job_id=? AND status IN ('pending','processing')");
  $q->execute([$task['job_id']]);$remaining=(int)$q->fetchColumn();
