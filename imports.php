@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
-require __DIR__.'/app/bootstrap.php';require __DIR__.'/app/import-jobs.php';
-$u=require_user();$allowed=[];$sites=[];$jobs=[];$items=[];$error='';$site=(int)($_REQUEST['site_id']??0);
+require __DIR__.'/app/bootstrap.php';require __DIR__.'/app/import-jobs.php';require __DIR__.'/app/import-health.php';
+$u=require_user();$allowed=[];$sites=[];$jobs=[];$items=[];$error='';$due=0;$inProgress=0;$workerStatus=null;$site=(int)($_REQUEST['site_id']??0);
 try{
  $pdo=db();$allowed=imp_allowed_sites($pdo,$u);
  if(!$allowed){http_response_code(403);exit('Nincs jogosultság importfeladatok kezeléséhez.');}
@@ -13,6 +13,9 @@ try{
   header('Location: /imports.php?'.http_build_query(['site_id'=>$site,'job_id'=>$job,'saved'=>1]));exit;
  }
  $q=$pdo->prepare('SELECT * FROM import_jobs WHERE site_id=? ORDER BY id DESC LIMIT 100');$q->execute([$site]);$jobs=$q->fetchAll();
+ $q=$pdo->prepare("SELECT COALESCE(SUM(i.status='pending' AND i.available_at<=NOW()),0) due,COALESCE(SUM(i.status='processing'),0) in_progress FROM import_items i JOIN import_jobs j ON j.id=i.job_id WHERE j.site_id=? AND j.status IN ('queued','running') AND i.status IN ('pending','processing')");
+ $q->execute([$site]);$workload=$q->fetch()?:[];$due=(int)($workload['due']??0);$inProgress=(int)($workload['in_progress']??0);
+ $workerStatus=imp_worker_status_read();
  $selected=max(0,(int)($_GET['job_id']??0));
  if($selected){
   $q=$pdo->prepare('SELECT i.id,i.source_url,i.task_type,i.status,i.attempts,i.last_error,i.article_id,i.updated_at FROM import_items i JOIN import_jobs j ON j.id=i.job_id WHERE i.job_id=? AND j.site_id=? ORDER BY i.id DESC LIMIT 60');
@@ -25,6 +28,17 @@ $labels=['queued'=>'Sorban','running'=>'Folyamatban','paused'=>'Szüneteltetve',
 <header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Tartalommigráció</p><h1 class="ui-page-title">Importközpont</h1><p class="ui-page-description">Forráscikkek, RSS, sitemap és demóimport. Minden import piszkozatként készül el, az eredeti URL és pillanatkép megőrzésével.</p></div></header>
 <?php if($error):?><p class="ui-notice error" role="alert"><?=h($error)?></p><?php endif;?>
 <?php if(isset($_GET['saved'])):?><p class="ui-notice success" role="status">Az importfeladat módosítását mentettük.</p><?php endif;?>
+<?php $workerView=imp_worker_status_view($workerStatus,$due,$inProgress);
+$lastBeat=(int)($workerStatus['finished_at']??$workerStatus['started_at']??0); ?>
+<section class="ui-panel ui-import-report-panel" aria-label="Importworker állapota">
+ <h2>Importworker állapota</h2>
+ <p><strong><?=h($workerView['label'])?></strong> · <?=h($workerView['detail'])?></p>
+ <p>Utolsó jel: <strong><?=$lastBeat?gmdate('Y-m-d H:i:s',$lastBeat).' UTC':'nincs adat'?></strong>
+ · Legutóbb feldolgozott feladatkísérletek: <strong><?=(int)($workerStatus['processed']??0)?></strong>
+ · Feldolgozható várakozók ezen a webhelyen: <strong><?=$due?></strong>
+ · Folyamatban: <strong><?=$inProgress?></strong>.</p>
+ <p class="ui-text-muted">A workerjel egy korábbi kézi futásból is származhat. A cron/supervisor tényleges ütemezése külön szerveroldali ellenőrzést igényel. Ellenőrző parancs: <code>php import-worker.php --health</code>.</p>
+</section>
 <form method="get" class="ui-filterbar"><label class="ui-field">Célwebhely <select name="site_id" onchange="this.form.submit()"><?php foreach($sites as $s):if(!in_array((int)$s['id'],$allowed,true))continue;?><option value="<?=(int)$s['id']?>" <?=$site===(int)$s['id']?'selected':''?>><?=h($s['name'])?></option><?php endforeach;?></select></label></form>
 <div class="ui-imports-grid"><section class="ui-panel ui-import-create">
 <h2>Új importfeladat</h2>
