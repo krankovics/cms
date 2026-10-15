@@ -34,8 +34,10 @@ $types=['campaign'=>'Kampányok','zone'=>'Zónák','advertiser'=>'Hirdetők','cr
 <header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Monetizáció</p><h1 class="ui-page-title">Hirdetésadmin</h1><p class="ui-page-description">Hirdetők, kampányok, site- és rovatfüggő zónák, kreatívok és kiszolgálási adatok.</p></div></header>
 <?php if($error):?><p class="ui-notice error" role="alert"><?=h($error)?></p><?php endif;?>
 <?php if(isset($_GET['saved'])):?><p class="ui-notice success" role="status">A hirdetéskezelési változást mentettük.</p><?php endif;?>
-<form method="get" class="ui-filterbar"><input type="hidden" name="kind" value="<?=h($kind)?>"><label class="ui-field">Webhely <select name="site_id" onchange="this.form.submit()"><?php foreach($sites as $s):if(!in_array((int)$s['id'],$allowed,true))continue;?><option value="<?=(int)$s['id']?>" <?=$site===(int)$s['id']?'selected':''?>><?=h($s['name'])?></option><?php endforeach;?></select></label></form>
+<div class="ui-ads-navigation">
+<form method="get" class="ui-filterbar ui-ads-site-filter" aria-label="Hirdetéskezelési webhely"><input type="hidden" name="kind" value="<?=h($kind)?>"><label class="ui-field">Webhely <select name="site_id" onchange="this.form.submit()"><?php foreach($sites as $s):if(!in_array((int)$s['id'],$allowed,true))continue;?><option value="<?=(int)$s['id']?>" <?=$site===(int)$s['id']?'selected':''?>><?=h($s['name'])?></option><?php endforeach;?></select></label></form>
 <nav class="ui-tabbar" aria-label="Hirdetéskezelési modulok"><?php foreach($types as $k=>$label):?><a href="/ads.php?site_id=<?=$site?>&amp;kind=<?=h($k)?>" class="<?=$kind===$k?'is-active':''?>" <?=$kind===$k?'aria-current="page"':''?>><?=h($label)?></a><?php endforeach;?></nav>
+</div>
 <div class="ui-ads-metrics">
 <div class="ui-ads-metric"><strong><?=count($campaigns)?></strong><span>Kampány</span></div>
 <div class="ui-ads-metric"><strong><?=count(array_filter($campaigns,fn($c)=>$c['state']==='active'))?></strong><span>Aktív</span></div>
