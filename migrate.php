@@ -7,12 +7,12 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
  else{
   try{
    $pdo=db();
-   $sql=file_get_contents(__DIR__.'/database/editor.sql')."\n".file_get_contents(__DIR__.'/database/content.sql')."\n".file_get_contents(__DIR__.'/database/site-permissions.sql');
+   $sql=file_get_contents(__DIR__.'/database/editor.sql')."\n".file_get_contents(__DIR__.'/database/content.sql')."\n".file_get_contents(__DIR__.'/database/site-permissions.sql')."\n".file_get_contents(__DIR__.'/database/ads.sql');
    foreach(array_filter(array_map('trim',explode(';',$sql))) as $statement)$pdo->exec($statement);
    // Preserve existing site associations and backfill every legacy article's primary site.
    $pdo->exec('INSERT IGNORE INTO article_sites(article_id,site_id) SELECT id,site_id FROM articles');
    // Shared taxonomy terms remain untouched; no destructive merging.
-   $message='A comesy Editor adatbázis-migrációja sikeresen lefutott.';
+   $message='A comesy adatbázis-migrációja sikeresen lefutott, beleértve a hirdetésmodul tábláit.';
   }catch(Throwable $e){error_log('comesy migration: '.$e->getMessage());$error='A migráció sikertelen. Ellenőrizd az adatbázis jogosultságait.';}
  }
 }
@@ -21,7 +21,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 <header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Rendszerkarbantartás</p><h1 class="ui-page-title">Adatbázis-migráció</h1><p class="ui-page-description">A comesy adatmodelljének frissítése.</p></div><div class="ui-page-actions"><a href="/settings.php" class="ui-btn ui-btn-secondary">Beállítások</a></div></header>
 <section class="ui-admin-panel ui-maintenance-panel">
 <h2>Adatbázisszerkezet ellenőrzése és kiegészítése</h2>
-<div class="ui-maintenance-note"><strong>Fontos művelet</strong><p>A hiányzó adattáblák létrejönnek, és a korábbi cikkek elsődleges webhelye a többwebhelyes kapcsolótáblába kerül. A meglévő cikkek és fogalmak nem törlődnek vagy olvadnak össze.</p><p>Éles rendszeren a futtatás előtt ajánlott adatbázis-mentést készíteni.</p></div>
+<div class="ui-maintenance-note"><strong>Fontos művelet</strong><p>A hiányzó szerkesztőségi és hirdetésmodul-táblák létrejönnek, és a korábbi cikkek elsődleges webhelye a többwebhelyes kapcsolótáblába kerül. A meglévő cikkek és fogalmak nem törlődnek vagy olvadnak össze.</p><p>Éles rendszeren a futtatás előtt ajánlott adatbázis-mentést készíteni.</p></div>
 <?php if($message):?><p class="success" role="status"><?=h($message)?></p><?php endif;?>
 <?php if($error):?><p class="error" role="alert"><?=h($error)?></p><?php endif;?>
 <form method="post" class="ui-admin-form" onsubmit="return confirm('Elindítod az adatbázis-migrációt? A művelet előtt ajánlott biztonsági mentést készíteni.')"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><div class="ui-admin-actions"><button type="submit" class="ui-btn ui-btn-primary">Migráció futtatása</button><a href="/articles.php" class="ui-btn ui-btn-secondary">Vissza a cikkekhez</a></div></form>
