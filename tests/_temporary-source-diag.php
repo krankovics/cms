@@ -85,3 +85,19 @@ try{
  $n=0;foreach($ex['blocks'] as $b)if(($b['type']??'')==='paragraph')$n+=mb_strlen($b['text']??'');
  echo 'LIVE_IMPORT_QUALITY status=passed blocks='.count($ex['blocks']).' paragraph_chars='.$n."\\n";
 }catch(Throwable $e){echo 'LIVE_IMPORT_QUALITY status=failed class='.get_class($e).' message='.$e->getMessage()."\\n";}
+
+foreach([
+ 'https://magyarnemzet.hu/kulfold/2026/10/tirana-langol-a-diaktuntetesek-utan',
+ 'https://magyarnemzet.hu/kulfold/2026/10/amerika-arulasarol-panaszkodik-zelenszkij',
+ 'https://magyarnemzet.hu/sport/2026/10/toth-balazs-blackburn-rovers-bristol-city-kapus-bayern',
+ 'https://magyarnemzet.hu/kulfold/2026/10/nogradi-gyorgy-jatekszabalyok-trump-putyin-paktum',
+] as $target){
+ try{
+  $response=imp_get($target,3145728);
+  $article=imp_extract($response['body'],$response['url']);
+  $chars=0;foreach($article['blocks'] as $block)if(($block['type']??'')==='paragraph')$chars+=mb_strlen((string)$block['text']);
+  echo 'LIVE_BATCH '.$target.' status=passed blocks='.count($article['blocks']).' paragraph_chars='.$chars."\\n";
+ }catch(Throwable $e){
+  echo 'LIVE_BATCH '.$target.' status=failed class='.get_class($e).' message='.$e->getMessage()."\\n";
+ }
+}
