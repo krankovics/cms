@@ -6,11 +6,24 @@ function imp_allowed_sites(PDO $pdo,array $user):array{
  if(!in_array($user['role'],['platform_admin','site_admin','editor'],true))return [];
  return allowed_primary_sites($pdo,$user);
 }
+/**
+ * Requeue only the selected terminal subset. Incomplete-source rejections are
+ * recoverable after an extractor update; completed articles stay untouched.
+ */
+function imp_reset_items(PDO $pdo,int $jobId,string $action):int{
+ if($action==='retry_skipped'){
+  $q=$pdo->prepare("UPDATE import_items SET status='pending',attempts=0,available_at=NOW(),last_error=NULL WHERE job_id=? AND status='skipped' AND (last_error LIKE 'Nem található önálló, ellenőrizhető cikktörzs:%' OR last_error LIKE 'Hiányos cikktörzs:%')");
+ }elseif($action==='retry'){
+  $q=$pdo->prepare("UPDATE import_items SET status='pending',attempts=0,available_at=NOW(),last_error=NULL WHERE job_id=? AND status='failed'");
+ }else throw new InvalidArgumentException('Csak újraindításra alkalmas státusz támogatott.');
+ $q->execute([$jobId]);
+ return $q->rowCount();
+}
 function imp_mutate(PDO $pdo,array $user,int $site,array $post):int{
  if(!valid_csrf())throw new RuntimeException('Érvénytelen munkamenet.');
  if(!in_array($site,imp_allowed_sites($pdo,$user),true))throw new RuntimeException('Nincs importálási jogosultság ehhez a webhelyhez.');
  $action=(string)($post['action']??'create');
- if(!in_array($action,['create','pause','resume','retry'],true))throw new RuntimeException('Ismeretlen importművelet.');
+ if(!in_array($action,['create','pause','resume','retry','retry_skipped'],true))throw new RuntimeException('Ismeretlen importművelet.');
  $pdo->beginTransaction();
  try{
   if($action==='create'){
@@ -34,8 +47,13 @@ function imp_mutate(PDO $pdo,array $user,int $site,array $post):int{
     $pdo->prepare("UPDATE import_jobs SET status='queued' WHERE id=?")->execute([$id]);
    }else{
     if(!in_array($job['status'],['finished','failed','paused'],true))throw new RuntimeException('Az aktív feladat még nem próbálható újra.');
-    $pdo->prepare("UPDATE import_items SET status='pending',attempts=0,available_at=NOW(),last_error=NULL WHERE job_id=? AND status='failed'")->execute([$id]);
-    $pdo->prepare("UPDATE import_jobs SET status='queued',failed=0,last_error=NULL WHERE id=?")->execute([$id]);
+    $count=imp_reset_items($pdo,$id,$action);
+    if($count<1)throw new RuntimeException('Nincs az adott művelettel újraellenőrizhető importtétel.');
+    if($action==='retry_skipped'){
+     $pdo->prepare("UPDATE import_jobs SET status='queued',skipped=GREATEST(0,skipped-?),last_error=NULL WHERE id=?")->execute([$count,$id]);
+    }else{
+     $pdo->prepare("UPDATE import_jobs SET status='queued',failed=GREATEST(0,failed-?),last_error=NULL WHERE id=?")->execute([$count,$id]);
+    }
    }
   }
   $q=$pdo->prepare('INSERT INTO audit_log(user_id,action,object_type,object_id,meta_json) VALUES(?,?,?,?,?)');
