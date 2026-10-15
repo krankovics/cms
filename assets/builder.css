@@ -1,19 +1,19 @@
 /* comesy: template builder, desktop and mobile */
-body.comesy-admin .ui-builder-page{max-width:1450px}
-body.comesy-admin .ui-builder-toolbar{display:flex;gap:20px;flex-wrap:wrap;align-items:end;justify-content:space-between;border:1px solid var(--ui-border);border-radius:13px;background:var(--ui-surface);padding:15px;margin-bottom:17px}
+body.comesy-admin .ui-builder-page{max-width:1860px}
+body.comesy-admin .ui-builder-toolbar{display:flex;gap:20px;flex-wrap:wrap;align-items:center;justify-content:space-between;border:1px solid var(--ui-border);border-radius:14px;background:var(--ui-surface);padding:18px 21px;margin-bottom:22px}
 body.comesy-admin .ui-builder-toolbar form{display:flex;gap:13px;flex-wrap:wrap}
 body.comesy-admin .ui-builder-toolbar .ui-field{display:grid;gap:5px;font-size:12px;color:var(--ui-text-secondary)}
 body.comesy-admin .ui-builder-toolbar select,body.comesy-admin .ui-builder-add select{min-height:43px;border:1px solid var(--ui-border);border-radius:9px;color:var(--ui-text);background:var(--ui-surface-subtle);font-size:16px;padding:9px;max-width:100%}
 body.comesy-admin .ui-builder-status{display:grid;gap:5px;font-size:12px;color:var(--ui-text-secondary)}
-body.comesy-admin .ui-builder-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(290px,1fr);gap:16px;align-items:start}
-body.comesy-admin .ui-builder-grid .ui-panel,body.comesy-admin .ui-builder-menu{min-width:0;border:1px solid var(--ui-border);border-radius:14px;background:var(--ui-surface);padding:19px}
-body.comesy-admin .ui-builder-grid .ui-panel h2,body.comesy-admin .ui-builder-menu h2{margin:0 0 14px;font-size:16px}
-body.comesy-admin .ui-builder-aside{display:grid;gap:16px;min-width:0}
+body.comesy-admin .ui-builder-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(390px,.95fr);gap:22px;align-items:start}
+body.comesy-admin .ui-builder-grid .ui-panel,body.comesy-admin .ui-builder-menu{min-width:0;border:1px solid var(--ui-border);border-radius:14px;background:var(--ui-surface);padding:22px}
+body.comesy-admin .ui-builder-grid .ui-panel h2,body.comesy-admin .ui-builder-menu h2{margin:0 0 16px;font-size:17px;color:var(--ui-text);letter-spacing:-.02em}
+body.comesy-admin .ui-builder-aside{display:grid;gap:18px;min-width:0;align-content:start}
 body.comesy-admin .ui-builder-blocks{display:grid;gap:10px}
-body.comesy-admin .ui-builder-block{border:1px solid var(--ui-border);border-radius:11px;padding:13px;background:var(--ui-surface-subtle)}
+body.comesy-admin .ui-builder-block{border:1px solid var(--ui-border);border-radius:12px;padding:17px;background:var(--ui-surface-subtle)}
 body.comesy-admin .ui-builder-block.is-drag-target{outline:2px dashed var(--ui-primary);outline-offset:1px}
 body.comesy-admin .ui-builder-block header{display:flex;justify-content:space-between;align-items:center;gap:10px}
-body.comesy-admin .ui-builder-block header strong{color:var(--ui-text);font-size:13px}
+body.comesy-admin .ui-builder-block header strong{color:var(--ui-text);font-size:14px;font-weight:750}
 body.comesy-admin .ui-builder-block-actions{display:flex;gap:4px;align-items:center}
 body.comesy-admin .ui-builder-block-actions button{min-width:33px;height:33px;background:var(--ui-surface);border:1px solid var(--ui-border);border-radius:8px;color:var(--ui-text);font-size:17px;cursor:pointer}
 body.comesy-admin .ui-builder-block-actions button:disabled{opacity:.3;cursor:not-allowed}
@@ -24,14 +24,14 @@ body.comesy-admin .ui-builder-field>span{font-size:11px;color:var(--ui-text-seco
 body.comesy-admin .ui-builder-field input,body.comesy-admin .ui-builder-field textarea{min-height:43px;padding:9px 10px;font-size:16px;border-radius:9px;color:var(--ui-text);background:var(--ui-surface);border:1px solid var(--ui-border);min-width:0;width:100%}
 body.comesy-admin .ui-builder-field textarea{min-height:90px;resize:vertical}
 body.comesy-admin .ui-builder-block-fields .ui-builder-field:has(textarea){grid-column:1/-1}
-body.comesy-admin .ui-builder-add{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:15px}
+body.comesy-admin .ui-builder-add{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-top:20px}
 body.comesy-admin .ui-builder-add label{color:var(--ui-text-secondary);font-size:12px}
-body.comesy-admin .ui-builder-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:15px;padding-top:14px;border-top:1px solid var(--ui-border)}
+body.comesy-admin .ui-builder-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:18px;padding-top:18px;border-top:1px solid var(--ui-border)}
 body.comesy-admin .ui-builder-viewport{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
 body.comesy-admin .ui-builder-viewport button{padding:8px 11px;cursor:pointer;border:1px solid var(--ui-border);border-radius:9px;font-size:12px;color:var(--ui-text);background:var(--ui-surface-subtle)}
-body.comesy-admin .ui-builder-viewport button[aria-pressed=true]{color:var(--ui-primary);border-color:var(--ui-primary)}
+body.comesy-admin .ui-builder-viewport button[aria-pressed=true]{color:var(--ui-primary);border-color:var(--ui-primary);background:var(--ui-surface);font-weight:750;box-shadow:0 0 0 1px var(--ui-primary)}
 body.comesy-admin .ui-builder-frame-wrap{overflow:auto;background:var(--ui-surface-subtle);border:1px solid var(--ui-border);border-radius:11px;padding:10px;min-width:0}
-body.comesy-admin #builder-preview-frame{display:block;height:470px;max-width:none;width:100%;border:0;background:#fff;margin:0 auto;transition:width .2s ease}
+body.comesy-admin #builder-preview-frame{display:block;height:620px;max-width:none;width:100%;border:0;background:#fff;margin:0 auto;transition:width .2s ease}
 body.comesy-admin .ui-builder-revision{display:grid;grid-template-columns:1fr auto;align-items:center;gap:5px;padding:10px 0;border-bottom:1px solid var(--ui-border)}
 body.comesy-admin .ui-builder-revision strong{color:var(--ui-text);font-size:12px}
 body.comesy-admin .ui-builder-revision small{font-size:11px;color:var(--ui-text-secondary);grid-column:1}
@@ -40,8 +40,19 @@ body.comesy-admin .ui-builder-menu{margin-top:17px}
 body.comesy-admin .ui-builder-menu-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) auto auto;gap:10px;align-items:end;padding:13px 0;border-bottom:1px solid var(--ui-border)}
 body.comesy-admin .ui-builder-menu-toggle{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--ui-text);min-height:43px}
 body.comesy-admin .ui-builder-menu-toggle input{width:19px;height:19px;accent-color:var(--ui-primary)}
-@media(max-width:1090px){body.comesy-admin .ui-builder-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:1090px){body.comesy-admin .ui-builder-grid{grid-template-columns:minmax(0,1fr)}body.comesy-admin .ui-builder-aside{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.65fr);gap:16px;align-items:start}}
+@media(min-width:1460px){
+ body.comesy-admin .ui-builder-aside>.ui-panel:first-child{position:sticky;top:90px}
+}
+@media(min-width:1091px) and (max-width:1320px){
+ body.comesy-admin .ui-builder-grid{grid-template-columns:minmax(0,1.25fr) minmax(340px,.9fr);gap:16px}
+}
 @media(max-width:767px){
+ body.comesy-admin .ui-builder-aside{grid-template-columns:1fr}
+ body.comesy-admin .ui-builder-toolbar{padding:15px;gap:10px}
+ body.comesy-admin .ui-builder-block{padding:13px}
+ body.comesy-admin .ui-builder-frame-wrap{padding:8px}
+
  body.comesy-admin .ui-builder-grid .ui-panel,body.comesy-admin .ui-builder-menu{padding:14px}
  body.comesy-admin .ui-builder-toolbar form{width:100%}
  body.comesy-admin .ui-builder-toolbar .ui-field{flex:1;min-width:120px}
