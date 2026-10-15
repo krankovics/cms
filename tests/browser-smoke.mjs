@@ -90,6 +90,8 @@ try{
  const previewBody=await sourcePreview.text();
  assert(previewBody.includes('font-size:23px'),'Source CSS profile should be applied to authenticated saved draft.');
  assert(previewBody.includes('Fotó: Tesztszerkesztőség'),'Imported photo credit must survive source preview.');
+ assert(previewBody.includes('class="cms-source-header"')&&previewBody.includes('class="cms-source-footer"'),'Imported draft should render publisher header and footer.');
+ assert(previewBody.includes('Forrás Napilap')&&previewBody.includes('Belföld')&&previewBody.includes('Impresszum'),'Source logo identity, navigation and legal footer must be present.');
  assert(!previewBody.includes('<script>'),'Saved preview should not emit executable scripts.');
  assert((await admin.locator('#source-style-label').innerText()).includes('source-example.invalid'),'Editor should recognize the original source design profile.');
 
@@ -106,6 +108,7 @@ try{
  await popup.waitForLoadState('domcontentloaded');
  assert(await popup.locator('iframe[sandbox]').count()===1,'Preview must open in new tab with isolated iframe.');
  assert((await popup.locator('h1').innerText()).includes('Szerkesztői gazdag tartalom próba'),'Preview must use unsaved article title.');
+ assert(await popup.locator('.cms-source-header').count()===1&&await popup.locator('.cms-source-footer').count()===1,'Unsaved article preview includes publisher global site shell.');
  await popup.close();
  await admin.locator('.ed-rich-canvas').evaluate(el=>{
   const node=[...el.querySelectorAll('p')][0].firstChild;
