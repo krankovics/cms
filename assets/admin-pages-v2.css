@@ -1,5 +1,5 @@
 /* comesy Admin v2 content components */
-body.comesy-admin .ui-page{max-width:1400px;margin:auto;padding:26px 30px 50px;min-width:0}
+body.comesy-admin .ui-page{width:100%;max-width:1860px;margin:0 auto;padding:28px clamp(18px,2.1vw,36px) 60px;min-width:0}
 body.comesy-admin .ui-page-header{margin-bottom:18px}
 body.comesy-admin .ui-page .ui-panel{margin:0;min-width:0}
 body.comesy-admin .ui-notice{padding:12px 15px;margin:0 0 15px;border:1px solid var(--ui-border);border-radius:10px;font-size:13px}
