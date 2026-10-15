@@ -132,7 +132,7 @@ try{
  await page.locator('.ui-builder-row').last().locator('.ui-builder-row-header .ui-builder-grip').dragTo(
   page.locator('.ui-builder-row').first().locator('.ui-builder-row-header')
  );
- assert((await page.locator('.ui-builder-row').first().textContent()).includes('Dobozba húzott teszt'),'Row drag should preserve and move nested box content.');
+ assert.equal(await page.locator('.ui-builder-row').first().locator('.ui-builder-block input').first().inputValue(),'Dobozba húzott teszt','Row drag should preserve and move nested box input values.');
 
  await page.locator('#builder-new-type').selectOption('text');
  await page.locator('[data-builder-add]').click();
