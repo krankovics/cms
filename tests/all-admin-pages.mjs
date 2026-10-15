@@ -134,6 +134,8 @@ try{
  await page.locator('.ui-builder-row').last().locator('.ui-builder-row-header .ui-builder-grip').dragTo(
   page.locator('.ui-builder-row').first().locator('.ui-builder-row-header')
  );
+ console.log('ROW DRAG EVENTS',JSON.stringify(await page.evaluate(()=>window.rowDragEvents)));
+ console.log('ROW DRAG SOURCE',await page.locator('.ui-builder-row').first().locator('.ui-builder-block input').first().inputValue());
  assert.equal(await page.locator('.ui-builder-row').first().locator('.ui-builder-block input').first().inputValue(),'Dobozba húzott teszt','Row drag should preserve and move nested box input values.');
  await page.setViewportSize({width:1366,height:900});
 
