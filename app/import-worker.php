@@ -94,7 +94,7 @@ function imp_save_article(PDO $pdo,array $task,array $data,string $html):array{
     $pdo->prepare('DELETE FROM import_asset_refs WHERE article_id=?')->execute([$articleId]);
     $ref=$pdo->prepare('INSERT IGNORE INTO import_asset_refs(site_id,article_id,source_url,source_url_hash,kind,internal_link) VALUES(?,?,?,?,?,?)');
     $origin=strtolower((string)parse_url($source,PHP_URL_HOST));
-    if(!empty($data['og_image_url'])){
+    if(!empty($data['og_image_url'])&&strlen((string)$data['og_image_url'])<=1000){
      $img=(string)$data['og_image_url'];
      $ref->execute([$site,$articleId,$img,hash('sha256',$img),'image',(int)(strtolower((string)parse_url($img,PHP_URL_HOST))===$origin)]);
     }
@@ -108,9 +108,11 @@ function imp_save_article(PDO $pdo,array $task,array $data,string $html):array{
     foreach($data['blocks'] as $block)if(($block['type']??'')==='richhtml'){
      $found=cms_rich_references((string)($block['text']??''));
      foreach($found['images'] as $img){
+      if(strlen($img)>1000)continue; // Existing import_asset_refs URL column limit.
       $ref->execute([$site,$articleId,$img,hash('sha256',$img),'image',(int)(strtolower((string)parse_url($img,PHP_URL_HOST))===$origin)]);
      }
      foreach($found['links'] as $urlValue){
+      if(strlen($urlValue)>1000)continue;
       $ref->execute([$site,$articleId,$urlValue,hash('sha256',$urlValue),'link',(int)(strtolower((string)parse_url($urlValue,PHP_URL_HOST))===$origin)]);
      }
     }
