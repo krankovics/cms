@@ -25,7 +25,7 @@ function imp_queue_discovery(PDO $pdo,array $task,array $urls,bool $index):int{
   if($index&&$depth>=3)continue;
   $type=$index?'discover':'article';
   try{
-   $url=imp_validate_url((string)$url);
+   $url=imp_url_metadata((string)$url);
    if(parse_url($url,PHP_URL_HOST)!==parse_url($task['job_source'],PHP_URL_HOST))continue;
   }catch(Throwable $e){continue;}
   $queue->execute([$jobId,$site,$url,hash('sha256',$url),$type,$depth+1]);
