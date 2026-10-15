@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  };
  const setFeatured=url=>{
   if(!featured)return;
-  featured.value=url;updateFeatured();
+  featured.value=url?new URL(url,location.origin).href:'';updateFeatured();
   featured.dispatchEvent(new Event('input',{bubbles:true}));
   if(picker?.open)picker.close();
  };
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   let count=0;
   for(const button of mediaButtons){
    const visible=!q||normalizeMedia(button.dataset.featuredFilter).includes(q);
-   button.hidden=!visible;button.setAttribute('aria-pressed',String(button.dataset.featuredUrl===selected));
+   button.hidden=!visible;button.setAttribute('aria-pressed',String(new URL(button.dataset.featuredUrl,location.origin).href===selected));
    if(visible)count++;
   }
   const empty=document.getElementById('featured-picker-no-results');
