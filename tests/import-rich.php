@@ -14,7 +14,7 @@ $hydrated='<p><strong>Vastag kiemelés</strong> <em>dőlt rész</em> <mark>kieme
  .'<iframe src="https://www.youtube.com/watch?v=dQw4w9WgXcQ"></iframe>'
  .'<iframe src="https://open.spotify.com/episode/4XNPWueDhZLv2CJK1OrteA"></iframe>'
  .'<blockquote class="instagram-media"><a href="https://www.instagram.com/p/CG0UU3sFj_g/">Instagram</a></blockquote>';
-$state=['222'=>['b'=>['data'=>['title'=>'Gazdag tartalmú cikk','slug'=>'gazdag-tartalmu-cikk','body'=>[
+$state=['222'=>['b'=>['data'=>['title'=>'Gazdag tartalmú cikk','slug'=>'gazdag-tartalmu-cikk','thumbnailInfo'=>['altText'=>'Fotó az eseményről','caption'=>'Kiemelt képaláírás','photographer'=>'Szerző','source'=>'Archívum'],'body'=>[
  ['type'=>'text','details'=>[['type'=>'html','value'=>$hydrated]]]
 ]]]]];
 $encoded=json_encode($state,JSON_UNESCAPED_UNICODE|JSON_HEX_TAG|JSON_THROW_ON_ERROR);
@@ -23,6 +23,7 @@ $page='<!doctype html><html><head><meta property="og:title" content="Gazdag tart
  .'<script id="ng-state" type="application/json">'.$encoded.'</script></main></body></html>';
 $d=imp_extract($page,$url);
 check($d['featured_image']==='https://example.org/covers/hero.webp','OG featured image missing.');
+check($d['featured_meta']['alt']==='Fotó az eseményről'&&$d['featured_meta']['caption']==='Kiemelt képaláírás'&&str_contains($d['featured_meta']['credit'],'Szerző'),'Featured photograph alt/caption/credit missing.');
 check(imp_blocks_are_substantive($d['blocks']),'Narrative quality check must still pass.');
 $ops=$d['richtext']['ops'];
 check(count($ops)>=12,'Rich blocks were collapsed.');
