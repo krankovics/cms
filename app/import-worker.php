@@ -27,6 +27,9 @@ function imp_queue_discovery(PDO $pdo,array $task,array $urls,bool $index):int{
   try{
    $url=imp_url_metadata((string)$url);
    if(parse_url($url,PHP_URL_HOST)!==parse_url($task['job_source'],PHP_URL_HOST))continue;
+   // Home pages and feeds may legitimately appear in urlset sitemaps.
+   // Never enqueue them as articles just because they have a <loc>.
+   if(!$index&&!imp_is_article_candidate_url($url))continue;
   }catch(Throwable $e){continue;}
   $queue->execute([$jobId,$site,$url,hash('sha256',$url),$type,$depth+1]);
   if($queue->rowCount()){ $count++;if(!$index)$used++; }
@@ -130,6 +133,7 @@ function imp_process(PDO $pdo,array $task):array{
   $pdo->prepare("UPDATE import_items SET status='completed',claimed_at=NULL WHERE id=?")->execute([$task['id']]);
   return ['result'=>'discovered','response_bytes'=>strlen($result['body']),'quality_flags'=>[]];
  }
+ if(!imp_is_article_candidate_url($url))throw new RuntimeException('A forrás címlap, gyűjtőoldal vagy adatfolyam, nem cikk URL.');
  $result=imp_fetch($url);
  $contentType=strtolower((string)($result['headers']['content-type']??'text/html'));
  if(!str_contains($contentType,'html'))throw new RuntimeException('A forrás nem HTML-cikk.');
