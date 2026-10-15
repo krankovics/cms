@@ -58,7 +58,7 @@ $lastBeat=(int)($workerStatus['finished_at']??$workerStatus['started_at']??0); ?
 <section class="ui-panel ui-import-list"><h2>Importfeladatok</h2>
 <?php if(!$jobs):?><div class="ui-empty-state"><strong>Még nincs importfeladat.</strong><p>Hozz létre egy forrást, majd a feldolgozó worker lépésenként feldolgozza.</p></div><?php endif;?>
 <?php foreach($jobs as $job):?><article class="ui-import-job"><div class="ui-import-job-main"><strong><a href="/imports.php?site_id=<?=$site?>&amp;job_id=<?=(int)$job['id']?>"><?=h($job['mode'])?> · #<?=(int)$job['id']?></a></strong><small title="<?=h($job['source_url'])?>"><?=h($job['source_url'])?></small><span class="ui-import-state"><?=h($labels[$job['status']]??$job['status'])?></span>
-<p><?=number_format((int)$job['completed'],0,',',' ')?> kész · <?=(int)$job['skipped']?> kihagyva · <?=(int)$job['failed']?> hiba · <?=(int)$job['discovered']?> felderítve</p>
+<p><?=number_format((int)$job['completed'],0,',',' ')?> cikk kész · <?=(int)$job['skipped']?> cikk kihagyva · <?=(int)$job['failed']?> hiba · <?=(int)$job['discovered']?> felderített feladat</p>
 <?php if($job['last_error']):?><p class="ui-import-error"><?=h($job['last_error'])?></p><?php endif;?></div>
 <div class="ui-import-job-actions">
 <a class="ui-btn ui-btn-secondary" href="/import-report.php?site_id=<?=$site?>&amp;job_id=<?=(int)$job['id']?>">Minőségriport</a>
@@ -66,8 +66,11 @@ $lastBeat=(int)($workerStatus['finished_at']??$workerStatus['started_at']??0); ?
 <form method="post"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="site_id" value="<?=$site?>"><input type="hidden" name="job_id" value="<?=(int)$job['id']?>"><input type="hidden" name="action" value="<?=$job['status']==='paused'?'resume':(in_array($job['status'],['queued','running'],true)?'pause':'retry')?>"><button type="submit" class="ui-btn ui-btn-secondary"><?=$job['status']==='paused'?'Folytatás':(in_array($job['status'],['queued','running'],true)?'Szüneteltetés':'Sikertelenek újrapróbálása')?></button></form>
 <?php endif;?></div></article><?php endforeach;?>
 </section></div>
-<?php if($items):?><section class="ui-panel ui-import-items"><h2>Feldolgozási napló · #<?=(int)$selected?></h2>
-<div class="ui-import-items-list"><?php foreach($items as $item):?><article><div><strong><?=h($item['status'])?></strong><small><?=h($item['source_url'])?></small><?php if($item['last_error']):?><small class="ui-import-error"><?=h($item['last_error'])?></small><?php endif;?></div><?php if($item['article_id']):?><a href="/editor.php?id=<?=(int)$item['article_id']?>">Cikk megnyitása</a><?php endif;?></article><?php endforeach;?></div>
+<?php if($items):?><section class="ui-panel ui-import-items"><h2>Feldolgozási napló · #<?=(int)$selected?></h2><p class="ui-page-description">A sitemapek felderítése nem számít cikkimportnak. Csak a „Cikk elkészült” sorok hoztak létre szerkeszthető piszkozatot.</p>
+<div class="ui-import-items-list"><?php foreach($items as $item):
+$isDiscovery=$item['task_type']==='discover';
+$stateLabels=$isDiscovery?['pending'=>'Sitemap várakozik','processing'=>'Sitemap feldolgozása','completed'=>'Sitemap felderítve','failed'=>'Sitemaphiba','skipped'=>'Sitemap kihagyva']:['pending'=>'Cikk várakozik','processing'=>'Cikk feldolgozása','completed'=>'Cikk elkészült','failed'=>'Cikkhiba','skipped'=>'Cikk kihagyva'];
+?><article><div><strong><?=h($stateLabels[$item['status']]??$item['status'])?></strong><small><?=h($item['source_url'])?></small><?php if($item['last_error']):?><small class="ui-import-error"><?=h($item['last_error'])?></small><?php endif;?></div><?php if($item['article_id']):?><a href="/editor.php?id=<?=(int)$item['article_id']?>">Cikk megnyitása</a><?php endif;?></article><?php endforeach;?></div>
 </section><?php endif;?>
 </main><script>
 document.getElementById('import-mode')?.addEventListener('change',function(){
