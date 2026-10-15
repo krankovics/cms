@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  const picker=document.getElementById('featured-media-picker');
  const updateFeatured=()=>{
   const raw=featured?.value.trim()||'';
-  const valid=raw.startsWith('/media-file.php?id=')||/^https?:\\/\\//i.test(raw);
+  const valid=raw.startsWith('/media-file.php?id=')||raw.startsWith('https://')||raw.startsWith('http://');
   if(featuredPreview){featuredPreview.hidden=!valid;featuredPreview.src=valid?raw:'';}
   if(featuredEmpty)featuredEmpty.hidden=!!valid;
   if(featuredClear)featuredClear.hidden=!valid;
@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  featuredClear?.addEventListener('click',()=>setFeatured(''));
  const searchMedia=document.getElementById('featured-picker-search');
  const mediaButtons=[...document.querySelectorAll('.ui-picker-asset')];
- const normalizeMedia=value=>(value||'').toLocaleLowerCase('hu').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
+ const normalizeMedia=value=>(value||'').toLocaleLowerCase('hu').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
  const filterMedia=()=>{
   const q=normalizeMedia(searchMedia?.value.trim()||'');
   const selected=featured?.value||'';
