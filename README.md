@@ -41,10 +41,16 @@ Az [eredeti, 2026. október 14-i végleges kiadói CMS specifikáció](https://d
 - A PHP worker **külön indítandó a szerveren** (cron vagy supervisor). Példa cron, a telepítésen ellenőrizendő PHP CLI elérési úttal:
 
 ```cron
-* * * * * /usr/bin/php /home/appwrkrft/domains/cms.8media.hu/public_html/import-worker.php --max=5 >> /home/appwrkrft/comesy-import.log 2>&1
+* * * * * /bin/sh /home/appwrkrft/domains/cms.8media.hu/public_html/import-worker.sh --max=5 >> /home/appwrkrft/comesy-import.log 2>&1
 ```
 
-A worker kizárólag CLI-ból indítható; a `storage/import/worker.lock` fájlon keresztül megakadályozza az egymásra futó importfolyamatokat. Minden futás védett állapotjelzést ír a `storage/import/worker-status.json` fájlba, amelyet az Importközpont webhelyenkénti várakozó feladatszámmal együtt jelenít meg. Operátori ellenőrzéshez:
+A cron a `import-worker.sh` indítószkriptet használja, mert a DirectAdmin `/usr/bin/php` parancsa régebbi PHP-verzióra mutathat, amely elhasal a PHP 8-as `?->`, `match` és `str_contains` szintaxison. Az indító először PHP 8.3/8.4/8.2/8.1 CLI-ból választ, ellenőrzi a PDO MySQL, cURL, DOM, mbstring és iconv bővítményeket, majd csak ezután indítja a feldolgozást. Az importot **nem** indító ellenőrzés:
+
+```sh
+/bin/sh /home/appwrkrft/domains/cms.8media.hu/public_html/import-worker.sh --check
+```
+
+Ha nincs megfelelő PHP, a hiba a `/home/appwrkrft/comesy-import.log` naplóba kerül. A DirectAdmin cronparancsát kézzel kell átállítani, az FTP-telepítés ezt nem teszi meg. A worker kizárólag CLI-ból indítható; a `storage/import/worker.lock` fájlon keresztül megakadályozza az egymásra futó importfolyamatokat. Minden futás védett állapotjelzést ír a `storage/import/worker-status.json` fájlba, amelyet az Importközpont webhelyenkénti várakozó feladatszámmal együtt jelenít meg. Operátori ellenőrzéshez:
 
 ```sh
 /usr/bin/php /home/appwrkrft/domains/cms.8media.hu/public_html/import-worker.php --health

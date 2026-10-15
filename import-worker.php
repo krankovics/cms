@@ -2,6 +2,7 @@
 declare(strict_types=1);
 // Start this worker from server cron or supervisor only. HTTP access is forbidden.
 if(PHP_SAPI!=='cli'){http_response_code(403);exit('Forbidden');}
+if(PHP_VERSION_ID<80100){fwrite(STDERR,"comesy import worker requires PHP 8.1+ CLI. Current: ".PHP_VERSION.". Use import-worker.sh from cron.\n");exit(1);}
 require __DIR__.'/app/bootstrap.php';
 require __DIR__.'/app/import-worker.php';
 require __DIR__.'/app/import-health.php';
