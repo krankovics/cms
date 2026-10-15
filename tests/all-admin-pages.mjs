@@ -2,7 +2,7 @@ import {chromium} from 'playwright-core';
 import assert from 'node:assert/strict';
 const browser=await chromium.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
 const base='http://127.0.0.1:8765';
-const routes=['/','/articles.php','/editor.php','/taxonomy.php','/taxonomy.php?type=tag','/media.php','/sites.php','/users.php','/site-permissions.php','/profile.php','/settings.php','/migrate.php'];
+const routes=['/','/articles.php','/editor.php','/taxonomy.php','/taxonomy.php?type=tag','/media.php','/sites.php','/users.php','/site-permissions.php','/profile.php','/settings.php','/migrate.php','/ads.php'];
 try{
  const page=await browser.newPage({viewport:{width:390,height:844}});
  await page.goto(base+'/login.php');
@@ -47,7 +47,7 @@ try{
  await author.locator('[name=password]').fill('StrongTestingPwd!2026');
  await author.locator('button[type=submit]').click();
  await author.waitForURL(base+'/');
- for(const route of ['/users.php','/sites.php','/site-permissions.php','/migrate.php']){
+ for(const route of ['/users.php','/sites.php','/site-permissions.php','/migrate.php','/ads.php']){
   const response=await author.goto(base+route);
   assert.equal(response.status(),403,'Author must not access '+route);
  }
@@ -67,9 +67,11 @@ try{
    const response=await rolePage.goto(base+restricted);
    assert.equal(response.status(),403,role+' cannot open '+restricted);
   }
+  const adsResponse=await rolePage.goto(base+'/ads.php');
+  assert.equal(adsResponse.status(),200,role+' ad admin access check');
   const editorResponse=await rolePage.goto(base+'/editor.php');
   assert.equal(editorResponse.status(),role==='site_admin'?200:403,role+' editor access');
   await rolePage.close();
  }
- console.log('PASS: all 12 admin routes at 320, 390, 768, 1366, 1920 widths.');
+ console.log('PASS: all 13 admin routes at 320, 390, 768, 1366, 1920 widths.');
 }finally{await browser.close();}
