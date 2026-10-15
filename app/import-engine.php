@@ -1,6 +1,15 @@
 <?php
 declare(strict_types=1);
 /* Public-source import utilities. No arbitrary remote URL may bypass the public-IP check. */
+function imp_url_metadata(string $url):string{
+ $url=trim($url);
+ if(strlen($url)>1000||!filter_var($url,FILTER_VALIDATE_URL))throw new RuntimeException('Érvénytelen forrás URL.');
+ $p=parse_url($url);$host=(string)($p['host']??'');
+ if(!in_array(strtolower((string)($p['scheme']??'')),['http','https'],true)||isset($p['user'])||isset($p['pass'])||isset($p['port'])&&!in_array((int)$p['port'],[80,443],true))throw new RuntimeException('Nem támogatott URL.');
+ if(!$host||!preg_match('/^[a-z0-9.-]+$/i',$host)||str_ends_with($host,'.local')||$host==='localhost')throw new RuntimeException('Nem nyilvános forráshost.');
+ if(filter_var($host,FILTER_VALIDATE_IP,FILTER_FLAG_IPV4)&&!filter_var($host,FILTER_VALIDATE_IP,FILTER_FLAG_IPV4|FILTER_FLAG_NO_PRIV_RANGE|FILTER_FLAG_NO_RES_RANGE))throw new RuntimeException('Privát vagy fenntartott IP nem engedélyezett.');
+ return preg_replace('/#.*/','',$url);
+}
 function imp_validate_url(string $url):string{
  $url=trim($url);
  if(strlen($url)>1000||!filter_var($url,FILTER_VALIDATE_URL))throw new RuntimeException('Érvénytelen vagy túl hosszú forrás URL.');
@@ -109,7 +118,7 @@ function imp_extract(string $html,string $url):array{
    $text=(string)($node->getAttribute('data-src')?:$node->getAttribute('src'));
    if(!$text)continue;
    $text=imp_resolve_url($text,$url);
-   try{imp_validate_url($text);}catch(Throwable $e){continue;}
+   try{imp_url_metadata($text);}catch(Throwable $e){continue;}
   }
   if(!$text||isset($seen[$type.$text])||mb_strlen($text)>300000)continue;
   $seen[$type.$text]=true;$blocks[]=['type'=>$type,'text'=>$text];
@@ -135,7 +144,7 @@ function imp_discover(string $xml,string $base,int $max=100):array{
   $link=trim((string)($node->value??$node->textContent));
   if(!$link)continue;
   $link=imp_resolve_url($link,$base);
-  try{imp_validate_url($link);}catch(Throwable $e){continue;}
+  try{imp_url_metadata($link);}catch(Throwable $e){continue;}
   $urls[$link]=$link;if(count($urls)>=$max)break;
  }
  return ['urls'=>array_values($urls),'index'=>$root==='sitemapindex'];
