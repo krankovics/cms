@@ -26,8 +26,24 @@ function ed_blocks($raw):array{
    foreach($delta['ops'] as $op){
     if(!is_array($op)||!array_key_exists('insert',$op))throw new RuntimeException('Érvénytelen szerkesztői művelet.');
     $insert=$op['insert'];
-    if(is_array($insert)){if(count($insert)!==1||!isset($insert['image'])||!is_string($insert['image'])||!filter_var($insert['image'],FILTER_VALIDATE_URL)||!in_array(parse_url($insert['image'],PHP_URL_SCHEME),['https','http'],true))throw new RuntimeException('Érvénytelen kép URL.');}
-    elseif(!is_string($insert))throw new RuntimeException('Érvénytelen szöveg.');
+    if(is_array($insert)){
+     if(count($insert)!==1)throw new RuntimeException('Érvénytelen beágyazott blokk.');
+     $kind=array_key_first($insert);$value=$insert[$kind];
+     if($kind==='image'&&is_string($value)){
+      if(!filter_var($value,FILTER_VALIDATE_URL)||!in_array(parse_url($value,PHP_URL_SCHEME),['http','https'],true))throw new RuntimeException('Érvénytelen kép URL.');
+     }elseif($kind==='cmsFigure'&&is_array($value)){
+      if(!filter_var($value['src']??'',FILTER_VALIDATE_URL)||!in_array(parse_url($value['src'],PHP_URL_SCHEME),['http','https'],true)||mb_strlen((string)($value['caption']??''))>2000||mb_strlen((string)($value['alt']??''))>500)throw new RuntimeException('Érvénytelen képaláírás vagy kép.');
+     }elseif($kind==='cmsTable'&&is_array($value)){
+      $rows=$value['rows']??null;
+      if(!is_array($rows)||count($rows)>60)throw new RuntimeException('Túl nagy táblázat.');
+      foreach($rows as $row){if(!is_array($row)||count($row)>15)throw new RuntimeException('Érvénytelen táblázatsor.');
+       foreach($row as $cell)if(!is_array($cell)||mb_strlen((string)($cell['text']??''))>2000)throw new RuntimeException('Túl hosszú táblázatcella.');
+      }
+     }elseif($kind==='cmsEmbed'&&is_array($value)){
+      $embedUrl=(string)($value['url']??'');$provider=(string)($value['provider']??'');
+      if(!filter_var($embedUrl,FILTER_VALIDATE_URL)||!in_array(parse_url($embedUrl,PHP_URL_SCHEME),['http','https'],true)||!in_array($provider,['youtube','instagram','facebook','spotify','vimeo','soundcloud','apple-podcasts','tiktok','x'],true))throw new RuntimeException('Érvénytelen média-beágyazás.');
+     }else throw new RuntimeException('Nem támogatott beágyazott blokk.');
+    }elseif(!is_string($insert))throw new RuntimeException('Érvénytelen szöveg.');
    }
   }
   $out[]=['type'=>$b['type'],'text'=>$text];
