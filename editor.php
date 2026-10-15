@@ -41,7 +41,7 @@ function ed_blocks($raw):array{
       }
      }elseif($kind==='cmsEmbed'&&is_array($value)){
       $embedUrl=(string)($value['url']??'');$provider=(string)($value['provider']??'');
-      if(!filter_var($embedUrl,FILTER_VALIDATE_URL)||!in_array(parse_url($embedUrl,PHP_URL_SCHEME),['http','https'],true)||!in_array($provider,['youtube','instagram','facebook','spotify','vimeo','soundcloud','apple-podcasts','tiktok','x'],true))throw new RuntimeException('Érvénytelen média-beágyazás.');
+      if(!filter_var($embedUrl,FILTER_VALIDATE_URL)||!in_array(parse_url($embedUrl,PHP_URL_SCHEME),['http','https'],true)||!in_array($provider,['youtube','instagram','facebook','spotify','vimeo','soundcloud','apple-podcasts','tiktok','x','external','video','audio'],true))throw new RuntimeException('Érvénytelen média-beágyazás.');
      }else throw new RuntimeException('Nem támogatott beágyazott blokk.');
     }elseif(!is_string($insert))throw new RuntimeException('Érvénytelen szöveg.');
    }
