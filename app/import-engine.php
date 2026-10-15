@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/rich-content.php';
 /* Public-source import utilities. No arbitrary remote URL may bypass the public-IP check. */
 function imp_url_metadata(string $url):string{
  $url=trim($url);
@@ -205,6 +206,11 @@ function imp_jsonld_article_blocks(DOMXPath $xpath,string $title):array{
  return [];
 }
 function imp_blocks_are_substantive(array $blocks):bool{
+ if(count($blocks)===1&&($blocks[0]['type']??'')==='richhtml'){
+  $html=(string)($blocks[0]['text']??'');
+  $characters=cms_rich_content_chars($html);
+  return $characters>=200&&($characters>=280||preg_match_all('~<p\b~i',$html)>=2);
+ }
  $textLength=0;$longParagraphs=0;
  foreach($blocks as $block)if(($block['type']??'')==='paragraph'){
   $length=mb_strlen((string)($block['text']??''));
@@ -246,32 +252,19 @@ function imp_ng_state_article_blocks(DOMXPath $xpath,string $title,string $url):
    $canonicalPath=trim(rawurldecode((string)(parse_url($canonical,PHP_URL_PATH)??'')),'/');
    if($canonicalPath!==''&&$canonicalPath!==$path)continue;
   }
-  $blocks=[];
+  $richParts=[];
   foreach(array_slice($data['body'],0,200) as $component){
    if(!is_array($component))continue;
    foreach(array_slice((array)($component['details']??[]),0,30) as $detail){
     if(!is_array($detail)||!is_string($detail['value']??null))continue;
     $html=$detail['value'];
-    if($html===''||strlen($html)>300000||!preg_match('~<(?:p|h[2-4]|ul|ol|blockquote)\b~i',$html))continue;
-    $doc=new DOMDocument('1.0','UTF-8');
-    $before=libxml_use_internal_errors(true);
-    $ok=$doc->loadHTML('<?xml encoding="utf-8"?><body>'.$html.'</body>',LIBXML_NONET|LIBXML_NOWARNING|LIBXML_NOERROR);
-    libxml_clear_errors();libxml_use_internal_errors($before);
-    if(!$ok)continue;
-    $xp=new DOMXPath($doc);
-    foreach($xp->query('//p|//h2|//h3|//h4|//ul|//ol|//blockquote') as $node){
-     $tag=strtolower($node->nodeName);
-     if($tag==='p'&&$xp->evaluate('boolean(ancestor::ul or ancestor::ol or ancestor::blockquote)',$node))continue;
-     if(preg_match('/(?:related|recommend|sidebar|most-read|latest-news)/i',($node->parentNode instanceof DOMElement)?$node->parentNode->getAttribute('class'):''))continue;
-     $text=trim((string)preg_replace('/\s+/u',' ',$node->textContent));
-     if($text===''||mb_strlen($text)>300000)continue;
-     $type=match($tag){'h2','h3','h4'=>'heading','blockquote'=>'quote','ul','ol'=>'list',default=>'paragraph'};
-     if($type==='paragraph'&&mb_strlen($text)<20)continue;
-     $blocks[]=['type'=>$type,'text'=>$text];
-     if(count($blocks)>=200)break 3;
-    }
+    if($html===''||strlen($html)>300000||!preg_match('~<(?:p|h[2-6]|ul|ol|blockquote|img|figure|iframe|table|video|audio)\b~i',$html))continue;
+    $clean=cms_rich_sanitize_html($html,$url);
+    if($clean!=='')$richParts[]=$clean;
    }
   }
+  $clean=implode("\n",$richParts);
+  $blocks=$clean!==''?[['type'=>'richhtml','text'=>$clean]]:[];
   if(imp_blocks_are_substantive($blocks))return $blocks;
  }
  return [];
@@ -330,11 +323,11 @@ function imp_extract(string $html,string $url):array{
  $hydratedBody=imp_ng_state_article_blocks($xpath,$title,$url);
  // Remove navigation, recommendations and commerce widgets before scoring body candidates.
  $discard=[];
- foreach($xpath->query('//script|//style|//noscript|//iframe|//nav|//footer|//aside|//form|//*[@class or @id]') as $node){
+ foreach($xpath->query('//script|//style|//noscript|//nav|//footer|//aside|//form|//*[@class or @id]') as $node){
   if(!$node instanceof DOMElement)continue;
   $tag=strtolower($node->tagName);
   $attrs=strtolower($node->getAttribute('class').' '.$node->getAttribute('id'));
-  if(in_array($tag,['script','style','noscript','iframe','nav','footer','aside','form'],true)||
+  if(in_array($tag,['script','style','noscript','nav','footer','aside','form'],true)||
      preg_match('/(?:^|[\s_-])(?:related|recommended|recommendations|more-news|more-articles|latest-news|most-read|read-more|also-read|sidebar|newsletter|social-share|share-buttons|comments|advertisement|ad-slot|sticky-ad|cookie-banner)(?:$|[\s_-])/i',$attrs))$discard[]=$node;
  }
  foreach($discard as $node)if($node->parentNode)$node->parentNode->removeChild($node);
@@ -359,6 +352,13 @@ function imp_extract(string $html,string $url):array{
   if(count($blocks)>=200)break;
  }
  if($hydratedBody){$blocks=$hydratedBody;$article=null;}
+ elseif($article&&imp_blocks_are_substantive($blocks)){
+  // Preserve inline emphasis, images, captions, tables and allowed embeds
+  // instead of flattening article paragraphs to plain-text blocks.
+  $html=$doc->saveHTML($article);
+  $safe=cms_rich_sanitize_html((string)$html,$url);
+  if($safe!==''&&cms_rich_content_chars($safe)>=200)$blocks=[['type'=>'richhtml','text'=>$safe]];
+ }
  elseif(!imp_blocks_are_substantive($blocks)&&$structuredBody){$blocks=$structuredBody;$article=null;}
  if(!imp_blocks_are_substantive($blocks))
   throw new ImportContentRejected('Hiányos cikktörzs: nem található elég forrásból ellenőrizhető, önálló cikkbekezdés; csak cím és lead nem importálható teljes cikként.');
