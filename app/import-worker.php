@@ -103,6 +103,17 @@ function imp_save_article(PDO $pdo,array $task,array $data,string $html):array{
      if(!filter_var($img,FILTER_VALIDATE_URL))continue;
      $ref->execute([$site,$articleId,$img,hash('sha256',$img),'image',(int)(strtolower((string)parse_url($img,PHP_URL_HOST))===$origin)]);
     }
+    // Extract image and embed/link references embedded inside a full rich HTML
+    // body, not only legacy standalone image blocks.
+    foreach($data['blocks'] as $block)if(($block['type']??'')==='richhtml'){
+     $found=cms_rich_references((string)($block['text']??''));
+     foreach($found['images'] as $img){
+      $ref->execute([$site,$articleId,$img,hash('sha256',$img),'image',(int)(strtolower((string)parse_url($img,PHP_URL_HOST))===$origin)]);
+     }
+     foreach($found['links'] as $urlValue){
+      $ref->execute([$site,$articleId,$urlValue,hash('sha256',$urlValue),'link',(int)(strtolower((string)parse_url($urlValue,PHP_URL_HOST))===$origin)]);
+     }
+    }
     foreach(($data['links']??[]) as $link){
      if(!is_array($link)||!isset($link['url']))continue;
      $urlValue=(string)$link['url'];if(!filter_var($urlValue,FILTER_VALIDATE_URL))continue;
@@ -151,7 +162,7 @@ function imp_process(PDO $pdo,array $task):array{
   'result'=>$saved['status']==='skipped'?'unchanged':'imported',
   'response_bytes'=>strlen($result['body']),
   'block_count'=>count($data['blocks']),
-  'image_count'=>count(array_filter($data['blocks'],fn($b)=>($b['type']??'')==='image')),
+  'image_count'=>imp_rich_images($data['blocks']),
   'link_count'=>count($data['links']??[]),
   'quality_flags'=>imp_quality_flags($data)
  ];
@@ -176,12 +187,22 @@ function imp_store_metrics(PDO $pdo,array $task,array $stats,int $durationMs):vo
   json_encode(array_slice(array_values(array_unique(array_map('strval',$flags))),0,20),JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR)
  ]);
 }
+function imp_rich_images(array $blocks):int{
+ $images=[];
+ foreach($blocks as $b){
+  if(($b['type']??'')==='image'&&!empty($b['text']))$images[(string)$b['text']]=true;
+  elseif(($b['type']??'')==='richhtml'){
+   foreach(cms_rich_references((string)($b['text']??''))['images'] as $src)$images[$src]=true;
+  }
+ }
+ return count($images);
+}
 function imp_quality_flags(array $article):array{
  $flags=[];
  if(mb_strlen(trim((string)($article['lead']??'')))<60)$flags[]='short_lead';
  if(count($article['blocks']??[])<3)$flags[]='few_blocks';
- if(!count(array_filter($article['blocks']??[],fn($b)=>($b['type']??'')==='image')))$flags[]='no_images';
- if(!count(array_filter($article['blocks']??[],fn($b)=>($b['type']??'')==='heading')))$flags[]='no_headings';
+ if(imp_rich_images($article['blocks']??[])===0)$flags[]='no_images';
+ if(!count(array_filter($article['blocks']??[],fn($b)=>($b['type']??'')==='heading'||(($b['type']??'')==='richhtml'&&preg_match('~<h[2-6]\\b~i',(string)($b['text']??''))))))$flags[]='no_headings';
  return $flags;
 }
 function imp_work_once(PDO $pdo):bool{
