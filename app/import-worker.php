@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/import-engine.php';
+require_once __DIR__.'/import-media.php';
 function imp_requeue_orphaned(PDO $pdo):void{
  $pdo->exec("UPDATE import_items i JOIN import_jobs j ON j.id=i.job_id SET i.status='pending',i.available_at=NOW(),i.claimed_at=NULL WHERE i.status='processing' AND i.claimed_at<DATE_SUB(NOW(),INTERVAL 20 MINUTE) AND j.status IN ('running','queued')");
 }
@@ -48,7 +49,15 @@ function imp_snapshot(string $raw,int $site,int $job):string{
 function imp_save_article(PDO $pdo,array $task,array $data,string $html):array{
  $source=$task['source_url'];$site=(int)$task['site_id'];$actor=$task['created_by']?(int)$task['created_by']:null;
  $urlHash=hash('sha256',$source);$contentHash=hash('sha256',$html);
- $json=json_encode($data['blocks'],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
+ $data['media_sources']=imp_rich_media_urls($data['richtext']??['ops'=>[]],(string)($data['featured_image']??''));
+ // Preserve a complete editable Delta; only import when the parsed source
+ // carries actual rich content. The former plain block fallback still works.
+ $rich=isset($data['richtext']['ops'])&&count($data['richtext']['ops'])>0;
+ if($rich){
+  imp_localize_article_images($pdo,$task,$data);
+  $stored=[['type'=>'richtext','text'=>json_encode($data['richtext'],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR)]];
+ }else{$stored=$data['blocks'];$data['media_warnings']=0;$data['media_copied']=0;}
+ $json=json_encode($stored,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
  $snapshot=imp_snapshot($html,$site,(int)$task['job_id']);
  $pdo->beginTransaction();
  try{
@@ -77,8 +86,8 @@ function imp_save_article(PDO $pdo,array $task,array $data,string $html):array{
      $q=$pdo->prepare("INSERT INTO articles(site_id,author_id,title,slug,`lead`,content_json,status) VALUES(?,?,?,?,?,?,'draft')");
      $q->execute([$site,$actor,$data['title'],$slug,$data['lead'],$json]);$articleId=(int)$pdo->lastInsertId();
     }
-    $q=$pdo->prepare('INSERT INTO article_meta(article_id,seo_description,canonical_url) VALUES(?,?,?) ON DUPLICATE KEY UPDATE seo_description=VALUES(seo_description),canonical_url=VALUES(canonical_url)');
-    $q->execute([$articleId,mb_substr($data['lead'],0,500),$source]);
+    $q=$pdo->prepare('INSERT INTO article_meta(article_id,seo_description,canonical_url,og_image_url) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE seo_description=VALUES(seo_description),canonical_url=VALUES(canonical_url),og_image_url=VALUES(og_image_url)');
+    $q->execute([$articleId,mb_substr($data['lead'],0,500),$source,(string)($data['featured_image']??'')]);
     $q=$pdo->prepare('INSERT IGNORE INTO article_sites(article_id,site_id) VALUES(?,?)');$q->execute([$articleId,$site]);
     $q=$pdo->prepare('SELECT COALESCE(MAX(revision_number),0)+1 FROM article_revisions WHERE article_id=?');$q->execute([$articleId]);$rev=(int)$q->fetchColumn();
     $q=$pdo->prepare("INSERT INTO article_revisions(article_id,editor_id,revision_number,title,`lead`,content_json,status) VALUES(?,?,?,?,?,?,'draft')");
@@ -94,6 +103,8 @@ function imp_save_article(PDO $pdo,array $task,array $data,string $html):array{
     $pdo->prepare('DELETE FROM import_asset_refs WHERE article_id=?')->execute([$articleId]);
     $ref=$pdo->prepare('INSERT IGNORE INTO import_asset_refs(site_id,article_id,source_url,source_url_hash,kind,internal_link) VALUES(?,?,?,?,?,?)');
     $origin=strtolower((string)parse_url($source,PHP_URL_HOST));
+    foreach(($data['media_sources']??[]) as $imageUrl)if(filter_var($imageUrl,FILTER_VALIDATE_URL))
+     $ref->execute([$site,$articleId,$imageUrl,hash('sha256',$imageUrl),'image',(int)(strtolower((string)parse_url($imageUrl,PHP_URL_HOST))===$origin)]);
     foreach($data['blocks'] as $block)if(($block['type']??'')==='image'){
      $img=(string)($block['text']??'');
      if(!filter_var($img,FILTER_VALIDATE_URL))continue;
@@ -149,7 +160,7 @@ function imp_process(PDO $pdo,array $task):array{
   'block_count'=>count($data['blocks']),
   'image_count'=>count(array_filter($data['blocks'],fn($b)=>($b['type']??'')==='image')),
   'link_count'=>count($data['links']??[]),
-  'quality_flags'=>imp_quality_flags($data)
+  'quality_flags'=>array_values(array_unique(array_merge(imp_quality_flags($data),!empty($data['media_warnings'])?['media_download_incomplete']:[])))
  ];
 }
 /**
