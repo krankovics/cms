@@ -142,7 +142,19 @@ function imp_rich_walk(DOMNode $node,string $base,array &$ops,int $depth=0):void
  }
  if($tag==='img'){
   $src=imp_rich_image_url($node,$base);
-  if($src){$ops[]=['insert'=>['cmsFigure'=>['src'=>$src,'alt'=>mb_substr($node->getAttribute('alt'),0,500),'caption'=>'']]];$ops[]=['insert'=>"\n"];}
+  $caption='';
+  // Some publishers put captions beside <img> rather than inside <figure>.
+  $container=$node->parentNode;
+  if($container instanceof DOMElement){
+   foreach($container->childNodes as $sibling){
+    if(!$sibling instanceof DOMElement||$sibling===$node)continue;
+    $marker=strtolower($sibling->getAttribute('class').' '.$sibling->tagName);
+    if(!preg_match('/caption|figcaption|photo-credit|photographer/',$marker))continue;
+    $value=trim((string)preg_replace('/\s+/u',' ',$sibling->textContent));
+    if(mb_strlen($value)>0&&mb_strlen($value)<1000){$caption=$value;break;}
+   }
+  }
+  if($src){$ops[]=['insert'=>['cmsFigure'=>['src'=>$src,'alt'=>mb_substr($node->getAttribute('alt'),0,500),'caption'=>$caption]]];$ops[]=['insert'=>"\n"];}
   return;
  }
  if($tag==='iframe'){
