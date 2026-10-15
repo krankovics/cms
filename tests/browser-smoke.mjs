@@ -77,6 +77,38 @@ try{
  await mobile.close();
  const admin=await browser.newPage({viewport:{width:1366,height:850},deviceScaleFactor:1});
  await login(admin,'platform_admin');
+ // Full rich-editor WYSIWYG retention and requested layout semantics.
+ await admin.goto(base+'/articles.php',{waitUntil:'networkidle'});
+ const richLink=admin.locator('a.ui-table-title',{hasText:'Szerkesztői gazdag tartalom próba'});
+ assert.equal(await richLink.count(),1,'Rich seeded article should appear in article list.');
+ await richLink.click();
+ await admin.waitForURL(/\/editor\.php\?id=/);
+ await admin.locator('.ed-rich-canvas').waitFor({state:'visible'});
+ assert(await admin.locator('.ui-editor-main .ed-seo').count()===1,'SEO belongs below article body inside main editor column.');
+ assert(await admin.locator('.ui-editor-aside .ed-seo').count()===0,'SEO cannot remain in narrow right-hand inspector.');
+ assert(await admin.locator('.ui-editor-aside a[href="/taxonomy.php"]').count()===0,'Redundant taxonomy shortcut must be removed.');
+ assert(await admin.locator('.ed-import-rich-preview').count()===0,'Inline full-height preview must not be mounted.');
+ assert(await admin.locator('.ed-rich-toolbar [aria-label="Félkövér"]').isVisible(),'Rich article must expose an actual formatting toolbar.');
+ const beforeHtml=await admin.locator('.ed-rich-canvas').innerHTML();
+ for(const item of ['<figure>','<figcaption>','<table>','<iframe'])assert(beforeHtml.includes(item),'Missing rich node before editing: '+item);
+ const popPromise=admin.waitForEvent('popup');
+ await admin.locator('#preview-button').click();
+ const popup=await popPromise;
+ await popup.waitForLoadState('domcontentloaded');
+ assert(await popup.locator('iframe[sandbox]').count()===1,'Preview must open in new tab with isolated iframe.');
+ assert((await popup.locator('h1').innerText()).includes('Szerkesztői gazdag tartalom próba'),'Preview must use unsaved article title.');
+ await popup.close();
+ await admin.locator('.ed-rich-canvas').evaluate(el=>{
+  const node=[...el.querySelectorAll('p')][0].firstChild;
+  const range=document.createRange();range.setStart(node,0);range.setEnd(node,7);
+  const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);
+ });
+ await admin.locator('.ed-rich-toolbar [aria-label="Félkövér"]').click();
+ assert((await admin.locator('.ed-rich-canvas').innerHTML()).includes('strong'),'Toolbar should edit formatted narrative inline.');
+ await Promise.all([admin.waitForURL(/saved=1/),admin.locator('.editor-save-button').click()]);
+ const afterHtml=await admin.locator('.ed-rich-canvas').innerHTML();
+ for(const item of ['<figcaption>','<table>','<iframe','<strong>'])assert(afterHtml.includes(item),'Rich content lost in editor save/reload: '+item);
+ assert(await admin.locator('.ed-rich-canvas').isVisible(),'Rich WYSIWYG must reopen after a save.');
  for(const [name,path] of [['articles','/articles.php'],['taxonomy','/taxonomy.php?type=tag&site_id=1'],['media','/media.php'],['users','/users.php']]){
   await admin.goto(base+path,{waitUntil:'networkidle'});
   await overflow(admin,'desktop '+name);

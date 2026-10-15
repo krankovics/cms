@@ -35,6 +35,7 @@ if($currentPage==='migrate.php')$currentTitle='Adatbázis-migráció';
 <link rel="stylesheet" href="/assets/admin-v2.css">
 <?php if(in_array($currentPage,['articles.php','taxonomy.php','media.php','users.php','sites.php'],true)):?><link rel="stylesheet" href="/assets/admin-pages-v2.css"><?php endif;?>
 <?php if(in_array($currentPage,['editor.php','sites.php','site-permissions.php','profile.php','settings.php','migrate.php'],true)):?><link rel="stylesheet" href="/assets/admin-secondary-v2.css"><?php endif;?>
+<link rel="stylesheet" href="/assets/admin-compact.css">
 <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="ui-icon-sprite" width="0" height="0" style="position:absolute;overflow:hidden">
  <symbol id="cs-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></symbol>
  <symbol id="cs-file" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H5V3zM14 3v5h5M8 13h8M8 17h6"/></symbol>
