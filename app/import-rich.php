@@ -146,9 +146,17 @@ function imp_rich_walk(DOMNode $node,string $base,array &$ops,int $depth=0):void
   return;
  }
  if($tag==='iframe'){
-  $embed=imp_rich_embed_url($node->getAttribute('src'),$base);
+  $source=$node->getAttribute('src');
+  $embed=imp_rich_embed_url($source,$base);
+  if(!$embed){try{$embed=['provider'=>'external','url'=>imp_url_metadata(imp_resolve_url($source,$base))];}catch(Throwable $e){}}
   if($embed){$ops[]=['insert'=>['cmsEmbed'=>$embed]];$ops[]=['insert'=>"\n"];}
   return;
+ }
+ if(in_array($tag,['video','audio'],true)){
+  $src=$node->getAttribute('src');
+  if(!$src){$source=$node->getElementsByTagName('source')->item(0);if($source)$src=$source->getAttribute('src');}
+  try{$src=imp_url_metadata(imp_resolve_url($src,$base));}catch(Throwable $e){return;}
+  $ops[]=['insert'=>['cmsEmbed'=>['provider'=>$tag,'url'=>$src]]];$ops[]=['insert'=>"\n"];return;
  }
  if($tag==='blockquote'&&preg_match('/instagram-media|twitter-tweet|tiktok-embed|fb-post/',$classes)){
   foreach($node->getElementsByTagName('a') as $link){$embed=imp_rich_embed_url($link->getAttribute('href'),$base);if($embed){$ops[]=['insert'=>['cmsEmbed'=>$embed]];$ops[]=['insert'=>"\n"];return;}}
@@ -164,6 +172,13 @@ function imp_rich_walk(DOMNode $node,string $base,array &$ops,int $depth=0):void
   }
   if($rows){$ops[]=['insert'=>['cmsTable'=>['rows'=>$rows]]];$ops[]=['insert'=>"\n"];}
   return;
+ }
+ // Pictures and hosted players nested inside paragraphs must retain position.
+ if($tag==='p'&&$node->getElementsByTagName('img')->length){
+  foreach($node->childNodes as $child)if($child instanceof DOMElement){
+   if(in_array(strtolower($child->tagName),['img','figure','iframe','video','audio'],true))imp_rich_walk($child,$base,$ops,$depth+1);
+  }
+  // Preserve narrative text around media as a separate paragraph.
  }
  if(in_array($tag,['p','h1','h2','h3','h4','h5','h6','li','blockquote'],true)){
   if($tag==='li'&&$node->parentNode instanceof DOMElement&&strtolower($node->parentNode->tagName)==='ul')$list='bullet';
