@@ -47,4 +47,5 @@ function imp_localize_article_images(PDO $pdo,array $task,array &$data):void{
  $data['featured_image']=$map[$featured]??$featured;
  $data['media_warnings']=$failed;
  $data['media_copied']=count($map);
+ $data['media_resolved']=$map;
 }
