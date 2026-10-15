@@ -324,6 +324,14 @@ function imp_extract(string $html,string $url):array{
  $hydratedBody=imp_ng_state_article_blocks($xpath,$title,$url);
  $richRecord=imp_rich_ng_data($xpath,$title,$url);
  $richSource=$richRecord?imp_rich_ng_html($richRecord):'';
+ $thumb=$richRecord['thumbnailInfo']??[];
+ if(!is_array($thumb))$thumb=[];
+ $featuredMeta=[
+  'src'=>$featuredImage,
+  'alt'=>mb_substr((string)($thumb['altText']??$thumb['title']??''),0,500),
+  'caption'=>mb_substr((string)($thumb['caption']??''),0,2000),
+  'credit'=>mb_substr(trim((string)($thumb['photographer']??'').(!empty($thumb['source'])?' · '.(string)$thumb['source']:'')),0,500)
+ ];
  // Remove navigation, recommendations and commerce widgets before scoring body candidates.
  $discard=[];
  foreach($xpath->query('//script|//style|//noscript|//iframe|//nav|//footer|//aside|//form|//*[@class or @id]') as $node){
@@ -374,7 +382,7 @@ function imp_extract(string $html,string $url):array{
   if(count($links)>=500)break;
  }
  $date=trim((string)$xpath->evaluate('string(//meta[@property="article:published_time"]/@content)'));
- return ['title'=>mb_substr($title,0,500),'lead'=>mb_substr($lead,0,10000),'blocks'=>$blocks,'richtext'=>$richDelta,'featured_image'=>$featuredImage,'links'=>array_values($links),'source_url'=>$url,'published_at'=>$date];
+ return ['title'=>mb_substr($title,0,500),'lead'=>mb_substr($lead,0,10000),'blocks'=>$blocks,'richtext'=>$richDelta,'featured_image'=>$featuredImage,'featured_meta'=>$featuredMeta,'links'=>array_values($links),'source_url'=>$url,'published_at'=>$date];
 }
 function imp_discover(string $xml,string $base,int $max=100):array{
  if(!class_exists(XMLReader::class))throw new RuntimeException('Nagy sitemap importjához a PHP XMLReader bővítmény szükséges.');
