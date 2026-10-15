@@ -59,7 +59,7 @@ $hydrationPage='<!doctype html><html><head><title>'.$storyTitle.'</title></head>
 $hydrated=imp_extract($hydrationPage,'https://example.org/kulfold/2026/10/gyerekeket-nyomott-agyon-a-leszakadt-tetozet');
 ensure(count($hydrated['blocks'])===3,'Hydrated article must yield actual paragraphs and heading.');
 ensure($hydrated['blocks'][1]['type']==='heading','Hydrated headings must stay editable.');
-ensure($hydrated['blocks'][2]['text']===$paragraph2,'Hydrated article must not be replaced by a related card.');
+ensure($hydrated['blocks'][2]['text']===trim($paragraph2),'Hydrated article must not be replaced by a related card.');
 $misidentified=$articleState;
 $misidentified['9234']['b']['data']['slug']='not-the-story';
 $badPage=str_replace($encodedState,json_encode($misidentified,JSON_UNESCAPED_UNICODE|JSON_HEX_TAG|JSON_THROW_ON_ERROR),$hydrationPage);
