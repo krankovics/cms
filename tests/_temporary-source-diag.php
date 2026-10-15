@@ -30,3 +30,29 @@ foreach($xp->query('//text()') as $node){
  echo "NARRATIVE_NODE ".json_encode($parents,JSON_UNESCAPED_UNICODE)."\n";break;
 }
 echo "body selection: ".(imp_select_article_body($xp)?'found':'missing')."\n";
+
+foreach($xp->query('//script') as $script){
+ $text=(string)$script->textContent;
+ if(mb_stripos($text,'A diákok 6 és 12')===false)continue;
+ echo "SCRIPT containing narrative: id=".($script->attributes?->getNamedItem('id')?->nodeValue??'').
+   ' type='.($script->attributes?->getNamedItem('type')?->nodeValue??'').
+   ' len='.strlen($text)."\\n";
+ echo "SCRIPT first 180: ".substr($text,0,180)."\\n";
+ $idx=mb_stripos($text,'A diákok 6 és 12');
+ echo "SCRIPT preceding 115 bytes: ".substr($text,max(0,$idx-115),115)."\\n";
+ echo "SCRIPT succeeding 115 bytes: ".substr($text,$idx+80,115)."\\n";
+ foreach(['articleBody','articleText','body','content','html','data','paragraphs','__NUXT__','__NEXT_DATA__','window.__','bodyContent'] as $label){
+  echo " SCRIPT_MARKER ".json_encode($label)." ".(str_contains($text,$label)?'present':'absent')."\\n";
+ }
+ $plain=json_decode($text,true);
+ echo ' SCRIPT_JSON '.(is_array($plain)?'yes':'no')."\\n";
+ if(is_array($plain)){
+  $todo=[[$plain,'root']];$count=0;
+  while($todo&&$count++<200000){
+   [$val,$key]=array_pop($todo);
+   if(is_string($val)){if(mb_stripos($val,'A diákok 6 és 12')!==false)echo ' JSON_PATH '.$key.' length='.mb_strlen($val)."\\n";continue;}
+   if(!is_array($val))continue;
+   foreach($val as $k=>$v)if(is_array($v)||is_string($v))$todo[]=[$v,$key.'/'.$k];
+  }
+ }
+}
