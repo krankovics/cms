@@ -44,6 +44,14 @@ Az [eredeti, 2026. október 14-i végleges kiadói CMS specifikáció](https://d
 * * * * * /usr/bin/php /home/appwrkrft/domains/cms.8media.hu/public_html/import-worker.php --max=5 >> /home/appwrkrft/comesy-import.log 2>&1
 ```
 
+A worker kizárólag CLI-ból indítható; a `storage/import/worker.lock` fájlon keresztül megakadályozza az egymásra futó importfolyamatokat. Minden futás védett állapotjelzést ír a `storage/import/worker-status.json` fájlba, amelyet az Importközpont webhelyenkénti várakozó feladatszámmal együtt jelenít meg. Operátori ellenőrzéshez:
+
+```sh
+/usr/bin/php /home/appwrkrft/domains/cms.8media.hu/public_html/import-worker.php --health
+```
+
+Ez a parancs csak a legutóbbi workerjelet ellenőrzi, nem futtat importot. Sikeres friss jel esetén 0, hiányzó, elavult vagy hibás jel esetén 2 kilépési kóddal tér vissza. **Nem bizonyítja önmagában a cron tényleges beállítását**, ehhez a szerver cron/supervisor listáját és a naplókat is ellenőrizni kell. Az állapotjelző nem igényel új adatbázistáblát, de az importminőség-méréshez szükséges korábbi `import_item_metrics` migráció továbbra is külön, mentés után futtatandó.
+
 - Az API a `/api-v1.php?site=<site-slug>&resource=articles` és `resource=article&article=<slug>` végponton kizárólag publikált cikkeket ad vissza. A hiányzó frontend, keresés, oldalépítő, részletes tömegimport-riport és vizuális rekonstrukció a teljes P0 backlog része.
 
 **Fontos:** az új modulok adatbázistábláit a platformadmin által jóváhagyott `/migrate.php` futás hozza létre. A GitHub Actions FTP-kódtelepítés **nem** jelent automatikus éles adatbázis-migrációt vagy workerbeállítást. Mielőtt importot indítasz, ellenőrizni kell az éles szerveren a PHP `curl`, `dom` és `xml` kiegészítők meglétét, valamint a forrástartalom importjának jogszerűségét.
