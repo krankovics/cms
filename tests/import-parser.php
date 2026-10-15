@@ -12,9 +12,37 @@ $ogFixture=str_replace('<meta name="description" content="Rövid lead.">','<meta
 $ogResult=imp_extract($ogFixture,'https://example.org/story');
 ensure($ogResult['og_image_url']==='https://example.org/assets/cover.jpg','OG image must be resolved as a featured image.');
 
-ensure(count($result['blocks'])===4,'Expected four editable blocks.');
-ensure($result['blocks'][1]['type']==='heading','Section header should be a heading block.');
+ensure(count($result['blocks'])===1&&$result['blocks'][0]['type']==='richhtml','Narrative with formatting should stay in one round-trip-safe HTML block.');
+ensure(str_contains($result['blocks'][0]['text'],'<h2>Alcím</h2>'),'Section heading must keep semantic structure.');
 ensure(!str_contains(json_encode($result['blocks']),'alert(1)'),'Scripts must not be imported.');
+
+// Full fidelity fixture: inline emphasis, figure credits, allowed players and tables.
+$mediaHtml='<!doctype html><html><head><title>Gazdag cikk</title></head><body><article class="article-body">'
+ .'<p>'.$paragraph1.' <strong>Félkövér</strong> és <em>dőlt</em>, <mark>kiemelt</mark> szöveg <a href="/reszlet">hivatkozással</a>.</p>'
+ .'<figure><img data-src="/photos/report.jpg" alt="Képleírás" onerror="alert(1)"><figcaption>Fotó: Szerkesztőség</figcaption></figure>'
+ .'<p>'.$paragraph2.'</p>'
+ .'<table><caption>Összesítés</caption><thead><tr><th scope="col" colspan="2">Megnevezés</th></tr></thead><tbody><tr><td>A</td><td>123</td></tr></tbody></table>'
+ .'<iframe src="https://www.youtube.com/embed/abcdefghij" title="YouTube videó"></iframe>'
+ .'<iframe src="https://evil.example.net/embed/99"></iframe>'
+ .'<iframe src="javascript:alert(1)"></iframe><script>alert(2)</script>'
+ .'</article></body></html>';
+$media=imp_extract($mediaHtml,'https://example.org/articles/story');
+$rich=(string)$media['blocks'][0]['text'];
+ensure(($media['blocks'][0]['type']??'')==='richhtml','Formatted source must remain a rich HTML body.');
+foreach(['<strong>Félkövér</strong>','<em>dőlt</em>','<mark>kiemelt</mark>','<figcaption>Fotó: Szerkesztőség</figcaption>',
+ '<table>','<caption>Összesítés</caption>','<th colspan="2" scope="col">Megnevezés</th>',
+ 'https://www.youtube.com/embed/abcdefghij','https://example.org/photos/report.jpg',
+ 'https://example.org/reszlet'] as $required){
+ ensure(str_contains($rich,$required),'Required rich element lost: '.$required);
+}
+ensure(!str_contains($rich,'onerror')&&!str_contains($rich,'<script')&&!str_contains($rich,'evil.example.net')&&!str_contains($rich,'javascript:'),'Dangerous markup must not survive source import.');
+ensure(strpos($rich,'Félkövér')<strpos($rich,'Fotó:')&&strpos($rich,'Fotó:')<strpos($rich,'Összesítés')&&strpos($rich,'Összesítés')<strpos($rich,'youtube.com'),'Media and text must retain editorial order.');
+ensure(cms_rich_sanitize_html($rich)===$rich,'Editor/server sanitizing must be idempotent (lossless roundtrip).');
+$embedFixture='<iframe src="https://open.spotify.com/embed/episode/7QRXyU8DtYP8Fd1Xo3A0Yz"></iframe><iframe src="https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Fwatch"></iframe>';
+$safeEmbeds=cms_rich_sanitize_html($embedFixture);
+ensure(substr_count($safeEmbeds,'<iframe')===2,'Approved podcast/social embeds should be preserved.');
+ensure(cms_rich_sanitize_html('<img src="http://127.0.0.1/admin">')==='','Private IP resources must not render.');
+
 
 // Related-news card before the real story must never win over actual article content.
 $fullPage='<!doctype html><html><head><meta property="og:title" content="Árverési hír"></head><body><main>'
@@ -23,7 +51,7 @@ $fullPage='<!doctype html><html><head><meta property="og:title" content="Árver�
  .'<section class="related-news"><h2>További Kultúra híreink</h2><ul><li>Kapcsolódó ajánlat</li></ul></section>'
  .'</div></article></main></body></html>';
 $clean=imp_extract($fullPage,'https://example.org/story');
-ensure(count($clean['blocks'])===2,'Only the two narrative paragraphs should be retained.');
+ensure(count($clean['blocks'])===1&&$clean['blocks'][0]['type']==='richhtml','Article body should stay an editable rich HTML block.');
 ensure(!str_contains(json_encode($clean['blocks']),'Kapcsolódó ajánlat'),'Related articles must never contaminate the body.');
 $falsePositive='<!doctype html><html><head><meta property="og:title" content="Közérdekű esemény"></head><body>'
  .'<article><h2>További Kultúra híreink</h2><ul><li>Másik tartalom</li></ul></article></body></html>';
@@ -61,9 +89,9 @@ $hydrationPage='<!doctype html><html><head><title>'.$storyTitle.'</title></head>
  .'<h1>'.$storyTitle.'</h1><article class="related">Kapcsolódó hírek</article>'
  .'<script id="ng-state" type="application/json">'.$encodedState.'</script></main></body></html>';
 $hydrated=imp_extract($hydrationPage,'https://example.org/kulfold/2026/10/gyerekeket-nyomott-agyon-a-leszakadt-tetozet');
-ensure(count($hydrated['blocks'])===3,'Hydrated article must yield actual paragraphs and heading.');
-ensure($hydrated['blocks'][1]['type']==='heading','Hydrated headings must stay editable.');
-ensure($hydrated['blocks'][2]['text']===trim($paragraph2),'Hydrated article must not be replaced by a related card.');
+ensure(count($hydrated['blocks'])===1&&$hydrated['blocks'][0]['type']==='richhtml','Hydrated source must preserve all blocks as safe rich HTML.');
+ensure(str_contains($hydrated['blocks'][0]['text'],'<h2>A kutatás újabb részletei</h2>'),'Hydrated headings must stay editable.');
+ensure(str_contains($hydrated['blocks'][0]['text'],trim($paragraph2)),'Hydrated body must not be replaced by a related card.');
 $misidentified=$articleState;
 $misidentified['9234']['b']['data']['slug']='not-the-story';
 $badPage=str_replace($encodedState,json_encode($misidentified,JSON_UNESCAPED_UNICODE|JSON_HEX_TAG|JSON_THROW_ON_ERROR),$hydrationPage);
