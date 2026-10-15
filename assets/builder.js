@@ -97,6 +97,7 @@ function render(){
    },rows.length===1,'ui-builder-remove')
   );
   header.append(left,tools);section.append(header);
+  acceptDrop(header,['row'],source=>move(rows,source[0],ri));
   const grid=document.createElement('div');grid.className='ui-builder-box-grid';
   row.columns.forEach((box,ci)=>{
    const card=document.createElement('div');card.className='ui-builder-box';
