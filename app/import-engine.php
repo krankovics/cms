@@ -317,6 +317,14 @@ function imp_extract(string $html,string $url):array{
  $head=(string)$xpath->evaluate('string(//meta[@property="og:title"]/@content)');
  $title=trim($head?:$xpath->evaluate('string(//article//h1[1])')?:$xpath->evaluate('string(//h1[1])')?:$xpath->evaluate('string(//title)'));
  $lead=trim((string)$xpath->evaluate('string(//meta[@name="description"]/@content)'));
+ $cover=trim((string)$xpath->evaluate('string(//meta[@property="og:image:secure_url"]/@content)'));
+ if($cover==='')$cover=trim((string)$xpath->evaluate('string(//meta[@property="og:image"]/@content)'));
+ if($cover==='')$cover=trim((string)$xpath->evaluate('string(//meta[@name="twitter:image"]/@content)'));
+ if($cover!==''){
+  $cover=imp_resolve_url($cover,$url);
+  try{$cover=imp_url_metadata($cover);}catch(Throwable $e){$cover='';}
+ }
+
  // JSON-LD is gathered before the sanitizer removes script elements.
  $structuredBody=imp_jsonld_article_blocks($xpath,$title);
  $hydratedBody=imp_ng_state_article_blocks($xpath,$title,$url);
@@ -364,7 +372,7 @@ function imp_extract(string $html,string $url):array{
   if(count($links)>=500)break;
  }
  $date=trim((string)$xpath->evaluate('string(//meta[@property="article:published_time"]/@content)'));
- return ['title'=>mb_substr($title,0,500),'lead'=>mb_substr($lead,0,10000),'blocks'=>$blocks,'links'=>array_values($links),'source_url'=>$url,'published_at'=>$date];
+ return ['title'=>mb_substr($title,0,500),'lead'=>mb_substr($lead,0,10000),'blocks'=>$blocks,'links'=>array_values($links),'source_url'=>$url,'published_at'=>$date,'og_image_url'=>$cover];
 }
 function imp_discover(string $xml,string $base,int $max=100):array{
  if(!class_exists(XMLReader::class))throw new RuntimeException('Nagy sitemap importjához a PHP XMLReader bővítmény szükséges.');
