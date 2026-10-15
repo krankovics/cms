@@ -56,3 +56,26 @@ foreach($xp->query('//script') as $script){
   }
  }
 }
+
+$state=$xp->query('//script[@id="ng-state"]')->item(0);
+if($state){
+ $j=json_decode($state->textContent,true);
+ echo 'TOP KEYS COUNT '.count($j). "\\n";
+ foreach($j as $key=>$outer){
+  $data=$outer['b']['data']??null;
+  if(!is_array($data)||!array_key_exists('body',$data))continue;
+  echo "ENTRY $key DATA KEYS ".json_encode(array_keys($data),JSON_UNESCAPED_UNICODE)."\\n";
+  foreach(['title','headline','slug','url','canonicalUrl','contentType','lead','id','body'] as $f)if(isset($data[$f])){
+   $val=$data[$f];
+   echo "ENTRY FIELD $f ".(is_array($val)?'array count='.count($val):'len='.mb_strlen((string)$val).' starts='.mb_substr((string)$val,0,75))."\\n";
+  }
+  foreach(array_slice($data['body'],0,7) as $i=>$blk){
+   echo "BODY $i KEYS ".json_encode(array_keys((array)$blk))."\\n";
+   foreach(($blk['details']??[]) as $t=>$detail){
+    $v=(string)($detail['value']??'');
+    echo ' DETAIL '. $t.' KEYS '.json_encode(array_keys((array)$detail)).
+     ' value-length='.mb_strlen($v).' has-HTML='.(str_contains($v,'<p')?'true':'false').' starts='.substr($v,0,55)."\\n";
+   }
+  }
+ }
+}
