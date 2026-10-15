@@ -2,9 +2,10 @@
 declare(strict_types=1);
 require __DIR__.'/app/bootstrap.php';
 require __DIR__.'/app/layouts.php';
+require __DIR__.'/app/rich-content.php';
 header('Content-Type: text/html; charset=utf-8');
 header('X-Frame-Options: SAMEORIGIN');
-header("Content-Security-Policy: default-src 'none'; style-src 'self' 'unsafe-inline'; img-src https: http: data:; frame-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'");
+header("Content-Security-Policy: default-src 'none'; style-src 'self' 'unsafe-inline'; img-src https: http: data:; frame-src 'self' https://www.youtube-nocookie.com https://open.spotify.com https://player.vimeo.com https://www.instagram.com; frame-ancestors 'self'; base-uri 'none'; form-action 'none'");
 header('X-Robots-Tag: noindex, nofollow');
 $pdo=db();
 $siteSlug=trim((string)($_GET['site']??''));
@@ -61,15 +62,8 @@ function pub_blocks(string $json):void{
  foreach($blocks as $block){
   $type=(string)($block['type']??'');$text=(string)($block['text']??'');
   if($type==='richtext'){
-   $delta=json_decode($text,true);if(!is_array($delta))continue;
-   echo '<div class="pub-article-rich">';
-   foreach($delta['ops']??[] as $op){
-    if(is_string($op['insert']??null))echo nl2br(pub_h($op['insert']));
-    elseif(is_array($op['insert']??null)&&isset($op['insert']['image'])){
-     $src=(string)$op['insert']['image'];if(filter_var($src,FILTER_VALIDATE_URL)&&in_array(parse_url($src,PHP_URL_SCHEME),['http','https'],true))echo '<img loading="lazy" alt="" src="'.pub_h($src).'">';
-    }
-   }
-   echo '</div>';continue;
+   echo '<div class="pub-article-rich">'.cms_rich_delta($text).'</div>';
+   continue;
   }
   if($type==='image'&&filter_var($text,FILTER_VALIDATE_URL)&&in_array(parse_url($text,PHP_URL_SCHEME),['http','https'],true))echo '<figure><img loading="lazy" src="'.pub_h($text).'" alt=""></figure>';
   elseif($type==='heading')echo '<h2>'.pub_h($text).'</h2>';
