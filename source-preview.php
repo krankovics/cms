@@ -27,6 +27,12 @@ try{
  if($source!=='')$profile=cms_source_style_read((int)$article['site_id'],$source);
 }catch(PDOException $e){error_log('source preview map: '.$e->getMessage());}
 $css=(string)($profile['css']??'');
+$design=is_array($profile['site_design']??null)?$profile['site_design']:[];
+$logoUrl=(string)($design['logo_url']??'');
+$headerLinks=is_array($design['header_links']??null)?array_slice($design['header_links'],0,14):[];
+$footerLinks=is_array($design['footer_links']??null)?array_slice($design['footer_links'],0,10):[];
+$brandName=(string)($design['name']??($profile['host']??''));
+
 function sp_h(string $text):string{return htmlspecialchars($text,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
 function sp_content(string $json):string{
  $blocks=json_decode($json,true);if(!is_array($blocks))return '';
@@ -80,6 +86,20 @@ $og=(string)($article['og_image_url']??'');
 .cms-source-article blockquote{border-left:4px solid #314fd2;padding:12px 20px;background:#f6f7fa}
 .cms-source-article .cms-cover{width:100%;max-height:540px;object-fit:cover;margin-bottom:25px}
 @media(max-width:720px){.cms-source-article{margin:0;padding:20px 16px;box-shadow:none;font-size:16px}.cms-source-banner{font-size:11px}}
+
+.cms-source-header{width:100%;background:#fff;border-bottom:1px solid #e2e7ef;color:#1c2940}
+.cms-source-head-inner{max-width:1200px;margin:0 auto;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:22px;flex-wrap:wrap}
+.cms-source-brand{display:flex;align-items:center;gap:13px;text-decoration:none;color:inherit;font:800 24px/1.2 system-ui}
+.cms-source-brand img{width:auto;height:auto;max-height:55px;max-width:min(250px,65vw);object-fit:contain}
+.cms-source-menu{display:flex;align-items:center;gap:15px;flex-wrap:wrap}
+.cms-source-menu a,.cms-source-footer a{color:inherit;text-decoration:none}
+.cms-source-menu a{font:600 13px/1.4 system-ui}
+.cms-source-footer{margin-top:35px;padding:28px 22px;background:#17243e;color:#f2f5ff}
+.cms-source-footer-inner{max-width:1200px;margin:auto;display:grid;gap:16px}
+.cms-source-footer nav{display:flex;flex-wrap:wrap;gap:10px 22px}
+.cms-source-footer nav a{font:500 13px/1.5 system-ui}
+.cms-source-footer p{margin:0;font:13px/1.6 system-ui}
+@media(max-width:720px){.cms-source-head-inner{padding:13px 15px}.cms-source-menu{gap:10px}.cms-source-brand{font-size:19px}.cms-source-footer{margin-top:0}}
 </style>
 <?php if($css!==''):?><style id="source-design-style"><?=$css?></style><?php endif;?>
 </head><body>
@@ -87,9 +107,27 @@ $og=(string)($article['og_image_url']??'');
  <strong>PISZKOZAT ELŐNÉZET · NEM PUBLIKUS</strong>
  <span><?=($profile&&$css!=='')?'A forrás tipográfiájával és színeivel: '.sp_h($profile['host']):'Alap megjelenés'.($source!==''?' · forrásstílus még nincs rögzítve':'')?></span>
 </header>
+<?php if($design):?>
+<header class="cms-source-header"><div class="cms-source-head-inner">
+<a class="cms-source-brand" href="<?=sp_h($source?:'#')?>" target="_blank" rel="noopener noreferrer">
+<?php if($logoUrl!==''&&cms_rich_url($logoUrl)):?><img src="<?=sp_h(cms_rich_url($logoUrl))?>" alt="<?=sp_h($brandName)?>"><?php else:?><?=sp_h($brandName)?><?php endif;?></a>
+<?php if($headerLinks):?><nav class="cms-source-menu" aria-label="A forrásoldal főmenüje">
+<?php foreach($headerLinks as $item):if(!is_array($item))continue;?>
+<a href="<?=sp_h((string)($item['url']??'#'))?>" target="_blank" rel="noopener noreferrer"><?=sp_h((string)($item['label']??''))?></a>
+<?php endforeach;?></nav><?php endif;?>
+</div></header><?php endif;?>
 <article class="cms-source-article">
 <?php if($og&&cms_rich_url($og)):?><img class="cms-cover" src="<?=sp_h(cms_rich_url($og))?>" alt=""><?php endif;?>
 <h1><?=sp_h($title)?></h1>
 <?php if($lead!==''):?><p class="cms-source-lead"><?=nl2br(sp_h($lead))?></p><?php endif;?>
 <?=sp_content((string)$article['content_json'])?>
-</article></body></html>
+</article>
+<?php if($design):?><footer class="cms-source-footer"><div class="cms-source-footer-inner">
+<?php if($footerLinks):?><nav aria-label="A forrásoldal láblécmenüje">
+<?php foreach($footerLinks as $item):if(!is_array($item))continue;?>
+<a href="<?=sp_h((string)($item['url']??'#'))?>" target="_blank" rel="noopener noreferrer"><?=sp_h((string)($item['label']??''))?></a>
+<?php endforeach;?></nav><?php endif;?>
+<?php if(!empty($design['copyright'])):?><p><?=sp_h((string)$design['copyright'])?></p>
+<?php elseif(!empty($design['footer_text'])):?><p><?=sp_h((string)$design['footer_text'])?></p><?php endif;?>
+</div></footer><?php endif;?>
+</body></html>
