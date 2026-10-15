@@ -23,6 +23,8 @@ function tx_action(PDO $pdo,array $u,array $allowed,int $site,string $type):void
    if(count($found)!==count($ids))throw new RuntimeException('A kijelölésben nem elérhető elem is van.');
    $q=$pdo->prepare("DELETE FROM taxonomy_terms WHERE id IN ($placeholders)");
    $q->execute($ids);
+   $audit=$pdo->prepare('INSERT INTO audit_log(user_id,action,object_type,object_id,meta_json) VALUES(?,?,?,?,?)');
+   $audit->execute([$u['id'],'taxonomy.bulk_delete','term',null,json_encode(['site_id'=>$site,'type'=>$type,'count'=>count($ids)])]);
    $pdo->commit();return;
   }
   if($action!=='create'){
@@ -70,6 +72,8 @@ function tx_action(PDO $pdo,array $u,array $allowed,int $site,string $type):void
   }elseif($action==='delete'){
    $pdo->prepare('DELETE FROM taxonomy_terms WHERE id=?')->execute([$id]);
   }else throw new RuntimeException('Ismeretlen művelet.');
+  $audit=$pdo->prepare('INSERT INTO audit_log(user_id,action,object_type,object_id,meta_json) VALUES(?,?,?,?,?)');
+  $audit->execute([$u['id'],'taxonomy.'.$action,'term',$id,json_encode(['site_id'=>$site,'type'=>$type])]);
   $pdo->commit();
  }catch(Throwable $e){$pdo->rollBack();throw $e;}
 }
