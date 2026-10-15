@@ -2,6 +2,25 @@
 declare(strict_types=1);
 require dirname(__DIR__).'/app/import-engine.php';
 function ensure(bool $condition,string $message):void{if(!$condition)throw new RuntimeException($message);}
+
+require_once dirname(__DIR__).'/app/import-source-style.php';
+$styleSource='<html><head><style>body{font-family:Georgia,serif;color:#18243a;background-color:#ffffff}'
+ .'.article-body p{font-size:18px;line-height:1.7;color:#123456}.article-body h2{font-weight:700}'
+ .'.malicious{background-image:url(https://tracker.example/t)}'
+ .'p{background-image:url(https://tracker.example/t);font-size:19px}'
+ .'script{display:block}</style>'
+ .'<link rel="stylesheet" href="/assets/article.css"><link rel="stylesheet" href="https://other.example/style.css"></head></html>';
+$styleCss=cms_source_style_inline($styleSource);
+ensure(str_contains($styleCss,'.cms-source-article p')&&str_contains($styleCss,'font-size:18px'),'Source paragraph typography should map to isolated preview class.');
+ensure(str_contains($styleCss,'font-family:Georgia,serif'),'Source font family should be retained.');
+ensure(!str_contains($styleCss,'tracker.example')&&!str_contains($styleCss,'background-image')&&!str_contains($styleCss,'display:block'),'Unsafe or irrelevant CSS declarations must be excluded.');
+$styleLinks=cms_source_style_links($styleSource,'https://example.org/articles/post');
+ensure(count($styleLinks)===2&&$styleLinks[0]==='https://example.org/assets/article.css'&&$styleLinks[1]==='https://other.example/style.css','Source CSS and explicit HTTPS CDN styles should be discovered.');
+ensure(cms_source_style_path(1,'https://example.org/story')!==cms_source_style_path(2,'https://example.org/story'),'Source designs must be scoped to destination site.');
+ensure(cms_source_style_path(1,'https://example.org/story')===cms_source_style_path(1,'https://example.org/another'),'Source designs must be shared centrally by origin.');
+$danger=cms_source_style_extract_css('p{color:red;background-image:url("https://tracker.invalid/x")}@import url(https://bad.invalid/x);body{color:#343434}');
+ensure(!str_contains($danger,'bad.invalid')&&!str_contains($danger,'tracker.invalid'),'External stylesheet imports and tracking images must be removed.');
+
 $paragraph1=str_repeat('Ez az első valódi híranyag jól olvasható részleteket tartalmaz. ',3);
 $paragraph2=str_repeat('Ez a második bekezdés tényszerű kiegészítésekkel folytatja a történetet. ',3);
 $html='<!doctype html><html lang="hu"><head><title>Másodlagos cím</title><meta property="og:title" content="Valódi mintacikk"><meta name="description" content="Rövid lead."></head><body><nav>Menü</nav><article><h1>Valódi mintacikk</h1><p>'.$paragraph1.'</p><h2>Alcím</h2><p>'.$paragraph2.'</p><blockquote>Fontos idézet</blockquote><script>alert(1)</script></article></body></html>';

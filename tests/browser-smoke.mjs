@@ -84,6 +84,15 @@ try{
  await richLink.click();
  await admin.waitForURL(/\/editor\.php\?id=/);
  await admin.locator('.ed-rich-canvas').waitFor({state:'visible'});
+ const previewId=new URL(admin.url()).searchParams.get('id');
+ const sourcePreview=await admin.request.get(base+'/source-preview.php?id='+previewId);
+ assert.equal(sourcePreview.status(),200,'Authorized imported draft must have a private preview.');
+ const previewBody=await sourcePreview.text();
+ assert(previewBody.includes('font-size:23px'),'Source CSS profile should be applied to authenticated saved draft.');
+ assert(previewBody.includes('Fotó: Tesztszerkesztőség'),'Imported photo credit must survive source preview.');
+ assert(!previewBody.includes('<script>'),'Saved preview should not emit executable scripts.');
+ assert((await admin.locator('#source-style-label').innerText()).includes('source-example.invalid'),'Editor should recognize the original source design profile.');
+
  assert(await admin.locator('.ui-editor-main .ed-seo').count()===1,'SEO belongs below article body inside main editor column.');
  assert(await admin.locator('.ui-editor-aside .ed-seo').count()===0,'SEO cannot remain in narrow right-hand inspector.');
  assert(await admin.locator('.ui-editor-aside a[href="/taxonomy.php"]').count()===0,'Redundant taxonomy shortcut must be removed.');

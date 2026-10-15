@@ -187,4 +187,14 @@ $fixtureJson=json_encode([['type'=>'richhtml','text'=>$fixture]],JSON_UNESCAPED_
 $q=$pdo->prepare("INSERT INTO articles(site_id,author_id,title,slug,status,content_json) VALUES(?,?,?,'gazdag-editor-ci','draft',?)");
 $q->execute([$sites[0],$uid['editor'],'Szerkesztői gazdag tartalom próba',$fixtureJson]);
 ok((int)$pdo->lastInsertId()>0,'Rich HTML sample article should be inserted for browser smoke tests.');
+$richArticleId=(int)$pdo->lastInsertId();
+$sourcePage='https://source-example.invalid/story/important';
+$sourceDoc='<html><head><style>body{color:#121a34}p{font-size:23px;line-height:1.6}.article-body h2{color:#2a619a}</style></head><body><article><p>Mintaforrás</p></article></body></html>';
+require_once dirname(__DIR__).'/app/import-source-style.php';
+$sourceProfile=cms_source_style_collect($sites[0],$sourceDoc,$sourcePage);
+ok(str_contains((string)$sourceProfile['css'],'font-size:23px'),'Imported source style snapshot must preserve safe typography.');
+$insertMap=$pdo->prepare('INSERT INTO import_article_map(site_id,source_url,source_url_hash,article_id,source_hash) VALUES(?,?,?,?,?)');
+$insertMap->execute([$sites[0],$sourcePage,hash('sha256',$sourcePage),$richArticleId,hash('sha256',$sourceDoc)]);
+ok(cms_source_style_read($sites[0],$sourcePage)!==null,'Saved profile should be discoverable from mapped article origin.');
+
 echo "PASS: $tests database integration assertions.\n";
