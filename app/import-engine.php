@@ -62,28 +62,69 @@ function imp_get(string $url,int $maxBytes=3145728):array{
  }
  throw new RuntimeException('Túl sok HTTP-átirányítás.');
 }
+/** Determine robots.txt policy from matching User-agent groups.
+ * Longest matching path directive wins, with Allow winning ties.
+ */
+function imp_robots_permits(string $robots,string $path,string $agent='comesyimporter'):bool{
+ $groups=[];$agents=[];$rules=[];$hasDirectives=false;
+ $flush=static function()use(&$groups,&$agents,&$rules,&$hasDirectives):void{
+  if($agents)$groups[]=['agents'=>$agents,'rules'=>$rules];
+  $agents=[];$rules=[];$hasDirectives=false;
+ };
+ foreach(preg_split('/\\r?\\n/',$robots) as $line){
+  $line=trim(explode('#',$line,2)[0]);
+  if(!preg_match('/^([a-z-]+)\\s*:\\s*(.*)$/i',$line,$match))continue;
+  $field=strtolower($match[1]);$value=trim($match[2]);
+  if($field==='user-agent'){
+   if($hasDirectives)$flush();
+   if($value!=='')$agents[]=strtolower($value);
+   continue;
+  }
+  if(!in_array($field,['allow','disallow'],true)||!$agents)continue;
+  $hasDirectives=true;
+  if($value==='')continue; // Empty Disallow means nothing is blocked.
+  $rules[]=['type'=>$field,'pattern'=>$value];
+ }
+ $flush();
+ $agent=strtolower($agent);
+ $matching=[];
+ foreach($groups as $group){
+  foreach($group['agents'] as $name){
+   if($name!==$agent&&$name!=='*')continue;
+   $matching[$name][]=$group['rules'];
+  }
+ }
+ $chosen=$matching[$agent]??$matching['*']??[];
+ $best=-1;$allowed=true;
+ foreach($chosen as $groupRules)foreach($groupRules as $rule){
+  $pattern=$rule['pattern'];
+  $anchor=str_ends_with($pattern,'$');
+  if($anchor)$pattern=substr($pattern,0,-1);
+  $parts=explode('*',$pattern);
+  $regex='~^'.implode('.*',array_map(static fn(string $part):string=>preg_quote($part,'~'),$parts)).($anchor?'$':'').'~u';
+  if(!preg_match($regex,$path))continue;
+  $specificity=mb_strlen(str_replace('*','',$pattern));
+  $isAllow=$rule['type']==='allow';
+  if($specificity>$best||($specificity===$best&&$isAllow)){
+   $best=$specificity;$allowed=$isAllow;
+  }
+ }
+ return $allowed;
+}
 function imp_allowed_by_robots(string $url):bool{
  static $cache=[];
- $p=parse_url($url);$base=$p['scheme'].'://'.$p['host'];
+ $p=parse_url($url);$base=$p['scheme'].'://'.$p['host'].(isset($p['port'])?':'.$p['port']:'');
  if(!array_key_exists($base,$cache)){
   try{
    $response=imp_get($base.'/robots.txt',131072);
-   if($response['status']===404)$cache[$base]=[];
-   elseif($response['status']!==200)$cache[$base]=['/'];
-   else{
-    $rules=[];$active=false;
-    foreach(preg_split('/\r?\n/',$response['body']) as $line){
-     $line=trim(explode('#',$line,2)[0]);
-     if(preg_match('/^user-agent\s*:\s*(.*)$/i',$line,$m)){$active=trim(strtolower($m[1]))==='*'||trim(strtolower($m[1]))==='comesyimporter';continue;}
-     if($active&&preg_match('/^disallow\s*:\s*(.*)$/i',$line,$m)&&trim($m[1])!=='')$rules[]=trim($m[1]);
-    }
-    $cache[$base]=$rules;
-   }
-  }catch(Throwable $e){$cache[$base]=['/'];}
+   if($response['status']===404)$cache[$base]='';
+   elseif($response['status']!==200)$cache[$base]=false;
+   else $cache[$base]=$response['body'];
+  }catch(Throwable $e){$cache[$base]=false;}
  }
- $path=$p['path']??'/';
- foreach($cache[$base] as $rule)if(str_starts_with($path,$rule))return false;
- return true;
+ if($cache[$base]===false)return false; // Fail closed on robots errors.
+ $path=($p['path']??'/').(isset($p['query'])?'?'.$p['query']:'');
+ return imp_robots_permits((string)$cache[$base],$path);
 }
 function imp_fetch(string $url):array{
  imp_validate_url($url);
