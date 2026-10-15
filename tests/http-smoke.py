@@ -101,6 +101,16 @@ assert "A cikk és az új verzió mentve" in response, "Publishing from editor f
 list_page, _ = get(editor, "/articles.php?site_id=2&status=published")
 assert "Automatizált többwebhelyes ellenőrzés" in list_page, "Published article not visible in secondary site"
 
+# The unauthenticated publisher API exposes only published site-scoped content.
+api_body, _ = get(session(), "/api-v1.php?site=test-1&resource=articles&limit=10")
+api_json = json.loads(api_body)
+assert api_json["ok"], "Public site API did not return success"
+assert any(item["id"] == article_id for item in api_json["items"]), "Shared published article missing in public API"
+article_json = json.loads(get(session(), f"/api-v1.php?site=test-1&resource=article&article={article_id}")[0])
+assert article_json["article"]["content"], "Editable article content absent from public JSON"
+isolated_json = json.loads(get(session(), "/api-v1.php?site=test-2&resource=articles")[0])
+assert not any(item["id"] == article_id for item in isolated_json["items"]), "Public article API leaked another site's content"
+
 author = login("author")
 try:
     leaked, _ = get(author, f"/editor.php?id={article_id}")
