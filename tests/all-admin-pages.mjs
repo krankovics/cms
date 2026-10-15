@@ -129,9 +129,21 @@ try{
   page.locator('.ui-builder-row').last().locator('.ui-builder-box').last().locator('.ui-builder-box-header')
  );
  assert.equal(await page.locator('.ui-builder-row').last().locator('.ui-builder-box').last().locator('.ui-builder-block').count(),1,'Box drag must move the box with its content.');
+ await page.evaluate(()=>{
+  window.__rowDragTrace=[];
+  for(const type of ['dragstart','dragenter','dragover','drop','dragend']){
+   document.addEventListener(type,e=>{
+    const element=e.target;
+    if(window.__rowDragTrace.length>80)return;
+    window.__rowDragTrace.push({type,tag:element.tagName,cls:String(element.className).slice(0,90),
+      types:[...(e.dataTransfer?.types||[])],data:e.dataTransfer?.getData('application/x-comesy-builder')||''});
+   },true);
+  }
+ });
  await page.locator('.ui-builder-row').last().locator('.ui-builder-row-header .ui-builder-grip').dragTo(
   page.locator('.ui-builder-row').first().locator('.ui-builder-row-header')
  );
+ console.log('ROW DRAG TRACE',JSON.stringify(await page.evaluate(()=>window.__rowDragTrace)));
  assert.equal(await page.locator('.ui-builder-row').first().locator('.ui-builder-block input').first().inputValue(),'Dobozba húzott teszt','Row drag should preserve and move nested box input values.');
 
  await page.locator('#builder-new-type').selectOption('text');
