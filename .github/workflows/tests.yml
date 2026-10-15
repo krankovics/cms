@@ -40,6 +40,7 @@ jobs:
           node --check assets/builder.js
           node tests/theme-contrast.mjs
           php tests/import-parser.php
+          php tests/worker-health.php
       - name: Run isolated MySQL integration checks
         env:
           COMESY_TEST_DB: comesy_test
