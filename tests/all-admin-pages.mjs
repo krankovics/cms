@@ -24,6 +24,27 @@ try{
    assert.equal(await page.locator('main h1').count()>0,true,route+' title');
    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
    assert(overflow<=2,route+' horizontal overflow '+overflow+'px at '+width);
+   // Shared native dropdown presentation must work on every module.
+   const selects=page.locator('main select:not([multiple]):not([size]):not(.ql-header)');
+   if(await selects.count()){
+    const css=await selects.first().evaluate(el=>{
+     const s=getComputedStyle(el);return {appearance:s.appearance,arrow:s.backgroundImage,height:el.getBoundingClientRect().height};
+    });
+    assert.equal(css.appearance,'none',route+' missing unified select appearance at '+width);
+    assert(css.arrow.includes('svg'),route+' missing dropdown caret at '+width);
+    assert(css.height>=43,route+' select too small at '+width);
+   }
+   if(route==='/ads.php'){
+    const tabs=page.locator('.ui-ads-navigation .ui-tabbar a');
+    assert.equal(await tabs.count(),4,'Ads should expose all four tabs');
+    const rows=await tabs.evaluateAll(links=>links.map(el=>{
+     const r=el.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,height:r.height,display:getComputedStyle(el).display};
+    }));
+    assert(rows.every(r=>r.display==='inline-flex'&&r.height>=44),'Ad tabs must be styled as accessible click targets');
+    assert(rows.every((r,i)=>!i||r.left>=rows[i-1].right-1),'Ad tabs must not overlap');
+    const nav=page.locator('.ui-ads-navigation').first();
+    assert(await nav.isVisible(),'Ads site switcher and tabs must be visible together');
+   }
    if(['/builder.php','/audit.php','/editor.php'].includes(route)){
     const metrics=await page.evaluate(()=>{
      const main=document.querySelector('main');
@@ -52,6 +73,21 @@ try{
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
   assert(overflow<=2,'Dark theme overflow on '+route);
  }
+ // Navigation changes must retain the active module, selected site and correct tab highlight.
+ await page.goto(base+'/ads.php?site_id=1&kind=campaign',{waitUntil:'domcontentloaded'});
+ await page.getByRole('navigation',{name:'Hirdetéskezelési modulok'}).getByRole('link',{name:'Kreatívok'}).click();
+ assert(new URL(page.url()).searchParams.get('kind')==='creative','Ad tab navigation should select creatives');
+ assert.equal(await page.locator('.ui-ads-navigation .ui-tabbar [aria-current="page"]').count(),1,'Exactly one ad tab should be active');
+ await page.locator('.ui-ads-site-filter select[name="site_id"]').selectOption('2');
+ await page.waitForURL(/site_id=2/);
+ const selectedUrl=new URL(page.url());
+ assert.equal(selectedUrl.searchParams.get('kind'),'creative','Switching site must retain the selected tab');
+ assert.equal(selectedUrl.searchParams.get('site_id'),'2','Site filter must preserve selected site');
+ assert.equal(await page.locator('.ui-ads-site-filter select[name="site_id"]').inputValue(),'2','Site picker must retain selection');
+ await page.evaluate(()=>localStorage.setItem('comesy-theme','dark'));
+ await page.reload({waitUntil:'domcontentloaded'});
+ const darkSelector=await page.locator('.ui-ads-site-filter select').evaluate(el=>getComputedStyle(el).backgroundImage);
+ assert(darkSelector.includes('%23A8B9D2'),'Dark theme dropdown arrow should remain visible');
  await page.evaluate(()=>localStorage.setItem('comesy-theme','light'));
  await page.goto(base+'/sites.php');
  await page.locator('input[name=name]').fill('Teszt webhely D');
