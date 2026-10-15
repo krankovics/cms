@@ -11,7 +11,7 @@ function api_fail(int $status,string $message):never{
 $siteInput=trim((string)($_GET['site']??''));
 if($siteInput===''||strlen($siteInput)>190)api_fail(400,'Hiányzó vagy érvénytelen webhelyazonosító.');
 $resource=(string)($_GET['resource']??'articles');
-if(!in_array($resource,['articles','article','taxonomy'],true))api_fail(400,'Nem támogatott tartalomtípus.');
+if(!in_array($resource,['articles','article','taxonomy','search'],true))api_fail(400,'Nem támogatott tartalomtípus.');
 try{
  $cfg=require __DIR__.'/app/config.php';
  $pdo=new PDO('mysql:host='.($cfg['db_host']??'localhost').';dbname='.$cfg['db_name'].';charset=utf8mb4',$cfg['db_user'],$cfg['db_pass']??'',[
@@ -47,13 +47,25 @@ try{
   $q->execute([$sid,$kind]);$payload['terms']=$q->fetchAll();
  }else{
   $page=max(1,min(10000,(int)($_GET['page']??1)));$limit=max(1,min(50,(int)($_GET['limit']??20)));
+  $search=(string)($_GET['q']??'');
+  if($resource==='search'){
+   $search=trim($search);
+   if(mb_strlen($search)<2||mb_strlen($search)>100)api_fail(400,'A keresőkifejezés 2–100 karakter lehet.');
+  }
   $where=' FROM articles a LEFT JOIN users u ON u.id=a.author_id LEFT JOIN article_meta m ON m.article_id=a.id WHERE '.$scope.$pub;
+  $bindings=['site_primary'=>$sid,'site_shared'=>$sid];
+  if($resource==='search'){
+   $where.=" AND (a.title LIKE :q_title OR a.`lead` LIKE :q_lead)";
+   $escaped=addcslashes($search,'%_\\\\');
+   $bindings['q_title']='%'.$escaped.'%';
+   $bindings['q_lead']='%'.$escaped.'%';
+  }
   $q=$pdo->prepare('SELECT COUNT(*)'.$where);
-  $q->execute(['site_primary'=>$sid,'site_shared'=>$sid]);$total=(int)$q->fetchColumn();
+  $q->execute($bindings);$total=(int)$q->fetchColumn();
   $offset=($page-1)*$limit;
   $q=$pdo->prepare('SELECT a.id,a.title,a.slug,a.`lead`,a.published_at,a.updated_at,u.name author_name,m.og_image_url'.$where.' ORDER BY a.published_at DESC,a.id DESC LIMIT '.$limit.' OFFSET '.$offset);
-  $q->execute(['site_primary'=>$sid,'site_shared'=>$sid]);
-  $payload['items']=$q->fetchAll();$payload['pagination']=['page'=>$page,'limit'=>$limit,'total'=>$total,'pages'=>(int)ceil($total/$limit)];
+  $q->execute($bindings);
+  $payload['items']=$q->fetchAll();if($resource==='search')$payload['query']=$search;$payload['pagination']=['page'=>$page,'limit'=>$limit,'total'=>$total,'pages'=>(int)ceil($total/$limit)];
  }
  $json=json_encode($payload,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_THROW_ON_ERROR);
  $etag='"'.hash('sha256',$json).'"';header('ETag: '.$etag);
