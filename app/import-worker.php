@@ -77,7 +77,7 @@ function imp_save_article(PDO $pdo,array $task,array $data,string $html):array{
      $q=$pdo->prepare("INSERT INTO articles(site_id,author_id,title,slug,`lead`,content_json,status) VALUES(?,?,?,?,?,?,'draft')");
      $q->execute([$site,$actor,$data['title'],$slug,$data['lead'],$json]);$articleId=(int)$pdo->lastInsertId();
     }
-    $q=$pdo->prepare('INSERT INTO article_meta(article_id,seo_description,canonical_url,og_image_url) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE seo_description=VALUES(seo_description),canonical_url=VALUES(canonical_url),og_image_url=IF(VALUES(og_image_url)<>'',VALUES(og_image_url),og_image_url)');
+    $q=$pdo->prepare("INSERT INTO article_meta(article_id,seo_description,canonical_url,og_image_url) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE seo_description=VALUES(seo_description),canonical_url=VALUES(canonical_url),og_image_url=IF(VALUES(og_image_url)<>'',VALUES(og_image_url),og_image_url)");
     $q->execute([$articleId,mb_substr($data['lead'],0,500),$source,(string)($data['og_image_url']??'')]);
     $q=$pdo->prepare('INSERT IGNORE INTO article_sites(article_id,site_id) VALUES(?,?)');$q->execute([$articleId,$site]);
     $q=$pdo->prepare('SELECT COALESCE(MAX(revision_number),0)+1 FROM article_revisions WHERE article_id=?');$q->execute([$articleId]);$rev=(int)$q->fetchColumn();
