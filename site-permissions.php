@@ -24,6 +24,8 @@ try{
    $q=$pdo->prepare('INSERT INTO user_site_permissions(user_id,site_id,is_primary,can_tags,can_media) VALUES(?,?,?,?,?)');
    foreach($siteIds as $sid)if(in_array($sid,$primary,true)||in_array($sid,$tags,true)||in_array($sid,$media,true))
     $q->execute([$uid,$sid,(int)in_array($sid,$primary,true),(int)in_array($sid,$tags,true),(int)in_array($sid,$media,true)]);
+   $audit=$pdo->prepare('INSERT INTO audit_log(user_id,action,object_type,object_id,meta_json) VALUES(?,?,?,?,?)');
+   $audit->execute([$u['id'],'permission.update','user',$uid,json_encode(['site_ids'=>$primary,'tags'=>$tags,'media'=>$media],JSON_UNESCAPED_UNICODE)]);
    $pdo->commit();
   }catch(Throwable $e){$pdo->rollBack();throw $e;}
   header('Location: /site-permissions.php?user_id='.$uid.'&saved=1');exit;
