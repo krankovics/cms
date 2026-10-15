@@ -178,4 +178,13 @@ $q->execute([$sites[0],$uid['editor'],'Automatikusan időzített cikk']);
 $scheduledId=(int)$pdo->lastInsertId();
 $q=$pdo->prepare('SELECT status FROM articles WHERE id=?');$q->execute([$scheduledId]);
 ok($q->fetchColumn()==='scheduled','Due scheduled article must stay invisible until worker runs.');
+// Rich imported sample for the end-to-end visual-editor round-trip smoke test.
+$fixture='<p>Ez a gazdag szerkesztő automatikus próbája: <strong>félkövér szöveg</strong> és egy <em>kiemelt rész</em>.</p>'
+ .'<figure><img src="https://example.com/test.jpg" alt="Tesztfotó"><figcaption>Fotó: Tesztszerkesztőség</figcaption></figure>'
+ .'<table><tbody><tr><td>Első cella</td><td>Második cella</td></tr></tbody></table>'
+ .'<iframe src="https://www.youtube.com/embed/abcdefghij" title="Tesztvideó"></iframe>';
+$fixtureJson=json_encode([['type'=>'richhtml','text'=>$fixture]],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
+$q=$pdo->prepare("INSERT INTO articles(site_id,author_id,title,slug,status,content_json) VALUES(?,?,?,'gazdag-editor-ci','draft',?)");
+$q->execute([$sites[0],$uid['editor'],'Szerkesztői gazdag tartalom próba',$fixtureJson]);
+ok((int)$pdo->lastInsertId()>0,'Rich HTML sample article should be inserted for browser smoke tests.');
 echo "PASS: $tests database integration assertions.\n";
