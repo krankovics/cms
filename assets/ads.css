@@ -1,0 +1,32 @@
+/* comesy publisher advertisement manager */
+body.comesy-admin .ui-ads-page{max-width:1420px}
+body.comesy-admin .ui-ads-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin:16px 0 21px}
+body.comesy-admin .ui-ads-metric{background:var(--ui-surface);border:1px solid var(--ui-border);padding:16px 18px;border-radius:13px;display:grid;gap:5px}
+body.comesy-admin .ui-ads-metric strong{font-size:25px;letter-spacing:-.04em;font-variant-numeric:tabular-nums;color:var(--ui-text)}
+body.comesy-admin .ui-ads-metric span{font-size:12px;color:var(--ui-text-secondary)}
+body.comesy-admin .ui-ads-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr);align-items:start;gap:16px}
+body.comesy-admin .ui-ads-grid .ui-panel,body.comesy-admin .ui-ads-doc{padding:20px;border-radius:14px;border:1px solid var(--ui-border);background:var(--ui-surface);min-width:0}
+body.comesy-admin .ui-ads-editor h2,body.comesy-admin .ui-ads-doc h2{font-size:16px;margin:0 0 18px}
+body.comesy-admin .ui-ads-rows{display:grid;margin-top:10px}
+body.comesy-admin .ui-ads-row{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--ui-border)}
+body.comesy-admin .ui-ads-row strong{display:block;font-size:14px;overflow-wrap:anywhere}
+body.comesy-admin .ui-ads-row small{display:block;font-size:12px;color:var(--ui-text-secondary);margin-top:4px}
+body.comesy-admin .ui-ads-row a{font-size:12px;white-space:nowrap;color:var(--ui-primary);font-weight:700;text-decoration:none;min-height:36px;display:inline-flex;align-items:center}
+body.comesy-admin .ui-ads-form{display:grid;gap:13px}
+body.comesy-admin .ui-ads-form .ui-field{display:grid;gap:6px;font-size:12px;font-weight:690;color:var(--ui-text-secondary);min-width:0}
+body.comesy-admin .ui-ads-form input:not([type=checkbox]),body.comesy-admin .ui-ads-form select{min-height:45px;width:100%;min-width:0;font-size:16px;padding:10px 12px;background:var(--ui-surface-subtle);border:1px solid var(--ui-border);border-radius:9px;color:var(--ui-text)}
+body.comesy-admin .ui-ads-actions{display:flex;flex-wrap:wrap;gap:8px;padding-top:4px}
+body.comesy-admin .ui-ads-delete{padding-top:18px;margin-top:18px;border-top:1px solid var(--ui-border)}
+body.comesy-admin .ui-ads-doc{margin-top:18px}
+body.comesy-admin .ui-ads-doc p{font-size:13px;color:var(--ui-text-secondary);line-height:1.6}
+body.comesy-admin .ui-ads-doc code{display:block;overflow-x:auto;white-space:pre;padding:12px 15px;border-radius:9px;background:var(--ui-surface-subtle);font-size:12px}
+body.comesy-admin .ui-check{display:flex;align-items:center;gap:8px;font-size:13px}
+body.comesy-admin .ui-check input{height:19px;width:19px;accent-color:var(--ui-primary)}
+@media(max-width:1050px){body.comesy-admin .ui-ads-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:767px){
+ body.comesy-admin .ui-ads-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ body.comesy-admin .ui-ads-metric{padding:12px}
+ body.comesy-admin .ui-ads-metric strong{font-size:21px}
+ body.comesy-admin .ui-ads-grid .ui-panel,body.comesy-admin .ui-ads-doc{padding:15px}
+ body.comesy-admin .ui-ads-page .ui-tabbar{overflow-x:auto;white-space:nowrap}
+}
