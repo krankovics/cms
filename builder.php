@@ -33,14 +33,19 @@ $sites=$pdo->query('SELECT id,name,slug,settings_json FROM sites ORDER BY name')
 $sites=array_values(array_filter($sites,fn($s)=>in_array((int)$s['id'],$allowed,true)));
 $selected=null;foreach($sites as $s)if((int)$s['id']===$site)$selected=$s;
 $flags=cms_site_settings($selected??[]);
-$q=$pdo->prepare('SELECT * FROM site_templates WHERE site_id=? AND template_key=?');$q->execute([$site,$kind]);$record=$q->fetch();
-$layout=$record?json_decode((string)$record['draft_json'],true):cms_default_layout($kind);
-if(!is_array($layout))$layout=cms_default_layout($kind);
-$q=$pdo->prepare('SELECT r.id,r.revision_number,r.event,r.created_at,u.name editor FROM site_template_revisions r JOIN site_templates t ON t.id=r.template_id LEFT JOIN users u ON u.id=r.editor_id WHERE t.site_id=? AND t.template_key=? ORDER BY r.revision_number DESC LIMIT 15');
-$q->execute([$site,$kind]);$revisions=$q->fetchAll();
-$q=$pdo->prepare('SELECT id,label,url,position,active FROM site_menu_items WHERE site_id=? ORDER BY position,id');$q->execute([$site]);$menu=$q->fetchAll();
+$schemaReady=true;$record=null;$revisions=[];$menu=[];$layout=cms_default_layout($kind);
+try{
+ $q=$pdo->prepare('SELECT * FROM site_templates WHERE site_id=? AND template_key=?');$q->execute([$site,$kind]);$record=$q->fetch();
+ if($record){$parsed=json_decode((string)$record['draft_json'],true);if(is_array($parsed))$layout=$parsed;}
+ $q=$pdo->prepare('SELECT r.id,r.revision_number,r.event,r.created_at,u.name editor FROM site_template_revisions r JOIN site_templates t ON t.id=r.template_id LEFT JOIN users u ON u.id=r.editor_id WHERE t.site_id=? AND t.template_key=? ORDER BY r.revision_number DESC LIMIT 15');
+ $q->execute([$site,$kind]);$revisions=$q->fetchAll();
+ $q=$pdo->prepare('SELECT id,label,url,position,active FROM site_menu_items WHERE site_id=? ORDER BY position,id');$q->execute([$site]);$menu=$q->fetchAll();
+}catch(PDOException $e){
+ error_log('builder tables missing: '.$e->getMessage());$schemaReady=false;
+ $error='Az oldalépítő táblái még nem érhetők el. A szuperadmin futtassa az adatbázis-migrációt.';
+}
 $kindLabels=['home'=>'Nyitóoldal','section'=>'Rovatoldal','article'=>'Cikkoldal'];
-$readOnly=!$flags['builder_enabled'];
+$readOnly=!$flags['builder_enabled']||!$schemaReady;
 ?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Oldalépítő | comesy</title><link rel="stylesheet" href="/assets/ui.css"><link rel="stylesheet" href="/assets/builder.css"><script src="/assets/ui.js" defer></script><script src="/assets/builder.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
 <main class="ui-page ui-builder-page" id="main-content">
 <header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Vizuális megjelenés</p><h1 class="ui-page-title">Oldalépítő</h1><p class="ui-page-description">Szerkeszthető komponensek, reszponzív előnézet, külön mentés és publikálás.</p></div><div class="ui-page-actions"><a class="ui-btn ui-btn-secondary" href="/public.php?site=<?=h($selected['slug']??'')?>&amp;preview=1&amp;template=<?=h($kind)?>" target="_blank" rel="noopener">Előnézet ↗</a></div></header>
