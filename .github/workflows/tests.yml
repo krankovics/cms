@@ -29,7 +29,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: pdo_mysql, mbstring, iconv, fileinfo
+          extensions: pdo_mysql, mbstring, iconv, fileinfo, curl, dom, xml
           coverage: none
       - name: Lint PHP and JavaScript
         run: |
@@ -38,6 +38,7 @@ jobs:
           node --check assets/ui.js
           node --check assets/admin-pages-v2.js
           node tests/theme-contrast.mjs
+          php tests/import-parser.php
       - name: Run isolated MySQL integration checks
         env:
           COMESY_TEST_DB: comesy_test
