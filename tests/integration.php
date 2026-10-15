@@ -189,12 +189,22 @@ $q->execute([$sites[0],$uid['editor'],'Szerkesztői gazdag tartalom próba',$fix
 ok((int)$pdo->lastInsertId()>0,'Rich HTML sample article should be inserted for browser smoke tests.');
 $richArticleId=(int)$pdo->lastInsertId();
 $sourcePage='https://source-example.invalid/story/important';
-$sourceDoc='<html><head><style>body{color:#121a34}p{font-size:23px;line-height:1.6}.article-body h2{color:#2a619a}</style></head><body><article><p>Mintaforrás</p></article></body></html>';
+$sourceDoc='<html><head><meta property="og:site_name" content="Forrás Napilap"><style>body{color:#121a34}p{font-size:23px;line-height:1.6}.article-body h2{color:#2a619a}</style></head><body><header><a href="/"><img class="site-logo" src="/logo.png" alt="Forrás Napilap"></a><nav aria-label="primary"><a href="/belfold">Belföld</a><a href="/sport">Sport</a></nav></header><article><p>Mintaforrás</p></article><footer><nav><a href="/impresszum">Impresszum</a></nav><small>© 2026 Forrás Napilap</small></footer></body></html>';
 require_once dirname(__DIR__).'/app/import-source-style.php';
 $sourceProfile=cms_source_style_collect($sites[0],$sourceDoc,$sourcePage);
 ok(str_contains((string)$sourceProfile['css'],'font-size:23px'),'Imported source style snapshot must preserve safe typography.');
+ok(count($sourceProfile['site_design']['header_links']??[])===2&&($sourceProfile['site_design']['name']??'')==='Forrás Napilap','Imported site shell includes publisher identity and main menu.');
 $insertMap=$pdo->prepare('INSERT INTO import_article_map(site_id,source_url,source_url_hash,article_id,source_hash) VALUES(?,?,?,?,?)');
 $insertMap->execute([$sites[0],$sourcePage,hash('sha256',$sourcePage),$richArticleId,hash('sha256',$sourceDoc)]);
 ok(cms_source_style_read($sites[0],$sourcePage)!==null,'Saved profile should be discoverable from mapped article origin.');
+$reviewUrl='https://curated-source.invalid/story';
+$review= cms_source_style_collect($sites[1],$sourceDoc,$reviewUrl);
+$review['site_design']['name']='Jóváhagyott forráswebhely';
+$review['site_design_reviewed']=true;$review['site_design_reviewed_at']=gmdate('c');
+cms_source_style_write($sites[1],$reviewUrl,$review);
+$refreshed=cms_source_style_collect($sites[1],$sourceDoc,$reviewUrl,true);
+ok(($refreshed['site_design']['name']??'')==='Jóváhagyott forráswebhely','Reimport must not overwrite approved site shell overrides.');
+ok(!empty($refreshed['site_design_reviewed']),'A refreshed source profile retains its approval flag.');
+
 
 echo "PASS: $tests database integration assertions.\n";

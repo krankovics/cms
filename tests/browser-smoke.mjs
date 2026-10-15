@@ -90,8 +90,25 @@ try{
  const previewBody=await sourcePreview.text();
  assert(previewBody.includes('font-size:23px'),'Source CSS profile should be applied to authenticated saved draft.');
  assert(previewBody.includes('Fotó: Tesztszerkesztőség'),'Imported photo credit must survive source preview.');
+ assert(previewBody.includes('class="cms-source-header"')&&previewBody.includes('class="cms-source-footer"'),'Imported draft should render publisher header and footer.');
+ assert(previewBody.includes('Forrás Napilap')&&previewBody.includes('Belföld')&&previewBody.includes('Impresszum'),'Source logo identity, navigation and legal footer must be present.');
  assert(!previewBody.includes('<script>'),'Saved preview should not emit executable scripts.');
  assert((await admin.locator('#source-style-label').innerText()).includes('source-example.invalid'),'Editor should recognize the original source design profile.');
+ const siteDesignContext=await browser.newContext({viewport:{width:1366,height:850}});
+ const siteDesignEditor=await siteDesignContext.newPage();
+ await login(siteDesignEditor,'platform_admin');
+ await siteDesignEditor.goto(base+'/source-site-design.php?id='+previewId,{waitUntil:'networkidle'});
+ assert.equal(await siteDesignEditor.locator('input[name="name"]').inputValue(),'Forrás Napilap','Source site shell should be editable centrally.');
+ assert((await siteDesignEditor.locator('textarea[name="header_links"]').inputValue()).includes('Belföld'),'Global source main menu should be editable.');
+ await siteDesignEditor.locator('input[name="name"]').fill('Kézzel jóváhagyott kiadó');
+ await Promise.all([
+  siteDesignEditor.waitForURL(/saved=1/),
+  siteDesignEditor.getByRole('button',{name:'Arculat jóváhagyása és mentése'}).click()
+ ]);
+ const updatedPreview=await admin.request.get(base+'/source-preview.php?id='+previewId);
+ assert((await updatedPreview.text()).includes('Kézzel jóváhagyott kiadó'),'Approved publisher shell must persist on the saved draft.');
+ await siteDesignContext.close();
+
 
  assert(await admin.locator('.ui-editor-main .ed-seo').count()===1,'SEO belongs below article body inside main editor column.');
  assert(await admin.locator('.ui-editor-aside .ed-seo').count()===0,'SEO cannot remain in narrow right-hand inspector.');
@@ -106,6 +123,7 @@ try{
  await popup.waitForLoadState('domcontentloaded');
  assert(await popup.locator('iframe[sandbox]').count()===1,'Preview must open in new tab with isolated iframe.');
  assert((await popup.locator('h1').innerText()).includes('Szerkesztői gazdag tartalom próba'),'Preview must use unsaved article title.');
+ assert(await popup.locator('.cms-source-header').count()===1&&await popup.locator('.cms-source-footer').count()===1,'Unsaved article preview includes publisher global site shell.');
  await popup.close();
  await admin.locator('.ed-rich-canvas').evaluate(el=>{
   const node=[...el.querySelectorAll('p')][0].firstChild;

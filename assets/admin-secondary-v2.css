@@ -161,3 +161,8 @@ body.comesy-admin #source-style-label{font-size:11px;line-height:1.5;color:var(-
 body.comesy-admin .ui-source-style-status .ui-btn{min-height:35px;max-width:100%;font-size:11px;white-space:normal;line-height:1.35}
 body.comesy-admin .ui-source-style-status a.ui-btn{text-decoration:none;text-align:center}
 body.comesy-admin .ui-source-style-status button:disabled{cursor:wait;opacity:.7}
+
+body.comesy-admin .ui-source-design-summary{display:grid;gap:5px;border-radius:9px;background:var(--ui-surface);border:1px solid var(--ui-border);padding:10px;min-width:0}
+body.comesy-admin .ui-source-design-summary img{max-height:56px;max-width:190px;object-fit:contain;object-position:left center}
+body.comesy-admin .ui-source-design-summary strong{font-size:12px;overflow-wrap:anywhere}
+body.comesy-admin .ui-source-design-summary small{font-size:11px;color:var(--ui-text-secondary);line-height:1.4}

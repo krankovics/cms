@@ -2,7 +2,7 @@
 declare(strict_types=1);
 /**
  * Central, site-scoped source visual profiles for imported editorial articles.
- * Stores typography/colors/spacing extracted from approved CSS declarations,
+ * Stores typography/colors/spacing and a safe publisher header/footer structure,
  * never executable scripts, external fonts, imports, or untrusted full stylesheets.
  */
 function cms_source_style_path(int $site,string $url):string{
@@ -46,6 +46,9 @@ function cms_source_style_extract_css(string $css):string{
   'ul'=>'.cms-source-article ul',
   'ol'=>'.cms-source-article ol',
   'li'=>'.cms-source-article li',
+  'header'=>'.cms-source-header',
+  'footer'=>'.cms-source-footer',
+  'nav'=>'.cms-source-menu',
  ];
  $properties=['color'=>1,'background-color'=>1,'font-family'=>1,'font-size'=>1,'font-weight'=>1,
   'font-style'=>1,'line-height'=>1,'letter-spacing'=>1,'text-transform'=>1,'text-decoration'=>1,
@@ -60,11 +63,28 @@ function cms_source_style_extract_css(string $css):string{
    if($sel===''||preg_match('/[@*:>\[\]#~+]/',$sel))continue;
    // An article-specific selector is preferred; other site-wide rules are
    // retained only for body/html or simple semantic element selectors.
-   if(!preg_match('~(?:^|[\s.])(?:article|post|content|story|entry|body|text|cikk|main)(?:[\s_.-]|$)~i',$sel)&&
-     !preg_match('/^(?:html\s+)?(?:body|h[1-4]|p|a|figure|figcaption|blockquote|img|table|td|th|ul|ol|li)$/i',$sel))continue;
-   if(!preg_match('/(?:^|[\s>])(?:body|article|h[1-4]|p|a|figure|figcaption|blockquote|img|table|td|th|ul|ol|li)\s*$/i',$sel,$m))continue;
+   if(!preg_match('~(?:^|[\s.])(?:article|post|content|story|entry|body|text|cikk|main|header|footer|nav|brand|logo|site|page|menu|navbar)(?:[\s_.-]|$)~i',$sel)&&
+     !preg_match('/^(?:html\s+)?(?:body|header|footer|nav|h[1-4]|p|a|figure|figcaption|blockquote|img|table|td|th|ul|ol|li)$/i',$sel))continue;
+   // Most publishers style their global shell with .site-header,
+   // .main-nav, .footer class names rather than semantic tag selectors.
+   // Scope those classes strictly to the preview chrome; never apply globally.
+   if(!preg_match('/(?:article|post|story|entry|cikk)/i',$sel)){
+    if(preg_match('/(?:^|[.\s_-])(?:site[-_]?|page[-_]?|main[-_]?)?header(?:$|[\s_.-])/i',$sel)){
+     $mapped['.cms-source-header']=true;continue;
+    }
+    if(preg_match('/(?:^|[.\s_-])(?:main[-_]?|primary[-_]?)?(?:nav|navbar|menu)(?:$|[\s_.-])/i',$sel)){
+     $mapped['.cms-source-menu']=true;continue;
+    }
+    if(preg_match('/(?:^|[.\s_-])(?:site[-_]?|page[-_]?)?footer(?:$|[\s_.-])/i',$sel)){
+     $mapped['.cms-source-footer']=true;continue;
+    }
+   }
+   if(!preg_match('/(?:^|[\s>])(?:body|article|header|footer|nav|h[1-4]|p|a|figure|figcaption|blockquote|img|table|td|th|ul|ol|li)\s*$/i',$sel,$m))continue;
    $name=strtolower(trim($m[0]));
    if(!isset($targets[$name]))continue;
+   // Navbar links must not inherit broad article-anchor rules.
+   if($name==='a'&&preg_match('/(?:header|nav|menu)/i',$sel)){$mapped['.cms-source-header a']=true;continue;}
+   if($name==='a'&&preg_match('/footer/i',$sel)){$mapped['.cms-source-footer a']=true;continue;}
    $mapped[$targets[$name]]=true;
   }
   if(!$mapped)continue;
@@ -112,10 +132,25 @@ function cms_source_style_links(string $html,string $url):array{
  }
  return array_keys($links);
 }
-function cms_source_style_collect(int $site,string $html,string $url,bool $force=false):?array{
+/** Atomic, private snapshot update shared by imports and approved editor changes. */
+function cms_source_style_write(int $site,string $url,array $profile):void{
+ $path=cms_source_style_path($site,$url);
+ $profile['host']=strtolower((string)parse_url($url,PHP_URL_HOST));
+ $profile['site_id']=$site;
+ $dir=dirname($path);
+ if(!is_dir($dir)&&!mkdir($dir,0750,true)&&!is_dir($dir))throw new RuntimeException('A forrásstílusok tárolója nem írható.');
+ $tmp=tempnam($dir,'.source-');if(!$tmp)throw new RuntimeException('Forrásstílus ideiglenes fájl nem írható.');
+ try{
+  $json=json_encode($profile,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
+  if(file_put_contents($tmp,$json,LOCK_EX)===false)throw new RuntimeException('Forrásstílus mentési hiba.');
+  chmod($tmp,0640);
+  if(!rename($tmp,$path))throw new RuntimeException('Forrásstílus atomikus mentési hiba.');
+ }finally{if(is_file($tmp))@unlink($tmp);}
+}
+function cms_source_style_collect(int $site,string $html,string $url,bool $force=false,?string $homepageHtml=null):?array{
  $path=cms_source_style_path($site,$url);
  $previous=cms_source_style_read($site,$url);
- if(!$force&&$previous&&time()-(int)($previous['saved_at']??0)<604800)return $previous;
+ if(!$force&&$previous&&(int)($previous['version']??0)>=2&&isset($previous['site_design'])&&time()-(int)($previous['saved_at']??0)<604800)return $previous;
  $css=cms_source_style_inline($html);$count=0;
  foreach(cms_source_style_links($html,$url) as $href){
   try{
@@ -128,16 +163,23 @@ function cms_source_style_collect(int $site,string $html,string $url,bool $force
   if(strlen($css)>32000)break;
  }
  $css=substr($css,0,36000);
+ require_once __DIR__.'/import-site-design.php';
+ $design=cms_source_design_extract($html,$url);
+ $homeUrl=parse_url($url,PHP_URL_SCHEME).'://'.parse_url($url,PHP_URL_HOST).'/';
+ // Prefer the homepage's global shell when article pages omit lazy menus or footers.
+ $needsHome=(!$design['logo_url']||count($design['header_links'])<2||!$design['footer_links']);
+ if($homepageHtml!==null){
+  $design=cms_source_design_merge($design,cms_source_design_extract($homepageHtml,$homeUrl));
+ }elseif($needsHome&&!str_ends_with((string)parse_url($url,PHP_URL_HOST),'.invalid')){
+  try{
+   $homepage=imp_fetch($homeUrl,3145728);
+   if(str_contains(strtolower((string)($homepage['headers']['content-type']??'text/html')),'html'))
+    $design=cms_source_design_merge($design,cms_source_design_extract($homepage['body'],$homepage['url']));
+  }catch(Throwable $e){error_log('comesy source homepage shell: '.$e->getMessage());}
+ }
+  if(!empty($previous['site_design_reviewed'])&&is_array($previous['site_design']??null))$design=$previous['site_design'];
  $profile=['host'=>strtolower((string)parse_url($url,PHP_URL_HOST)),'site_id'=>$site,
-  'source_url'=>$url,'saved_at'=>time(),'css'=>$css,'css_files'=>$count,'version'=>1];
- $dir=dirname($path);
- if(!is_dir($dir)&&!mkdir($dir,0750,true)&&!is_dir($dir))throw new RuntimeException('A forrásstílusok tárolója nem írható.');
- $tmp=tempnam($dir,'.source-');if(!$tmp)throw new RuntimeException('Forrásstílus ideiglenes fájl nem írható.');
- try{
-  $json=json_encode($profile,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
-  if(file_put_contents($tmp,$json,LOCK_EX)===false)throw new RuntimeException('Forrásstílus mentési hiba.');
-  chmod($tmp,0640);
-  if(!rename($tmp,$path))throw new RuntimeException('Forrásstílus atomikus mentési hiba.');
- }finally{if(is_file($tmp))@unlink($tmp);}
+  'source_url'=>$url,'saved_at'=>time(),'css'=>$css,'css_files'=>$count,'site_design'=>$design,'site_design_reviewed'=>(bool)($previous['site_design_reviewed']??false),'site_design_reviewed_at'=>$previous['site_design_reviewed_at']??null,'version'=>2];
+ cms_source_style_write($site,$url,$profile);
  return $profile;
 }
