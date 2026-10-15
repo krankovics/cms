@@ -15,7 +15,7 @@ ensure(str_contains($styleCss,'.cms-source-article p')&&str_contains($styleCss,'
 ensure(str_contains($styleCss,'font-family:Georgia,serif'),'Source font family should be retained.');
 ensure(!str_contains($styleCss,'tracker.example')&&!str_contains($styleCss,'background-image')&&!str_contains($styleCss,'display:block'),'Unsafe or irrelevant CSS declarations must be excluded.');
 $styleLinks=cms_source_style_links($styleSource,'https://example.org/articles/post');
-ensure(count($styleLinks)===1&&$styleLinks[0]==='https://example.org/assets/article.css','Only same-host source CSS can be fetched.');
+ensure(count($styleLinks)===2&&$styleLinks[0]==='https://example.org/assets/article.css'&&$styleLinks[1]==='https://other.example/style.css','Source CSS and explicit HTTPS CDN styles should be discovered.');
 ensure(cms_source_style_path(1,'https://example.org/story')!==cms_source_style_path(2,'https://example.org/story'),'Source designs must be scoped to destination site.');
 ensure(cms_source_style_path(1,'https://example.org/story')===cms_source_style_path(1,'https://example.org/another'),'Source designs must be shared centrally by origin.');
 $danger=cms_source_style_extract_css('p{color:red;background-image:url("https://tracker.invalid/x")}@import url(https://bad.invalid/x);body{color:#343434}');
