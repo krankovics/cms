@@ -17,4 +17,11 @@ $sm=imp_discover($xml,'https://example.org/sitemap.xml');
 ensure($sm['urls']===['https://example.org/a'],'Sitemap URLs must be discovered.');
 try{imp_validate_url('http://127.0.0.1/private');throw new RuntimeException('SSRF localhost was accepted.');}
 catch(RuntimeException $e){ensure(str_contains($e->getMessage(),'Privát')||str_contains($e->getMessage(),'Nem publikus'),'Reject local IP targets.');}
+$robots="User-agent: *\\nDisallow: /private/\\nAllow: /private/help\\nDisallow: /*.pdf$\\n\\nUser-agent: comesyImporter\\nDisallow: /archive/\\nAllow: /archive/public/\\n";
+ensure(imp_robots_permits($robots,'/private/page'),'Named crawler group must override generic group.');
+ensure(!imp_robots_permits($robots,'/archive/members'),'Dedicated crawler exclusion must apply.');
+ensure(imp_robots_permits($robots,'/archive/public/article'),'More-specific Allow must win over Disallow.');
+ensure(!imp_robots_permits("User-agent: *\\nDisallow: /*.pdf$\\n",'/story.pdf'),'Robots wildcard and trailing anchor must match.');
+ensure(imp_robots_permits("User-agent: *\\nDisallow: /draft/\\nAllow: /draft/public/\\n",'/draft/public/a'),'Longest Allow rule must win.');
+ensure(imp_robots_permits("User-agent: *\\nDisallow:\\n",'/anything'),'Empty disallow must allow crawling.');
 echo "PASS: article HTML, RSS/Atom/sitemap parser, script removal and localhost rejection.\n";
