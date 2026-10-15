@@ -123,6 +123,17 @@ try{
  await sourceGrip.dragTo(targetBox);
  assert.equal(await page.locator('.ui-builder-row').last().locator('.ui-builder-box').first().locator('.ui-builder-block').count(),1,'Block must move between boxes via drag/drop.');
  assert.equal(await page.locator('.ui-builder-row').last().locator('.ui-builder-box').last().locator('.ui-builder-block').count(),0,'Dragged block must disappear from old box.');
+
+ // Boxes and rows have separate drag handles; verify both reorder independently.
+ await page.locator('.ui-builder-row').last().locator('.ui-builder-box').first().locator('.ui-builder-box-header .ui-builder-grip').dragTo(
+  page.locator('.ui-builder-row').last().locator('.ui-builder-box').last().locator('.ui-builder-box-header')
+ );
+ assert.equal(await page.locator('.ui-builder-row').last().locator('.ui-builder-box').last().locator('.ui-builder-block').count(),1,'Box drag must move the box with its content.');
+ await page.locator('.ui-builder-row').last().locator('.ui-builder-row-header .ui-builder-grip').dragTo(
+  page.locator('.ui-builder-row').first().locator('.ui-builder-row-header')
+ );
+ assert((await page.locator('.ui-builder-row').first().textContent()).includes('Dobozba húzott teszt'),'Row drag should preserve and move nested box content.');
+
  await page.locator('#builder-new-type').selectOption('text');
  await page.locator('[data-builder-add]').click();
  await page.locator('.ui-builder-block').last().locator('input').first().fill('Éles előnézet tesztblokk');
