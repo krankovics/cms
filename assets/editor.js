@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded',()=>{
  if(metaPanels.length){syncMeta();smallEditor.addEventListener('change',syncMeta);}
  const raw=document.getElementById('initial-content');
  let initial=[];try{initial=JSON.parse(raw.textContent)}catch(e){}
+ const initialRich=initial.length===1&&initial[0].type==='richtext'?(()=>{try{return JSON.parse(initial[0].text)}catch{return null}})():null;
+ const initialRichMeta=initialRich?.meta&&typeof initialRich.meta==='object'?initialRich.meta:{};
  if(typeof window.Quill!=='function'){
   const error=document.createElement('p');error.className='error';error.setAttribute('role','alert');
   error.textContent='A szövegszerkesztő nem töltődött be. Ellenőrizd a kapcsolatot, majd frissítsd az oldalt. A cikkmentést a tartalom védelmében letiltottuk.';
@@ -32,6 +34,54 @@ document.addEventListener('DOMContentLoaded',()=>{
   preview.hidden=!(featured.value.trim().startsWith('https://')||featured.value.trim().startsWith('http://'));
   if(!preview.hidden)preview.src=featured.value.trim();
  });
+ // Imported rich media are atomic editable blocks. Quill must preserve their
+ // complete structured payload through open -> edit -> save, not flatten them.
+ const BlockEmbed=Quill.import('blots/block/embed');
+ const safeMediaUrl=input=>{try{const u=new URL(input);return ['https:','http:'].includes(u.protocol)?u.href:''}catch{return ''}};
+ class CmsFigure extends BlockEmbed{
+  static blotName='cmsFigure';static tagName='figure';static className='ql-cms-figure';
+  static create(value){
+   const node=super.create();node.dataset.payload=JSON.stringify(value||{});
+   const src=safeMediaUrl(value?.src||'');
+   if(src){const img=document.createElement('img');img.src=src;img.alt=(value?.alt||'').slice(0,500);img.loading='lazy';node.append(img);}
+   if(value?.caption||value?.credit){const cap=document.createElement('figcaption');cap.textContent=[value.caption,value.credit].filter(Boolean).join(' · ');node.append(cap);}
+   return node;
+  }
+  static value(node){try{return JSON.parse(node.dataset.payload||'{}')}catch{return {}}}
+ }
+ class CmsEmbed extends BlockEmbed{
+  static blotName='cmsEmbed';static tagName='div';static className='ql-cms-embed';
+  static create(value){
+   const node=super.create();node.dataset.payload=JSON.stringify(value||{});
+   const url=safeMediaUrl(value?.url||'');const provider=value?.provider||'forrás';
+   const head=document.createElement('strong');head.textContent=provider.toUpperCase()+' · Beágyazott tartalom';node.append(head);
+   if(url){
+    const h=new URL(url).hostname.toLowerCase();
+    const frameHost={youtube:'www.youtube-nocookie.com',spotify:'open.spotify.com',vimeo:'player.vimeo.com',instagram:'www.instagram.com'}[provider];
+    if(frameHost===h&&provider!=='instagram'){
+     const iframe=document.createElement('iframe');iframe.src=url;iframe.loading='lazy';iframe.title=provider+' beágyazás';iframe.allow='encrypted-media; picture-in-picture; fullscreen';node.append(iframe);
+    }
+    const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Forrás megnyitása ↗';node.append(a);
+   }
+   return node;
+  }
+  static value(node){try{return JSON.parse(node.dataset.payload||'{}')}catch{return {}}}
+ }
+ class CmsTable extends BlockEmbed{
+  static blotName='cmsTable';static tagName='div';static className='ql-cms-table';
+  static create(value){
+   const node=super.create();node.dataset.payload=JSON.stringify(value||{});
+   const wrap=document.createElement('div');wrap.className='ql-cms-table-scroll';const table=document.createElement('table');
+   (value?.rows||[]).slice(0,60).forEach(row=>{
+    const tr=document.createElement('tr');
+    (Array.isArray(row)?row:[]).slice(0,15).forEach(cell=>{
+     const td=document.createElement(cell?.header?'th':'td');td.textContent=cell?.text||'';td.colSpan=Math.min(10,Math.max(1,Number(cell?.colspan)||1));tr.append(td);
+    });table.append(tr);
+   });wrap.append(table);node.append(wrap);return node;
+  }
+  static value(node){try{return JSON.parse(node.dataset.payload||'{}')}catch{return {}}}
+ }
+ Quill.register(CmsFigure);Quill.register(CmsEmbed);Quill.register(CmsTable);
  const quill=new Quill('#rich-editor',{theme:'snow',modules:{toolbar:'#editor-toolbar'},placeholder:'Kezdd el írni a cikket…'});
  if(initial.length===1&&initial[0].type==='richtext'){
   try{const delta=JSON.parse(initial[0].text);if(Array.isArray(delta.ops))quill.setContents(delta,'silent')}catch(e){}
@@ -192,7 +242,13 @@ document.addEventListener('DOMContentLoaded',()=>{
  allTags.forEach(l=>l.querySelector('input').addEventListener('change',refreshTags));
  syncSite();
  form.addEventListener('submit',e=>{if(!siteChecks.some(x=>x.checked)){e.preventDefault();showDialog('Válassz webhelyet',[],[{label:'Rendben',primary:true}]);return}if(search.value.trim())chooseTag(search.value)});
- const serialize=()=>[{type:'richtext',text:JSON.stringify(quill.getContents())}];
+ const serialize=()=>{
+  const delta=quill.getContents();
+  const meta=structuredClone(initialRichMeta);
+  const imageValue=(document.getElementById('og-image-url')?.value||'').trim();
+  if(meta.featured&&meta.featured.src!==imageValue)delete meta.featured;
+  return [{type:'richtext',text:JSON.stringify({...delta,meta})}];
+ };
  let dirty=false,unsaved=false,isSubmitting=false;
  const markChanged=()=>{dirty=true;unsaved=true;};
  quill.on('text-change',(_delta,_old,source)=>{if(source==='user')markChanged();});
