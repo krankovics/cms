@@ -5,7 +5,7 @@ require __DIR__.'/app/layouts.php';
 require __DIR__.'/app/rich-content.php';
 header('Content-Type: text/html; charset=utf-8');
 header('X-Frame-Options: SAMEORIGIN');
-header("Content-Security-Policy: default-src 'none'; style-src 'self' 'unsafe-inline'; img-src https: http: data:; frame-src 'self' https://www.youtube-nocookie.com https://open.spotify.com https://player.vimeo.com https://www.instagram.com; frame-ancestors 'self'; base-uri 'none'; form-action 'none'");
+header("Content-Security-Policy: default-src 'none'; style-src 'self' 'unsafe-inline'; img-src https: http: data:; media-src https: http:; frame-src 'self' https://www.youtube-nocookie.com https://open.spotify.com https://player.vimeo.com https://www.instagram.com https://www.facebook.com https://w.soundcloud.com; frame-ancestors 'self'; base-uri 'none'; form-action 'none'");
 header('X-Robots-Tag: noindex, nofollow');
 $pdo=db();
 $siteSlug=trim((string)($_GET['site']??''));
