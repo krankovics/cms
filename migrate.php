@@ -7,12 +7,12 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
  else{
   try{
    $pdo=db();
-   $sql=file_get_contents(__DIR__.'/database/editor.sql')."\n".file_get_contents(__DIR__.'/database/content.sql')."\n".file_get_contents(__DIR__.'/database/site-permissions.sql')."\n".file_get_contents(__DIR__.'/database/ads.sql')."\n".file_get_contents(__DIR__.'/database/import.sql');
+   $sql=file_get_contents(__DIR__.'/database/editor.sql')."\n".file_get_contents(__DIR__.'/database/content.sql')."\n".file_get_contents(__DIR__.'/database/site-permissions.sql')."\n".file_get_contents(__DIR__.'/database/ads.sql')."\n".file_get_contents(__DIR__.'/database/import.sql')."\n".file_get_contents(__DIR__.'/database/layouts.sql');
    foreach(array_filter(array_map('trim',explode(';',$sql))) as $statement)$pdo->exec($statement);
    // Preserve existing site associations and backfill every legacy article's primary site.
    $pdo->exec('INSERT IGNORE INTO article_sites(article_id,site_id) SELECT id,site_id FROM articles');
    // Shared taxonomy terms remain untouched; no destructive merging.
-   $message='A comesy adatbázis-migrációja sikeresen lefutott, beleértve a hirdetési és importmodul tábláit.';
+   $message='A comesy adatbázis-migrációja sikeresen lefutott, beleértve a hirdetési, import- és oldalépítő modul tábláit.';
   }catch(Throwable $e){error_log('comesy migration: '.$e->getMessage());$error='A migráció sikertelen. Ellenőrizd az adatbázis jogosultságait.';}
  }
 }
