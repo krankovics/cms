@@ -33,6 +33,25 @@ $xml='<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitema
 $sm=imp_discover($xml,'https://example.org/sitemap.xml');
 ensure($sm['urls']===['https://example.org/a'],'Sitemap URLs must be discovered.');
 
+ensure(!imp_is_article_candidate_url('https://magyarnemzet.hu/'),'Home page must not be a draft article.');
+ensure(!imp_is_article_candidate_url('https://magyarnemzet.hu/home_page_sitemap.xml'),'Sitemap XML must not be an article.');
+ensure(!imp_is_article_candidate_url('https://example.org/feed'),'Feeds must not be articles.');
+ensure(imp_is_article_candidate_url('https://magyarnemzet.hu/kultura/2023/11/durvan-megemelkedett-a-zsolnay-keramiak-erteke-video'),'Nested story slug is a valid article URL.');
+ensure(imp_is_article_candidate_url('https://example.org/egyszavas-cikk'),'Single-segment story slugs remain allowed.');
+$datedIndex='<?xml version="1.0"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+ .'<sitemap><loc>https://example.org/199805_sitemap.xml</loc></sitemap>'
+ .'<sitemap><loc>https://example.org/202410_sitemap.xml</loc></sitemap>'
+ .'<sitemap><loc>https://example.org/202601_sitemap.xml</loc></sitemap>'
+ .'</sitemapindex>';
+$recent=imp_discover($datedIndex,'https://example.org/sitemapindex.xml',100);
+ensure($recent['urls']===['https://example.org/202601_sitemap.xml','https://example.org/202410_sitemap.xml','https://example.org/199805_sitemap.xml'],'Newest month-dated sitemap should be discovered first.');
+$lastmodIndex='<?xml version="1.0"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+ .'<sitemap><loc>https://example.org/old.xml</loc><lastmod>2024-01-01</lastmod></sitemap>'
+ .'<sitemap><loc>https://example.org/new.xml</loc><lastmod>2026-10-15</lastmod></sitemap>'
+ .'</sitemapindex>';
+ensure(imp_discover($lastmodIndex,'https://example.org/sitemapindex.xml')['urls'][0]==='https://example.org/new.xml','lastmod should prioritize latest sitemap.');
+
+
 $withImages='<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"><url><loc>https://example.org/article</loc><image:image><image:loc>https://example.org/image.jpg</image:loc></image:image></url></urlset>';
 $links=imp_discover($withImages,'https://example.org/sitemap.xml');
 ensure($links['urls']===['https://example.org/article'],'Nested media locations are not article links.');
