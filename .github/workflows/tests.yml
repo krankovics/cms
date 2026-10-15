@@ -42,6 +42,7 @@ jobs:
           sh -n import-worker.sh
           sh import-worker.sh --check
           php tests/import-parser.php
+          php tests/import-rich.php
           php tests/worker-health.php
       - name: Run isolated MySQL integration checks
         env:
