@@ -23,6 +23,31 @@ Az adminfelület modulonként elkészült. A listák, szerkesztőpanelek, navig�
 
 **Korlát:** A többwebhelyes hozzárendelés a comesy CMS adatmodelljében működik. A publikált tartalom külső webhelyekre történő továbbítása külön frontend/API-integrációt igényel. A globális és helyi régi duplikátumokat nem egyesíti automatikusan.
 
+## A teljes kiadói termékspecifikáció
+
+Az [eredeti, 2026. október 14-i végleges kiadói CMS specifikáció](https://docs.google.com/document/d/1uUXQl5UVmW6DoojF6-OS93wG6sRZAbT-h58Ay6ynTes/edit) nemcsak az adminfelületi redesignról szól. A [teljes scope és hiányelemzés](docs/full-product-scope.md) külön nyilvántartja a hirdetéskezelést, importot, vizuális oldalépítőt, publikus frontendet, szerkesztőségi workflow-t, infrastruktúrát és API-t. **A teljes termék nincs kész.**
+
+### Hirdetésadmin, első működő szelet
+
+- `/ads.php`: hirdetők, kampányok, zónák, kreatívok, kezdő/végdátum, prioritás, rovat, státusz és egyszerű statisztikák.
+- `/ad-slot.php?site_id=1&zone=article-top`: nyilvános, iframe-es aktív kreatív, cookie nélküli zónakérésszámlálás.
+- `/ad-click.php?id=1`: csak aktív kreatív cél URL-jére mutató kattintási átirányítás.
+- Szerepkörök és audit. A teljes adserver, viewability/frequency cap és bevétel-elszámolás még fejlesztendő.
+
+### Importközpont, első működő szelet
+
+- `/imports.php`: egy URL, RSS/Atom, sitemap, sitemapből teljes oldal felderítése, max. 10 cikkes demó feladatsor.
+- Tartós MySQL queue, robots-ellenőrzés, SSRF-védelem, HTML → szerkeszthető blokkok, draft only, forráspillanatkép, idempotens feldolgozás, hibakezelés és újrapróbálás.
+- A PHP worker **külön indítandó a szerveren** (cron vagy supervisor). Példa cron, a telepítésen ellenőrizendő PHP CLI elérési úttal:
+
+```cron
+* * * * * /usr/bin/php /home/appwrkrft/domains/cms.8media.hu/public_html/import-worker.php --max=5 >> /home/appwrkrft/comesy-import.log 2>&1
+```
+
+- Az API a `/api-v1.php?site=<site-slug>&resource=articles` és `resource=article&article=<slug>` végponton kizárólag publikált cikkeket ad vissza. A hiányzó frontend, keresés, oldalépítő, részletes tömegimport-riport és vizuális rekonstrukció a teljes P0 backlog része.
+
+**Fontos:** az új modulok adatbázistábláit a platformadmin által jóváhagyott `/migrate.php` futás hozza létre. A GitHub Actions FTP-kódtelepítés **nem** jelent automatikus éles adatbázis-migrációt vagy workerbeállítást. Mielőtt importot indítasz, ellenőrizni kell az éles szerveren a PHP `curl`, `dom` és `xml` kiegészítők meglétét, valamint a forrástartalom importjának jogszerűségét.
+
 ## Éles környezet és telepítés
 
 - Admin: https://cms.8media.hu/
