@@ -26,11 +26,69 @@ document.addEventListener('DOMContentLoaded',()=>{
  };
  statusInput?.addEventListener('change',syncSchedule);syncSchedule();
  const featured=document.querySelector('#og-image-url');
- featured?.addEventListener('change',()=>{
-  const preview=document.querySelector('#featured-image-preview');
-  if(!preview)return;
-  preview.hidden=!(featured.value.trim().startsWith('https://')||featured.value.trim().startsWith('http://'));
-  if(!preview.hidden)preview.src=featured.value.trim();
+ const featuredPreview=document.getElementById('featured-image-preview');
+ const featuredEmpty=document.getElementById('featured-empty-message');
+ const featuredClear=document.getElementById('featured-clear');
+ const picker=document.getElementById('featured-media-picker');
+ const updateFeatured=()=>{
+  const raw=featured?.value.trim()||'';
+  const valid=raw.startsWith('/media-file.php?id=')||/^https?:\\/\\//i.test(raw);
+  if(featuredPreview){featuredPreview.hidden=!valid;featuredPreview.src=valid?raw:'';}
+  if(featuredEmpty)featuredEmpty.hidden=!!valid;
+  if(featuredClear)featuredClear.hidden=!valid;
+ };
+ const setFeatured=url=>{
+  if(!featured)return;
+  featured.value=url;updateFeatured();
+  featured.dispatchEvent(new Event('input',{bubbles:true}));
+  if(picker?.open)picker.close();
+ };
+ featured?.addEventListener('input',updateFeatured);
+ updateFeatured();
+ featuredClear?.addEventListener('click',()=>setFeatured(''));
+ const searchMedia=document.getElementById('featured-picker-search');
+ const mediaButtons=[...document.querySelectorAll('.ui-picker-asset')];
+ const normalizeMedia=value=>(value||'').toLocaleLowerCase('hu').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
+ const filterMedia=()=>{
+  const q=normalizeMedia(searchMedia?.value.trim()||'');
+  const selected=featured?.value||'';
+  let count=0;
+  for(const button of mediaButtons){
+   const visible=!q||normalizeMedia(button.dataset.featuredFilter).includes(q);
+   button.hidden=!visible;button.setAttribute('aria-pressed',String(button.dataset.featuredUrl===selected));
+   if(visible)count++;
+  }
+  const empty=document.getElementById('featured-picker-no-results');
+  if(empty)empty.hidden=count!==0;
+  const counter=document.getElementById('featured-picker-count');
+  if(counter)counter.textContent=count+' elérhető kép';
+ };
+ searchMedia?.addEventListener('input',filterMedia);
+ document.getElementById('featured-choose')?.addEventListener('click',()=>{
+  filterMedia();picker?.showModal();searchMedia?.focus();
+ });
+ mediaButtons.forEach(button=>button.addEventListener('click',()=>setFeatured(button.dataset.featuredUrl||'')));
+ const closePicker=()=>picker?.close();
+ document.getElementById('featured-picker-close')?.addEventListener('click',closePicker);
+ document.getElementById('featured-picker-cancel')?.addEventListener('click',closePicker);
+ picker?.addEventListener('click',e=>{if(e.target===picker)closePicker();});
+ const pickerFile=document.getElementById('featured-picker-file');
+ const pickerUpload=document.getElementById('featured-picker-upload');
+ const pickerFeedback=document.getElementById('featured-picker-feedback');
+ pickerUpload?.addEventListener('click',()=>pickerFile?.click());
+ pickerFile?.addEventListener('change',async()=>{
+  const file=pickerFile.files?.[0];if(!file)return;
+  pickerFile.value='';
+  const site=(document.querySelector('.ed-site-check[data-primary="1"]:checked')||document.querySelector('.ed-site-check:checked'))?.value;
+  if(!site){pickerFeedback.textContent='Előbb válassz webhelyet a cikkhez.';return;}
+  if(file.size<1||file.size>10485760){pickerFeedback.textContent='A kép legfeljebb 10 MB lehet.';return;}
+  pickerUpload.disabled=true;pickerFeedback.textContent='A kép feltöltése folyamatban…';
+  try{
+   const url=await uploadImage(file,site);
+   pickerFeedback.textContent='Kép feltöltve, kiemelt képként kiválasztva.';
+   setFeatured(url);
+  }catch(error){pickerFeedback.textContent=error.message||'A feltöltés nem sikerült.';}
+  finally{pickerUpload.disabled=false;}
  });
  const quill=new Quill('#rich-editor',{theme:'snow',modules:{toolbar:'#editor-toolbar'},placeholder:'Kezdd el írni a cikket…'});
  // Preserve every supported imported figure, table, emphasis and media embed.
