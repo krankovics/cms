@@ -62,7 +62,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
  if(initial.length===1&&initial[0].type==='richtext'){
   try{const delta=JSON.parse(initial[0].text);if(Array.isArray(delta.ops))quill.setContents(delta,'silent')}catch(e){}
- }else if(initial.length){
+ }else if(initial.length&&!richMode){
   const ops=[];
   for(const b of initial){
    if(b.type==='image'){ops.push({insert:{image:b.text}});ops.push({insert:'\n'});continue}
