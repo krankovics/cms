@@ -8,6 +8,10 @@ $html='<!doctype html><html lang="hu"><head><title>Másodlagos cím</title><meta
 $result=imp_extract($html,'https://example.org/cikk');
 ensure($result['title']==='Valódi mintacikk','OG title should override doc title.');
 ensure($result['lead']==='Rövid lead.','Meta description should be imported.');
+$ogFixture=str_replace('<meta name="description" content="Rövid lead.">','<meta name="description" content="Rövid lead."><meta property="og:image" content="/assets/cover.jpg">',$html);
+$ogResult=imp_extract($ogFixture,'https://example.org/story');
+ensure($ogResult['og_image_url']==='https://example.org/assets/cover.jpg','OG image must be resolved as a featured image.');
+
 ensure(count($result['blocks'])===4,'Expected four editable blocks.');
 ensure($result['blocks'][1]['type']==='heading','Section header should be a heading block.');
 ensure(!str_contains(json_encode($result['blocks']),'alert(1)'),'Scripts must not be imported.');
