@@ -9,8 +9,9 @@ $navGroups=[
   ['href'=>'/','page'=>'index.php','text'=>'Áttekintés','icon'=>'home'],
   ...($canWrite?[['href'=>'/articles.php','page'=>'articles.php','text'=>'Cikkek','icon'=>'file'],['href'=>'/editor.php','page'=>'editor.php','text'=>'Új cikk','icon'=>'plus'],['href'=>'/taxonomy.php','page'=>'taxonomy.php','text'=>'Kategóriák és címkék','icon'=>'tag'],['href'=>'/media.php','page'=>'media.php','text'=>'Médiatár','icon'=>'image']]:[])
  ]],
- ...((in_array($u['role'],['platform_admin','site_admin','editor'],true))?[['title'=>'Tartalommigráció','links'=>[
-  ['href'=>'/imports.php','page'=>'imports.php','text'=>'Importközpont','icon'=>'import']
+ ...((in_array($u['role'],['platform_admin','site_admin','editor'],true))?[['title'=>'Kiadói platform','links'=>[
+  ['href'=>'/imports.php','page'=>'imports.php','text'=>'Importközpont','icon'=>'import'],
+  ['href'=>'/builder.php','page'=>'builder.php','text'=>'Oldalépítő','icon'=>'layout']
  ]]]:[]),
  ...($isPlatformAdmin?[['title'=>'Adminisztráció','links'=>[
   ['href'=>'/sites.php','page'=>'sites.php','text'=>'Webhelyek','icon'=>'globe'],
@@ -42,6 +43,7 @@ if($currentPage==='migrate.php')$currentTitle='Adatbázis-migráció';
  <symbol id="cs-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c-5 5-5 13 0 18M12 3c5 5 5 13 0 18"/></symbol>
  <symbol id="cs-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2zM17 5a3 3 0 0 1 0 6M18 14a5 5 0 0 1 3 5v1"/></symbol>
  <symbol id="cs-shield" viewBox="0 0 24 24"><path d="m12 2 9 4v6c0 5-4 8-9 10-5-2-9-5-9-10V6zM9 12l2 2 4-4"/></symbol>
+ <symbol id="cs-layout" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M10 10v10"/></symbol>
  <symbol id="cs-import" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></symbol>
  <symbol id="cs-ad" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h10M7 14h7"/></symbol>
  <symbol id="cs-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M10 2h4l.6 3 2 1 2.7-1.5 2 3.5-2.3 2v4l2.3 2-2 3.5-2.7-1.5-2 1L14 22h-4l-.6-3-2-1-2.7 1.5-2-3.5L5 14v-4L2.7 8l2-3.5L7.4 6l2-1z"/></symbol>
