@@ -54,6 +54,7 @@ function enableDrag(handle,sourceType,position){
  handle.setAttribute('aria-label','Húzd a '+sourceType+' elemet az új helyére');
  handle.addEventListener('dragstart',e=>{
   e.stopPropagation();e.dataTransfer.setData('application/x-comesy-builder',JSON.stringify({type:sourceType,position}));
+  e.dataTransfer.setData('application/x-comesy-'+sourceType,'1');
   e.dataTransfer.effectAllowed='move';
  });
 }
@@ -61,7 +62,7 @@ function acceptDrop(target,typesAllowed,apply){
  target.addEventListener('dragover',e=>{
   if(readOnly)return;
   const offered=[...e.dataTransfer.types];
-  if(!offered.includes('application/x-comesy-builder'))return;
+  if(!typesAllowed.some(kind=>offered.includes('application/x-comesy-'+kind)))return;
   e.preventDefault();e.stopPropagation();target.classList.add('is-drag-target');
   e.dataTransfer.dropEffect='move';
  });
