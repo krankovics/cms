@@ -39,6 +39,8 @@ jobs:
           node --check assets/admin-pages-v2.js
           node --check assets/builder.js
           node tests/theme-contrast.mjs
+          sh -n import-worker.sh
+          sh import-worker.sh --check
           php tests/import-parser.php
           php tests/worker-health.php
       - name: Run isolated MySQL integration checks
