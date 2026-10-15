@@ -6,7 +6,7 @@ if($u['role']!=='platform_admin'){http_response_code(403);exit('Nincs jogosults�
 $error='';$saved=false;
 try{
  $pdo=db();
- $users=$pdo->query("SELECT id,name,email FROM users WHERE role IN ('site_admin','editor','author') AND active=1 ORDER BY name")->fetchAll();
+ $users=$pdo->query("SELECT id,name,email,role FROM users WHERE role IN ('site_admin','editor','author','ad_manager') AND active=1 ORDER BY name")->fetchAll();
  $sites=$pdo->query('SELECT id,name FROM sites ORDER BY name')->fetchAll();
  $uid=(int)($_REQUEST['user_id']??($users[0]['id']??0));
  $ids=array_map('intval',array_column($users,'id'));
@@ -40,13 +40,13 @@ try{
 <?php if($error):?><p class="error" role="alert"><?=h($error)?></p><?php endif;?>
 <?php if(isset($_GET['saved'])):?><p class="success" role="status">A jogosultságokat elmentettük.</p><?php endif;?>
 <?php if(!$users):?><section class="ui-admin-panel"><p>Nincs szerkesztői vagy szerzői szerepkörű aktív felhasználó. <a href="/users.php">Felhasználó létrehozása</a></p></section><?php else:?>
-<section class="ui-admin-panel ui-permissions-picker"><form method="get" class="ui-admin-form"><label class="ui-field">Felhasználó <select name="user_id" onchange="this.form.submit()"><?php foreach($users as $item):?><option value="<?=(int)$item['id']?>" <?=$uid===(int)$item['id']?'selected':''?>><?=h($item['name'].' ('.$item['email'].')')?></option><?php endforeach;?></select></label></form></section>
+<section class="ui-admin-panel ui-permissions-picker"><form method="get" class="ui-admin-form"><label class="ui-field">Felhasználó <select name="user_id" onchange="this.form.submit()"><?php foreach($users as $item):?><option value="<?=(int)$item['id']?>" <?=$uid===(int)$item['id']?'selected':''?>><?=h($item['name'].' ('.$item['email'].') · '.($item['role']==='ad_manager'?'Hirdetéskezelő':$item['role']))?></option><?php endforeach;?></select></label></form></section>
 <?php if($uid):?><form method="post" class="ui-admin-panel" id="permissions-form">
 <input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="user_id" value="<?=$uid?>">
 <div class="ui-panel-header"><div><h2>Jogosultsági mátrix</h2><p class="ui-page-description">Jelöld ki legalább egy webhely szerkesztési jogát. A címke- és médiatárhozzáférés további webhelyekre is adható.</p></div></div>
 <?php if($sites):?><div class="ui-permission-grid"><?php foreach($sites as $s):$sid=(int)$s['id'];$perm=$permissions[$sid]??[];?>
 <details class="ui-permission-item" data-responsive-accordion open><summary><?=h($s['name'])?></summary><div class="ui-permission-checks">
-<label><input type="checkbox" name="primary[]" value="<?=$sid?>" <?=!empty($perm['is_primary'])?'checked':''?>> Szerkesztés</label>
+<label><input type="checkbox" name="primary[]" value="<?=$sid?>" <?=!empty($perm['is_primary'])?'checked':''?>> <?=($users[array_search($uid,array_column($users,'id'))]['role']??'')==='ad_manager'?'Hirdetések':'Szerkesztés'?></label>
 <label><input type="checkbox" name="tags[]" value="<?=$sid?>" <?=!empty($perm['can_tags'])?'checked':''?>> Címkék</label>
 <label><input type="checkbox" name="media[]" value="<?=$sid?>" <?=!empty($perm['can_media'])?'checked':''?>> Médiatár</label></div></details>
 <?php endforeach;?></div>
