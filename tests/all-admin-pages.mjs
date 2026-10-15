@@ -130,6 +130,7 @@ try{
  );
  assert.equal(await page.locator('.ui-builder-row').last().locator('.ui-builder-box').last().locator('.ui-builder-block').count(),1,'Box drag must move the box with its content.');
  await page.setViewportSize({width:1366,height:1800});
+ await page.evaluate(()=>{window.rowDragEvents=[];for(const t of ['dragstart','dragover','drop','dragend'])document.addEventListener(t,e=>window.rowDragEvents.push([t,e.target.className]),true);});
  await page.locator('.ui-builder-row').last().locator('.ui-builder-row-header .ui-builder-grip').dragTo(
   page.locator('.ui-builder-row').first().locator('.ui-builder-row-header')
  );
