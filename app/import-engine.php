@@ -45,7 +45,8 @@ function imp_get(string $url,int $maxBytes=3145728):array{
   $body='';$headers=[];$limitExceeded=false;
   $ch=curl_init($url);
   curl_setopt_array($ch,[
-   CURLOPT_FOLLOWLOCATION=>false,CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_TIMEOUT=>20,
+   CURLOPT_FOLLOWLOCATION=>false,CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_TIMEOUT=>30,
+   CURLOPT_ENCODING=>'', // Decompress HTTP gzip while enforcing the byte limit on the decoded stream.
    CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2,CURLOPT_PROXY=>'',
    CURLOPT_RESOLVE=>["$host:$port:$ip"],
    CURLOPT_USERAGENT=>'comesyImporter/1.0 (+https://cms.8media.hu/)',
@@ -126,10 +127,10 @@ function imp_allowed_by_robots(string $url):bool{
  $path=($p['path']??'/').(isset($p['query'])?'?'.$p['query']:'');
  return imp_robots_permits((string)$cache[$base],$path);
 }
-function imp_fetch(string $url):array{
+function imp_fetch(string $url,int $maxBytes=3145728):array{
  imp_validate_url($url);
  if(!imp_allowed_by_robots($url))throw new RuntimeException('A robots.txt vagy a forráselérés tiltja az importot.');
- $result=imp_get($url);
+ $result=imp_get($url,$maxBytes);
  if(!imp_allowed_by_robots($result['url']))throw new RuntimeException('Az átirányított URL robots.txt szerint tiltott.');
  if(in_array($result['status'],[429,503],true))throw new RuntimeException('FORRÁS_TÚLTERHELT: '.$result['status']);
  if($result['status']!==200)throw new RuntimeException('Forrás HTTP hibakód: '.$result['status']);
@@ -179,23 +180,42 @@ function imp_extract(string $html,string $url):array{
  return ['title'=>mb_substr($title,0,500),'lead'=>mb_substr($lead,0,10000),'blocks'=>$blocks,'links'=>array_values($links),'source_url'=>$url,'published_at'=>$date];
 }
 function imp_discover(string $xml,string $base,int $max=100):array{
- if(!extension_loaded('dom'))throw new RuntimeException('A DOM-kiegészítő szükséges.');
- $doc=new DOMDocument();
- $before=libxml_use_internal_errors(true);
- $ok=$doc->loadXML($xml,LIBXML_NONET|LIBXML_NOERROR|LIBXML_NOWARNING);
- libxml_clear_errors();libxml_use_internal_errors($before);
- if(!$ok)throw new RuntimeException('Érvénytelen RSS/sitemap XML.');
- $root=strtolower($doc->documentElement->localName);
- $xp=new DOMXPath($doc);
- if(!in_array($root,['rss','feed','urlset','sitemapindex'],true))throw new RuntimeException('Az URL nem támogatott RSS/Atom/sitemap dokumentum.');
- $query=$root==='rss'?'//*[local-name()="item"]/*[local-name()="link"]':($root==='feed'?'//*[local-name()="entry"]/*[local-name()="link"]/@href':'//*[local-name()="loc"]');
- $urls=[];
- foreach($xp->query($query) as $node){
-  $link=trim((string)($node->value??$node->textContent));
-  if(!$link)continue;
-  $link=imp_resolve_url($link,$base);
-  try{imp_url_metadata($link);}catch(Throwable $e){continue;}
-  $urls[$link]=$link;if(count($urls)>=$max)break;
+ if(!class_exists(XMLReader::class))throw new RuntimeException('Nagy sitemap importjához a PHP XMLReader bővítmény szükséges.');
+ // XMLReader walks one node at a time. DOMDocument would multiply memory use
+ // on large 20–50 MB sitemap files, even when only the first 1000 URLs are needed.
+ $reader=new XMLReader();
+ $old=libxml_use_internal_errors(true);
+ try{
+  if(!$reader->XML($xml,null,LIBXML_NONET|LIBXML_NOERROR|LIBXML_NOWARNING))throw new RuntimeException('Érvénytelen RSS/sitemap XML.');
+  $root='';
+  while($reader->read()){
+   if($reader->nodeType===XMLReader::ELEMENT){$root=strtolower($reader->localName);break;}
+  }
+  if(!in_array($root,['rss','feed','urlset','sitemapindex'],true))throw new RuntimeException('Az URL nem támogatott RSS/Atom/sitemap dokumentum.');
+  $urls=[];
+  while($reader->read()&&count($urls)<$max){
+   if($reader->nodeType!==XMLReader::ELEMENT)continue;
+   $node=strtolower($reader->localName);
+   // Read only the direct <loc> child of <url> or <sitemap>.
+   // Nested video:image <loc> entries must not become article URLs.
+   if(($root==='urlset'||$root==='sitemapindex')&&$node==='loc'&&$reader->depth===2){
+    $raw=$reader->readString();
+   }elseif($root==='rss'&&$node==='link'&&$reader->depth===3){
+    $raw=$reader->readString();
+   }elseif($root==='feed'&&$node==='link'&&$reader->depth===2){
+    $raw=(string)$reader->getAttribute('href');
+   }else continue;
+   $raw=trim($raw);
+   if($raw==='')continue;
+   $link=imp_resolve_url($raw,$base);
+   try{$link=imp_url_metadata($link);}catch(Throwable $e){continue;}
+   $urls[$link]=$link;
+  }
+  foreach(libxml_get_errors() as $error)if($error->level>=LIBXML_ERR_ERROR)throw new RuntimeException('Érvénytelen RSS/sitemap XML.');
+  return ['urls'=>array_values($urls),'index'=>$root==='sitemapindex'];
+ }finally{
+  $reader->close();
+  libxml_clear_errors();
+  libxml_use_internal_errors($old);
  }
- return ['urls'=>array_values($urls),'index'=>$root==='sitemapindex'];
 }
