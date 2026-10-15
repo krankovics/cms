@@ -120,6 +120,22 @@ $first=imp_save_article($pdo,$task,$parsed,'<article><p>Test</p></article>');
 ok($first['status']==='completed'&&$first['article_id']>0,'First import must create draft article.');
 $second=imp_save_article($pdo,$task,$parsed,'<article><p>Test</p></article>');
 ok($second['status']==='skipped'&&$second['article_id']===$first['article_id'],'Second identical import must skip duplicate.');
+require_once dirname(__DIR__).'/app/import-jobs.php';
+// Previously skipped incomplete sources may be retried after an extractor fix,
+// but completed articles and unrelated skips must remain unchanged.
+$q=$pdo->prepare("INSERT INTO import_jobs(site_id,created_by,mode,source_url,max_items,status,completed,skipped) VALUES(?,?,'sitemap',?,10,'finished',1,2)");
+$q->execute([$sites[0],$uid['editor'],'https://news.example.org/sitemap.xml']);$rescanJob=(int)$pdo->lastInsertId();
+$addItem=$pdo->prepare('INSERT INTO import_items(job_id,site_id,source_url,source_url_hash,task_type,status,last_error) VALUES(?,?,?,?,"article",?,?)');
+foreach([
+ ['https://news.example.org/missing-story','skipped','Nem található önálló, ellenőrizhető cikktörzs: a forrásoldalon csak lead van.'],
+ ['https://news.example.org/already-reviewed','skipped','A publikált cikk nem írható felül.'],
+ ['https://news.example.org/good-story','completed',null]
+] as $item){$addItem->execute([$rescanJob,$sites[0],$item[0],hash('sha256',$item[0]),$item[1],$item[2]]);}
+ok(imp_reset_items($pdo,$rescanJob,'retry_skipped')===1,'Only content-rejected source items should be requeued.');
+$q=$pdo->prepare('SELECT source_url,status,last_error FROM import_items WHERE job_id=? ORDER BY id');$q->execute([$rescanJob]);$resetRows=$q->fetchAll();
+ok($resetRows[0]['status']==='pending'&&$resetRows[0]['last_error']===null,'Content-rejected item must become pending again.');
+ok($resetRows[1]['status']==='skipped'&&$resetRows[2]['status']==='completed','Other skipped and completed articles must remain untouched.');
+
 $metrics=['result'=>'imported','response_bytes'=>1040,'block_count'=>3,'image_count'=>1,'link_count'=>2,'quality_flags'=>['short_lead']];
 imp_store_metrics($pdo,$task,$metrics,175);
 $q=$pdo->prepare('SELECT response_bytes,duration_ms,quality_flags FROM import_item_metrics WHERE item_id=?');
