@@ -81,6 +81,9 @@ function cms_menu_url(string $url):string{
 function cms_menu_replace(PDO $pdo,array $user,int $site,array $items):void{
  require_once __DIR__.'/site-access.php';
  if(!in_array($user['role'],['platform_admin','site_admin','editor'],true)||!in_array($site,allowed_primary_sites($pdo,$user),true))throw new RuntimeException('Nincs jogosultság.');
+ $q=$pdo->prepare('SELECT settings_json FROM sites WHERE id=?');
+ $q->execute([$site]);$row=$q->fetch();
+ if(!$row||!cms_site_settings($row)['builder_enabled'])throw new RuntimeException('A webhely oldalépítője ki van kapcsolva.');
  if(count($items)>40)throw new RuntimeException('Legfeljebb 40 menüpont engedélyezett.');
  $clean=[];$i=0;
  foreach($items as $item){
