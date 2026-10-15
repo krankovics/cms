@@ -3,6 +3,7 @@ declare(strict_types=1);
 require __DIR__.'/app/bootstrap.php';
 require __DIR__.'/app/site-access.php';
 require __DIR__.'/app/article-sites.php';
+require_once __DIR__.'/app/rich-content.php';
 $u=require_user();
 header('Content-Type: text/html; charset=utf-8');
 $canEdit=in_array($u['role'],['platform_admin','site_admin','editor','author'],true);
@@ -16,10 +17,14 @@ function ed_blocks($raw):array{
  if(!is_array($data)||count($data)>250)throw new RuntimeException('Érvénytelen blokkok vagy túl sok blokk.');
  $out=[];
  foreach($data as $b){
-  if(!is_array($b)||!in_array($b['type']??'', ['paragraph','heading','quote','list','image','embed','richtext'],true))throw new RuntimeException('Nem támogatott blokk.');
+  if(!is_array($b)||!in_array($b['type']??'', ['paragraph','heading','quote','list','image','embed','richtext','richhtml'],true))throw new RuntimeException('Nem támogatott blokk.');
   $text=(string)($b['text']??'');
   if(mb_strlen($text)>300000)throw new RuntimeException('Túl hosszú blokk.');
   if(in_array($b['type'],['image','embed'],true) && (!filter_var($text,FILTER_VALIDATE_URL)||!in_array(parse_url($text,PHP_URL_SCHEME),['https','http'],true)))throw new RuntimeException('Érvénytelen URL.');
+  if($b['type']==='richhtml'){
+   $text=cms_rich_sanitize_html($text);
+   if(cms_rich_content_chars($text)<1)throw new RuntimeException('A gazdag importtartalom üres vagy nem biztonságos.');
+  }
   if($b['type']==='richtext'){
    $delta=json_decode($text,true);
    if(!is_array($delta)||!isset($delta['ops'])||!is_array($delta['ops'])||count($delta['ops'])>5000)throw new RuntimeException('Érvénytelen szerkesztői tartalom.');
