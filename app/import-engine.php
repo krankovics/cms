@@ -125,8 +125,17 @@ function imp_extract(string $html,string $url):array{
   if(count($blocks)>=200)break;
  }
  if(!$blocks)throw new RuntimeException('Nincs biztonságosan kinyerhető cikkblokk.');
+ $links=[];$sourceHost=strtolower((string)parse_url($url,PHP_URL_HOST));
+ foreach($xpath->query('.//a[@href]',$article) as $linkNode){
+  $raw=trim($linkNode->getAttribute('href'));
+  if(!$raw||str_starts_with($raw,'#'))continue;
+  $href=imp_resolve_url($raw,$url);
+  try{$href=imp_url_metadata($href);}catch(Throwable $e){continue;}
+  $links[$href]=['url'=>$href,'internal'=>strtolower((string)parse_url($href,PHP_URL_HOST))===$sourceHost];
+  if(count($links)>=500)break;
+ }
  $date=trim((string)$xpath->evaluate('string(//meta[@property="article:published_time"]/@content)'));
- return ['title'=>mb_substr($title,0,500),'lead'=>mb_substr($lead,0,10000),'blocks'=>$blocks,'source_url'=>$url,'published_at'=>$date];
+ return ['title'=>mb_substr($title,0,500),'lead'=>mb_substr($lead,0,10000),'blocks'=>$blocks,'links'=>array_values($links),'source_url'=>$url,'published_at'=>$date];
 }
 function imp_discover(string $xml,string $base,int $max=100):array{
  if(!extension_loaded('dom'))throw new RuntimeException('A DOM-kiegészítő szükséges.');
