@@ -121,7 +121,7 @@ function cms_source_style_links(string $html,string $url):array{
 function cms_source_style_collect(int $site,string $html,string $url,bool $force=false,?string $homepageHtml=null):?array{
  $path=cms_source_style_path($site,$url);
  $previous=cms_source_style_read($site,$url);
- if(!$force&&$previous&&time()-(int)($previous['saved_at']??0)<604800)return $previous;
+ if(!$force&&$previous&&(int)($previous['version']??0)>=2&&isset($previous['site_design'])&&time()-(int)($previous['saved_at']??0)<604800)return $previous;
  $css=cms_source_style_inline($html);$count=0;
  foreach(cms_source_style_links($html,$url) as $href){
   try{
