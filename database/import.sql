@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS import_items (
  depth INT UNSIGNED NOT NULL DEFAULT 0,
  status ENUM('pending','processing','completed','skipped','failed') NOT NULL DEFAULT 'pending',
  attempts INT UNSIGNED NOT NULL DEFAULT 0,
+ claimed_at DATETIME NULL,
  available_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
  last_error VARCHAR(1000) NULL,
  source_hash CHAR(64) NULL,
