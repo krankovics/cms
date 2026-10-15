@@ -87,6 +87,20 @@ function imp_save_article(PDO $pdo,array $task,array $data,string $html):array{
      $q=$pdo->prepare('UPDATE import_article_map SET article_id=?,source_hash=?,snapshot_path=?,updated_at=NOW() WHERE id=?');
      $q->execute([$articleId,$contentHash,$snapshot,$map['id']]);
     }
+    // Original image URLs and internal links stay attached to the editable article.
+    $pdo->prepare('DELETE FROM import_asset_refs WHERE article_id=?')->execute([$articleId]);
+    $ref=$pdo->prepare('INSERT IGNORE INTO import_asset_refs(site_id,article_id,source_url,source_url_hash,kind,internal_link) VALUES(?,?,?,?,?,?)');
+    $origin=strtolower((string)parse_url($source,PHP_URL_HOST));
+    foreach($data['blocks'] as $block)if(($block['type']??'')==='image'){
+     $img=(string)($block['text']??'');
+     if(!filter_var($img,FILTER_VALIDATE_URL))continue;
+     $ref->execute([$site,$articleId,$img,hash('sha256',$img),'image',(int)(strtolower((string)parse_url($img,PHP_URL_HOST))===$origin)]);
+    }
+    foreach(($data['links']??[]) as $link){
+     if(!is_array($link)||!isset($link['url']))continue;
+     $urlValue=(string)$link['url'];if(!filter_var($urlValue,FILTER_VALIDATE_URL))continue;
+     $ref->execute([$site,$articleId,$urlValue,hash('sha256',$urlValue),'link',(int)!empty($link['internal'])]);
+    }
     $pdo->prepare('INSERT INTO audit_log(user_id,action,object_type,object_id,meta_json) VALUES(?,?,?,?,?)')
      ->execute([$actor,'import.article','article',$articleId,json_encode(['source_url'=>$source,'job_id'=>$task['job_id'],'revision'=>$rev],JSON_THROW_ON_ERROR)]);
    }
@@ -144,6 +158,9 @@ function imp_work_once(PDO $pdo):bool{
  }
  $q=$pdo->prepare("SELECT COUNT(*) FROM import_items WHERE job_id=? AND status IN ('pending','processing')");
  $q->execute([$task['job_id']]);$remaining=(int)$q->fetchColumn();
- if($remaining===0)$pdo->prepare("UPDATE import_jobs SET status=IF(failed>0,'failed','finished') WHERE id=? AND status='running'")->execute([$task['job_id']]);
+ if($remaining===0){
+  $pdo->prepare("UPDATE import_jobs SET status=IF(failed>0,'failed','finished') WHERE id=? AND status='running'")->execute([$task['job_id']]);
+  $pdo->prepare("UPDATE import_asset_refs r JOIN import_article_map m ON m.site_id=r.site_id AND m.source_url_hash=r.source_url_hash SET r.target_article_id=m.article_id,r.status='ready' WHERE r.site_id=? AND r.kind='link' AND r.internal_link=1 AND r.target_article_id IS NULL AND m.article_id IS NOT NULL")->execute([$task['site_id']]);
+ }
  return true;
 }
