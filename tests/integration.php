@@ -12,7 +12,7 @@ require dirname(__DIR__).'/app/article-sites.php';
 require dirname(__DIR__).'/app/site-access.php';
 $tests=0;
 function ok(bool $condition,string $message):void{global $tests;$tests++;if(!$condition)throw new RuntimeException($message);}
-foreach(['schema','editor','content','site-permissions'] as $schema){
+foreach(['schema','editor','content','site-permissions','ads'] as $schema){
  $sql=file_get_contents(dirname(__DIR__).'/database/'.$schema.'.sql');
  foreach(array_filter(array_map('trim',explode(';',$sql))) as $statement)$pdo->exec($statement);
 }
@@ -32,6 +32,7 @@ $q->execute([$uid['editor'],$sites[0],1,1,1]);
 $q->execute([$uid['editor'],$sites[1],1,1,1]);
 $q->execute([$uid['author'],$sites[2],1,1,1]);
 $q->execute([$uid['site_admin'],$sites[1],1,1,1]);
+$q->execute([$uid['ad_manager'],$sites[0],1,0,0]);
 $editor=['id'=>$uid['editor'],'role'=>'editor'];
 $author=['id'=>$uid['author'],'role'=>'author'];
 $siteAdmin=['id'=>$uid['site_admin'],'role'=>'site_admin'];
@@ -80,4 +81,16 @@ ok((int)$q->fetchColumn()===1,'Article must link to globally shared term.');
 $pdo->prepare('DELETE FROM articles WHERE id=?')->execute([$articleId]);
 $q=$pdo->prepare('SELECT COUNT(*) FROM article_sites WHERE article_id=?');$q->execute([$articleId]);
 ok((int)$q->fetchColumn()===0,'Deleting article must cascade to its site assignments.');
+// Native advertiser, campaign and site-scoped creatives.
+$q=$pdo->prepare('INSERT INTO ad_advertisers(site_id,name) VALUES(?,?)');
+$q->execute([$sites[0],'Teszt hirdető']);$adv=(int)$pdo->lastInsertId();
+$q=$pdo->prepare('INSERT INTO ad_zones(site_id,code,name,placement) VALUES(?,?,?,?)');
+$q->execute([$sites[0],'article-top','Cikk teteje','article']);$zone=(int)$pdo->lastInsertId();
+$q=$pdo->prepare('INSERT INTO ad_campaigns(site_id,advertiser_id,name,state,priority) VALUES(?,?,?,?,?)');
+$q->execute([$sites[0],$adv,'Teszt kampány','active',70]);$campaign=(int)$pdo->lastInsertId();
+$q=$pdo->prepare('INSERT INTO ad_creatives(campaign_id,zone_id,name,image_url,destination_url,alt_text) VALUES(?,?,?,?,?,?)');
+$q->execute([$campaign,$zone,'Kreatív','https://example.test/a.png','https://example.test/go','Kép']);$creative=(int)$pdo->lastInsertId();
+$q=$pdo->prepare('SELECT COUNT(*) FROM ad_creatives cr JOIN ad_campaigns c ON c.id=cr.campaign_id JOIN ad_zones z ON z.id=cr.zone_id WHERE cr.id=? AND c.site_id=z.site_id AND z.site_id=?');
+$q->execute([$creative,$sites[0]]);ok((int)$q->fetchColumn()===1,'Creative linked to matching site campaign and zone.');
+$q->execute([$creative,$sites[1]]);ok((int)$q->fetchColumn()===0,'Creative must not leak to other site.');
 echo "PASS: $tests database integration assertions.\n";
