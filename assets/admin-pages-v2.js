@@ -5,11 +5,12 @@
   let active=null,returnFocus=null;
   const panels=[...document.querySelectorAll('[data-ui-pane]')];
   const paneById=id=>panels.find(p=>p.id===id);
+  const isDrawer=panel=>narrow.matches||panel?.classList.contains('ui-media-drawer');
   const backdrop=document.querySelector('[data-ui-pane-dim]');
   function focusables(panel){return [...panel.querySelectorAll('button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),textarea:not(:disabled),[tabindex]:not([tabindex="-1"])')].filter(el=>el.getClientRects().length&&el.getAttribute('type')!=='hidden');}
   function setPane(panel,open){
    if(!panel)return;
-   const isMobile=narrow.matches;
+   const isMobile=isDrawer(panel);
    if(open&&!isMobile){panel.scrollIntoView({block:'nearest'});const target=panel.querySelector('[data-pane-first]');target?.focus();return;}
    if(open&&active&&active!==panel)setPane(active,false);
    if(open){returnFocus=document.activeElement;active=panel;}
@@ -21,12 +22,12 @@
    else{document.body.classList.remove('ui-pane-open');active=null;if(returnFocus?.isConnected)returnFocus.focus();returnFocus=null;}
   }
   panels.forEach(panel=>{
-   panel.setAttribute('aria-hidden',String(narrow.matches));
-   if(narrow.matches)panel.inert=true;
+   panel.setAttribute('aria-hidden',String(isDrawer(panel)));
+   if(isDrawer(panel))panel.inert=true;
   });
   function toggleInert(){
    panels.forEach(panel=>{
-    const isModal=narrow.matches;
+    const isModal=isDrawer(panel);
     const visible=!isModal||panel.classList.contains('is-open');
     panel.inert=!visible;
     panel.setAttribute('aria-hidden',String(!visible));
