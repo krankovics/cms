@@ -111,6 +111,13 @@ assert article_json["article"]["content"], "Editable article content absent from
 isolated_json = json.loads(get(session(), "/api-v1.php?site=test-2&resource=articles")[0])
 assert not any(item["id"] == article_id for item in isolated_json["items"]), "Public article API leaked another site's content"
 
+search_body, _ = get(session(), "/api-v1.php?site=test-1&resource=search&q=Automatiz%C3%A1lt")
+search_data = json.loads(search_body)
+assert search_data["ok"] and search_data["query"] == "Automatizált", "Search endpoint failed"
+assert any(item["id"] == article_id for item in search_data["items"]), "Published article not searchable"
+search_other = json.loads(get(session(), "/api-v1.php?site=test-2&resource=search&q=Automatiz%C3%A1lt")[0])
+assert not any(item["id"] == article_id for item in search_other["items"]), "Search leaked cross-site article"
+
 author = login("author")
 try:
     leaked, _ = get(author, f"/editor.php?id={article_id}")
