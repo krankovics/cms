@@ -55,7 +55,7 @@ try{
   $blocks=ed_blocks($_POST['blocks']??'[]');
   $json=json_encode($blocks,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
   $status=(string)($_POST['status']??'draft');
-  if(!in_array($status,in_array($u['role'],['platform_admin','site_admin','editor'],true)?['draft','review','published']:['draft','review'],true))throw new RuntimeException('Nem támogatott státusz.');
+  if(!in_array($status,in_array($u['role'],['platform_admin','site_admin','editor'],true)?['draft','review','scheduled','published']:['draft','review'],true))throw new RuntimeException('Nem támogatott státusz.');
   $siteChoices=array_values(array_unique(array_filter(array_map('intval',(array)($_POST['site_ids']??[])))));
   if(!$siteChoices||count($siteChoices)>20)throw new RuntimeException('Válassz 1–20 webhelyet.');
   $editableSiteIds=allowed_primary_sites($pdo,$u);
@@ -72,14 +72,23 @@ try{
   $ogImageUrl=trim((string)($_POST['og_image_url']??''));
   if(mb_strlen($ogImageUrl)>1000)throw new RuntimeException('A kiemelt kép URL-je túl hosszú.');
   if($ogImageUrl!==''&&(!filter_var($ogImageUrl,FILTER_VALIDATE_URL)||!in_array(parse_url($ogImageUrl,PHP_URL_SCHEME),['http','https'],true)))throw new RuntimeException('Érvénytelen kiemelt kép URL.');
-  $publishedAt=$status==='published'?date('Y-m-d H:i:s'):null;
+  $publishedAt=$status==='published'?gmdate('Y-m-d H:i:s'):null;
+  if($status==='scheduled'){
+   $value=(string)($_POST['schedule_at']??'');
+   $tz=new DateTimeZone('Europe/Budapest');
+   $when=DateTimeImmutable::createFromFormat('!Y-m-d\\TH:i',$value,$tz);
+   if(!$when||$when->format('Y-m-d\\TH:i')!==$value)throw new RuntimeException('Érvénytelen időzített publikálási időpont.');
+   $utc=$when->setTimezone(new DateTimeZone('UTC'));
+   if($utc->getTimestamp()<time()+300||$utc->getTimestamp()>time()+730*86400)throw new RuntimeException('Az időzítés 5 perc és 2 év között állítható be.');
+   $publishedAt=$utc->format('Y-m-d H:i:s');
+  }
   $pdo->beginTransaction();
   try{
    if($id){
     $q=$pdo->prepare('SELECT updated_at FROM articles WHERE id=? FOR UPDATE');$q->execute([$id]);$current=$q->fetchColumn();
     if(!$current||$current!==(string)($_POST['expected_updated_at']??''))throw new RuntimeException('A cikket időközben módosították. Frissítsd az oldalt.');
-    $q=$pdo->prepare('UPDATE articles SET title=?,`lead`=?,content_json=?,status=?,site_id=?,published_at=CASE WHEN ?=\'published\' THEN COALESCE(published_at,?) ELSE NULL END,updated_at=NOW() WHERE id=?');
-    $q->execute([$title,$lead,$json,$status,$siteId,$status,$publishedAt,$id]);
+    $q=$pdo->prepare('UPDATE articles SET title=?,`lead`=?,content_json=?,status=?,site_id=?,published_at=CASE WHEN ?=\'published\' THEN IF(status=\'published\',COALESCE(published_at,UTC_TIMESTAMP()),UTC_TIMESTAMP()) WHEN ?=\'scheduled\' THEN ? ELSE NULL END,updated_at=NOW() WHERE id=?');
+    $q->execute([$title,$lead,$json,$status,$siteId,$status,$status,$publishedAt,$id]);
    }else{
     $slug=ed_slug($title).'-'.bin2hex(random_bytes(3));
     $q=$pdo->prepare('INSERT INTO articles(site_id,author_id,title,slug,`lead`,content_json,status,published_at) VALUES(?,?,?,?,?,?,?,?)');
