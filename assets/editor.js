@@ -7,6 +7,24 @@ document.addEventListener('DOMContentLoaded',()=>{
   metaPanels.forEach((panel,index)=>{panel.open=!smallEditor.matches||index===0;});
  };
  if(metaPanels.length){syncMeta();smallEditor.addEventListener('change',syncMeta);}
+ const styleNode=document.getElementById('source-style-data');
+ let sourceStyle={css:'',source:'',host:''};
+ try{if(styleNode)sourceStyle=JSON.parse(styleNode.textContent||'{}')}catch{}
+ if(typeof sourceStyle.css!=='string'||sourceStyle.css.length>36000)sourceStyle.css='';
+ const sourceRefresh=document.getElementById('source-style-refresh');
+ sourceRefresh?.addEventListener('click',async()=>{
+  sourceRefresh.disabled=true;
+  const label=document.getElementById('source-style-label');
+  if(label)label.textContent='Forrásarculat letöltése folyamatban…';
+  try{
+   const payload=new FormData();payload.set('id',sourceRefresh.dataset.id);payload.set('csrf',sourceRefresh.dataset.csrf);
+   const response=await fetch('/source-style-refresh.php',{method:'POST',body:payload,credentials:'same-origin'});
+   const data=await response.json();
+   if(!response.ok||!data.ok)throw new Error(data.error||'A letöltés sikertelen.');
+   if(label)label.textContent=data.available?'Stílus rögzítve: '+data.host+'. Az előnézet frissítéséhez töltsd újra ezt az oldalt.':'A forrásból nem sikerült használható CSS-t kiolvasni.';
+  }catch(err){if(label)label.textContent=err.message||'A forrásarculat frissítése nem sikerült.';}
+  finally{sourceRefresh.disabled=false;}
+ });
  const raw=document.getElementById('initial-content');
  let initial=[];try{initial=JSON.parse(raw.textContent)}catch(e){}
  if(typeof window.Quill!=='function'){
@@ -424,13 +442,14 @@ document.addEventListener('DOMContentLoaded',()=>{
    h.textContent=titleText;lead.textContent=leadText;lead.className='lead';main.append(h,lead);
    const frame=d.createElement('iframe');frame.title='A cikk biztonságos előnézete';
    frame.setAttribute('sandbox','');frame.setAttribute('referrerpolicy','no-referrer');
-   frame.srcdoc='<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; img-src https: http: data:; style-src &#39;unsafe-inline&#39;; media-src https: http:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://embed.spotify.com https://www.facebook.com https://www.instagram.com https://w.soundcloud.com https://www.tiktok.com"><style>body{font:16px/1.7 system-ui;margin:10px;color:#1b2636}img,video{max-width:100%;height:auto}figure{margin:20px 0}figcaption{font-size:13px;color:#637083}table{border-collapse:collapse;display:block;overflow:auto;max-width:100%}td,th{border:1px solid #d3dce8;padding:9px}iframe{border:1px solid #d3dce8;max-width:100%;width:100%;min-height:260px}blockquote{border-left:3px solid #5067a2;padding-left:18px}mark{background:#fff1af}</style>'+richSource.innerHTML;
+   frame.srcdoc='<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; img-src https: http: data:; style-src &#39;unsafe-inline&#39;; media-src https: http:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://embed.spotify.com https://www.facebook.com https://www.instagram.com https://w.soundcloud.com https://www.tiktok.com"><style>body{font:16px/1.7 system-ui;margin:10px;color:#1b2636}img,video{max-width:100%;height:auto}figure{margin:20px 0}figcaption{font-size:13px;color:#637083}table{border-collapse:collapse;display:block;overflow:auto;max-width:100%}td,th{border:1px solid #d3dce8;padding:9px}iframe{border:1px solid #d3dce8;max-width:100%;width:100%;min-height:260px}blockquote{border-left:3px solid #5067a2;padding-left:18px}mark{background:#fff1af}</style><style>'+sourceStyle.css+'</style><main class="cms-source-article">'+richSource.innerHTML+'</main>';
    main.append(frame);d.body.append(main);
    w.opener=null;
    return;
   }
   const d=w.document;d.title='comesy cikkelőnézet';
   const style=d.createElement('style');style.textContent='body{max-width:760px;margin:40px auto;padding:20px;font:18px/1.7 system-ui}img{max-width:100%}h1{line-height:1.2}';d.head.append(style);
+  if(sourceStyle.css){const sourceSheet=d.createElement('style');sourceSheet.textContent=sourceStyle.css;d.head.append(sourceSheet);d.body.className='cms-source-article';}
   const title=d.createElement('h1');title.textContent=document.getElementById('title').value;d.body.append(title);
   const lead=d.createElement('p');lead.textContent=document.getElementById('lead').value;d.body.append(lead);
   const body=d.createElement('div');body.innerHTML=quill.getSemanticHTML();body.querySelectorAll('script,iframe,object,embed,form').forEach(el=>el.remove());body.querySelectorAll('*').forEach(el=>{for(const a of [...el.attributes])if(a.name.startsWith('on'))el.removeAttribute(a.name)});d.body.append(body);
