@@ -55,6 +55,10 @@ function imp_save_article(PDO $pdo,array $task,array $data,string $html):array{
  $rich=isset($data['richtext']['ops'])&&count($data['richtext']['ops'])>0;
  if($rich){
   imp_localize_article_images($pdo,$task,$data);
+  if(!empty($data['featured_image'])&&is_array($data['featured_meta']??null)){
+   $data['featured_meta']['src']=$data['featured_image'];
+   $data['richtext']['meta']['featured']=$data['featured_meta'];
+  }
   $stored=[['type'=>'richtext','text'=>json_encode($data['richtext'],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR)]];
  }else{$stored=$data['blocks'];$data['media_warnings']=0;$data['media_copied']=0;}
  $json=json_encode($stored,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
