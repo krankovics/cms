@@ -94,7 +94,9 @@ try{
  assert(previewBody.includes('Forrás Napilap')&&previewBody.includes('Belföld')&&previewBody.includes('Impresszum'),'Source logo identity, navigation and legal footer must be present.');
  assert(!previewBody.includes('<script>'),'Saved preview should not emit executable scripts.');
  assert((await admin.locator('#source-style-label').innerText()).includes('source-example.invalid'),'Editor should recognize the original source design profile.');
- const siteDesignEditor=await admin.context().newPage();
+ const siteDesignContext=await browser.newContext({viewport:{width:1366,height:850}});
+ const siteDesignEditor=await siteDesignContext.newPage();
+ await login(siteDesignEditor,'platform_admin');
  await siteDesignEditor.goto(base+'/source-site-design.php?id='+previewId,{waitUntil:'networkidle'});
  assert.equal(await siteDesignEditor.locator('input[name="name"]').inputValue(),'Forrás Napilap','Source site shell should be editable centrally.');
  assert((await siteDesignEditor.locator('textarea[name="header_links"]').inputValue()).includes('Belföld'),'Global source main menu should be editable.');
@@ -105,7 +107,7 @@ try{
  ]);
  const updatedPreview=await admin.request.get(base+'/source-preview.php?id='+previewId);
  assert((await updatedPreview.text()).includes('Kézzel jóváhagyott kiadó'),'Approved publisher shell must persist on the saved draft.');
- await siteDesignEditor.close();
+ await siteDesignContext.close();
 
 
  assert(await admin.locator('.ui-editor-main .ed-seo').count()===1,'SEO belongs below article body inside main editor column.');
