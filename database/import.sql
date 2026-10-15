@@ -55,3 +55,22 @@ CREATE TABLE IF NOT EXISTS import_article_map (
  FOREIGN KEY(site_id) REFERENCES sites(id) ON DELETE CASCADE,
  FOREIGN KEY(article_id) REFERENCES articles(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS import_asset_refs (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ site_id BIGINT UNSIGNED NOT NULL,
+ article_id BIGINT UNSIGNED NOT NULL,
+ source_url VARCHAR(1000) NOT NULL,
+ source_url_hash CHAR(64) NOT NULL,
+ kind ENUM('image','link') NOT NULL,
+ internal_link TINYINT(1) NOT NULL DEFAULT 0,
+ status ENUM('pending','ready','broken','ignored') NOT NULL DEFAULT 'pending',
+ target_article_id BIGINT UNSIGNED NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_import_reference (article_id,kind,source_url_hash),
+ KEY idx_import_refs_status (site_id,kind,status),
+ KEY idx_import_refs_target (site_id,source_url_hash),
+ FOREIGN KEY (site_id) REFERENCES sites(id) ON DELETE CASCADE,
+ FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
+ FOREIGN KEY (target_article_id) REFERENCES articles(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
