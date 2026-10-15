@@ -58,3 +58,8 @@ a{color:inherit}a:focus-visible,button:focus-visible{outline:3px solid var(--pub
 .pub-rich-embed-link{padding:16px 20px;border-radius:12px;background:#edf1f8}
 .pub-rich-list{padding-left:12px}
 @media(max-width:767px){.pub-rich-embed iframe{height:260px}.pub-rich-embed-spotify iframe{height:234px}}
+
+.pub-rich-video{display:block;width:100%;max-width:860px;margin:24px auto;border-radius:12px}
+.pub-rich-audio{display:block;width:100%;max-width:860px;margin:24px auto}
+.pub-rich-embed-facebook iframe{height:580px}
+.pub-rich-embed-soundcloud iframe{height:170px}
