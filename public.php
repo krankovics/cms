@@ -30,10 +30,15 @@ if($articleSlug!==''){
  $q->execute([$siteId,$siteId,$articleSlug]);$article=$q->fetch();
  if(!$article){http_response_code(404);exit('A cikk nem érhető el.');}
 }
-$q=$pdo->prepare('SELECT draft_json,published_json FROM site_templates WHERE site_id=? AND template_key=?');$q->execute([$siteId,$kind]);$template=$q->fetch();
+$template=null;$menu=[];
+try{
+ $q=$pdo->prepare('SELECT draft_json,published_json FROM site_templates WHERE site_id=? AND template_key=?');$q->execute([$siteId,$kind]);$template=$q->fetch();
+ $q=$pdo->prepare('SELECT label,url FROM site_menu_items WHERE site_id=? AND active=1 ORDER BY position,id LIMIT 40');$q->execute([$siteId]);$menu=$q->fetchAll();
+}catch(PDOException $e){
+ error_log('frontend layout fallback: '.$e->getMessage());
+}
 $layout=$template?json_decode((string)($preview?$template['draft_json']:$template['published_json']),true):null;
 if(!is_array($layout))$layout=cms_default_layout($kind);
-$q=$pdo->prepare('SELECT label,url FROM site_menu_items WHERE site_id=? AND active=1 ORDER BY position,id LIMIT 40');$q->execute([$siteId]);$menu=$q->fetchAll();
 if(!$menu)$menu=[['label'=>'Nyitóoldal','url'=>'/']];
 function pub_h(string $value):string{return htmlspecialchars($value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
 function pub_href(string $url,string $slug):string{
