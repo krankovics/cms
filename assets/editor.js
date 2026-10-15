@@ -9,6 +9,8 @@ document.addEventListener('DOMContentLoaded',()=>{
  if(metaPanels.length){syncMeta();smallEditor.addEventListener('change',syncMeta);}
  const raw=document.getElementById('initial-content');
  let initial=[];try{initial=JSON.parse(raw.textContent)}catch(e){}
+ const initialRich=initial.length===1&&initial[0].type==='richtext'?(()=>{try{return JSON.parse(initial[0].text)}catch{return null}})():null;
+ const initialRichMeta=initialRich?.meta&&typeof initialRich.meta==='object'?initialRich.meta:{};
  if(typeof window.Quill!=='function'){
   const error=document.createElement('p');error.className='error';error.setAttribute('role','alert');
   error.textContent='A szövegszerkesztő nem töltődött be. Ellenőrizd a kapcsolatot, majd frissítsd az oldalt. A cikkmentést a tartalom védelmében letiltottuk.';
@@ -240,7 +242,13 @@ document.addEventListener('DOMContentLoaded',()=>{
  allTags.forEach(l=>l.querySelector('input').addEventListener('change',refreshTags));
  syncSite();
  form.addEventListener('submit',e=>{if(!siteChecks.some(x=>x.checked)){e.preventDefault();showDialog('Válassz webhelyet',[],[{label:'Rendben',primary:true}]);return}if(search.value.trim())chooseTag(search.value)});
- const serialize=()=>[{type:'richtext',text:JSON.stringify(quill.getContents())}];
+ const serialize=()=>{
+  const delta=quill.getContents();
+  const meta=structuredClone(initialRichMeta);
+  const imageValue=(document.getElementById('og-image-url')?.value||'').trim();
+  if(meta.featured&&meta.featured.src!==imageValue)delete meta.featured;
+  return [{type:'richtext',text:JSON.stringify({...delta,meta})}];
+ };
  let dirty=false,unsaved=false,isSubmitting=false;
  const markChanged=()=>{dirty=true;unsaved=true;};
  quill.on('text-change',(_delta,_old,source)=>{if(source==='user')markChanged();});
