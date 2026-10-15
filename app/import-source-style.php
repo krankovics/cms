@@ -65,6 +65,20 @@ function cms_source_style_extract_css(string $css):string{
    // retained only for body/html or simple semantic element selectors.
    if(!preg_match('~(?:^|[\s.])(?:article|post|content|story|entry|body|text|cikk|main|header|footer|nav|brand|logo)(?:[\s_.-]|$)~i',$sel)&&
      !preg_match('/^(?:html\s+)?(?:body|header|footer|nav|h[1-4]|p|a|figure|figcaption|blockquote|img|table|td|th|ul|ol|li)$/i',$sel))continue;
+   // Most publishers style their global shell with .site-header,
+   // .main-nav, .footer class names rather than semantic tag selectors.
+   // Scope those classes strictly to the preview chrome; never apply globally.
+   if(!preg_match('/(?:article|post|story|entry|cikk)/i',$sel)){
+    if(preg_match('/(?:^|[.\s_-])(?:site[-_]?|page[-_]?|main[-_]?)?header(?:$|[\s_.-])/i',$sel)){
+     $mapped['.cms-source-header']=true;continue;
+    }
+    if(preg_match('/(?:^|[.\s_-])(?:main[-_]?|primary[-_]?)?(?:nav|navbar|menu)(?:$|[\s_.-])/i',$sel)){
+     $mapped['.cms-source-menu']=true;continue;
+    }
+    if(preg_match('/(?:^|[.\s_-])(?:site[-_]?|page[-_]?)?footer(?:$|[\s_.-])/i',$sel)){
+     $mapped['.cms-source-footer']=true;continue;
+    }
+   }
    if(!preg_match('/(?:^|[\s>])(?:body|article|header|footer|nav|h[1-4]|p|a|figure|figcaption|blockquote|img|table|td|th|ul|ol|li)\s*$/i',$sel,$m))continue;
    $name=strtolower(trim($m[0]));
    if(!isset($targets[$name]))continue;
