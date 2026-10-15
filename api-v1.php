@@ -34,7 +34,7 @@ try{
  $payload=['ok'=>true,'site'=>['id'=>$sid,'name'=>$site['name'],'slug'=>$site['slug']]];
  if($resource==='article'){
   $articleInput=trim((string)($_GET['article']??''));if($articleInput===''||strlen($articleInput)>255)api_fail(400,'Hiányzó cikkazonosító.');
-  $q=$pdo->prepare('SELECT a.id,a.title,a.slug,a.\u0060lead\u0060,a.content_json,a.published_at,a.updated_at,u.name author_name,m.seo_title,m.seo_description,m.canonical_url,m.og_image_url FROM articles a LEFT JOIN users u ON u.id=a.author_id LEFT JOIN article_meta m ON m.article_id=a.id WHERE '.$scope.$pub.' AND (a.slug=:slug OR a.id=:article_id) LIMIT 1');
+  $q=$pdo->prepare('SELECT a.id,a.title,a.slug,a.`lead`,a.content_json,a.published_at,a.updated_at,u.name author_name,m.seo_title,m.seo_description,m.canonical_url,m.og_image_url FROM articles a LEFT JOIN users u ON u.id=a.author_id LEFT JOIN article_meta m ON m.article_id=a.id WHERE '.$scope.$pub.' AND (a.slug=:slug OR a.id=:article_id) LIMIT 1');
   $q->execute(['site_primary'=>$sid,'site_shared'=>$sid,'slug'=>$articleInput,'article_id'=>ctype_digit($articleInput)?(int)$articleInput:0]);
   $article=$q->fetch();if(!$article)api_fail(404,'A cikk nem érhető el.');
   $article['content']=json_decode((string)$article['content_json'],true)?:[];unset($article['content_json']);
@@ -51,7 +51,7 @@ try{
   $q=$pdo->prepare('SELECT COUNT(*)'.$where);
   $q->execute(['site_primary'=>$sid,'site_shared'=>$sid]);$total=(int)$q->fetchColumn();
   $offset=($page-1)*$limit;
-  $q=$pdo->prepare('SELECT a.id,a.title,a.slug,a.\u0060lead\u0060,a.published_at,a.updated_at,u.name author_name,m.og_image_url'.$where.' ORDER BY a.published_at DESC,a.id DESC LIMIT '.$limit.' OFFSET '.$offset);
+  $q=$pdo->prepare('SELECT a.id,a.title,a.slug,a.`lead`,a.published_at,a.updated_at,u.name author_name,m.og_image_url'.$where.' ORDER BY a.published_at DESC,a.id DESC LIMIT '.$limit.' OFFSET '.$offset);
   $q->execute(['site_primary'=>$sid,'site_shared'=>$sid]);
   $payload['items']=$q->fetchAll();$payload['pagination']=['page'=>$page,'limit'=>$limit,'total'=>$total,'pages'=>(int)ceil($total/$limit)];
  }
