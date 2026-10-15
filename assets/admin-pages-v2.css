@@ -3,13 +3,6 @@ body.comesy-admin .ui-page{width:100%;max-width:1860px;margin:0 auto;padding:28p
 body.comesy-admin .ui-page-header{margin-bottom:18px}
 body.comesy-admin .ui-page .ui-panel{margin:0;min-width:0}
 body.comesy-admin .ui-notice{padding:12px 15px;margin:0 0 15px;border:1px solid var(--ui-border);border-radius:10px;font-size:13px}
-body.comesy-admin .ui-filterbar{display:flex;align-items:end;gap:10px;flex-wrap:wrap;margin:0 0 12px}
-body.comesy-admin .ui-field{display:flex;flex-direction:column;gap:6px;min-width:0;color:var(--ui-text-secondary);font-weight:650;font-size:12px}
-body.comesy-admin .ui-filterbar .ui-field{flex:0 1 200px}
-body.comesy-admin .ui-filterbar .ui-field-search{flex:1 1 240px}
-body.comesy-admin .ui-field input:not([type=checkbox]),body.comesy-admin .ui-field select,body.comesy-admin .ui-field textarea{width:100%;max-width:100%;min-height:43px;padding:9px 12px;border:1px solid var(--ui-border);background:var(--ui-surface);color:var(--ui-text);border-radius:10px;font-size:16px}
-body.comesy-admin .ui-field textarea{min-height:95px;resize:vertical}
-body.comesy-admin .ui-field small{font-weight:400;font-size:11px}
 body.comesy-admin .ui-result-bar{display:flex;justify-content:space-between;gap:12px;align-items:center;font-size:12px;color:var(--ui-text-secondary);margin-bottom:10px}
 body.comesy-admin .ui-result-bar strong{color:var(--ui-text)}
 body.comesy-admin .ui-data-panel{padding:0;overflow:hidden}
@@ -34,9 +27,6 @@ body.comesy-admin .ui-pane-header p{margin:5px 0 0;color:var(--ui-text-secondary
 body.comesy-admin .ui-pane-body{padding:19px;display:grid;gap:15px}
 body.comesy-admin .ui-pane-footer{padding:14px 19px;border-top:1px solid var(--ui-border);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 body.comesy-admin .ui-pane-close,body.comesy-admin .ui-compact-action,body.comesy-admin .ui-pane-dim{display:none}
-body.comesy-admin .ui-tabbar{display:flex;gap:6px;border-bottom:1px solid var(--ui-border);margin-bottom:15px}
-body.comesy-admin .ui-tabbar a{padding:10px 15px;text-decoration:none;color:var(--ui-text-secondary);font-size:13px;font-weight:650;border-bottom:2px solid transparent}
-body.comesy-admin .ui-tabbar a.is-active{color:var(--ui-primary);border-color:var(--ui-primary)}
 body.comesy-admin .ui-selection-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--ui-border);background:var(--ui-surface-subtle);font-size:12px}
 body.comesy-admin .ui-selection-controls label{display:flex;gap:8px;align-items:center}
 body.comesy-admin .ui-selection-controls input,body.comesy-admin .ui-taxonomy-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--ui-primary)}
@@ -90,9 +80,6 @@ body.comesy-admin .ui-panel-state{padding:20px;text-align:center;font-size:13px;
 @media(max-width:767px){
  body.comesy-admin .ui-page{padding:16px 13px 36px}
  body.comesy-admin .ui-page-header{margin-bottom:14px}
- body.comesy-admin .ui-filterbar{gap:8px}
- body.comesy-admin .ui-filterbar .ui-field-search{flex-basis:100%}
- body.comesy-admin .ui-filterbar .ui-field{flex:1 1 43%}
  body.comesy-admin .ui-data-table{display:block}
  body.comesy-admin .ui-data-table thead{display:none}
  body.comesy-admin .ui-data-table tbody{display:block}
