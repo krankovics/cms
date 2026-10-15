@@ -2,7 +2,7 @@ import {chromium} from 'playwright-core';
 import assert from 'node:assert/strict';
 const browser=await chromium.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
 const base='http://127.0.0.1:8765';
-const routes=['/','/articles.php','/editor.php','/taxonomy.php','/taxonomy.php?type=tag','/media.php','/sites.php','/users.php','/site-permissions.php','/profile.php','/settings.php','/migrate.php','/ads.php','/imports.php','/builder.php'];
+const routes=['/','/articles.php','/editor.php','/taxonomy.php','/taxonomy.php?type=tag','/media.php','/sites.php','/users.php','/site-permissions.php','/profile.php','/settings.php','/migrate.php','/ads.php','/imports.php','/builder.php','/audit.php'];
 try{
  const page=await browser.newPage({viewport:{width:390,height:844}});
  await page.goto(base+'/login.php');
@@ -49,6 +49,8 @@ try{
  // Exercise actual builder draft/save/publish and the anonymous publisher output.
  await page.goto(base+'/builder.php?site_id=1&template=home',{waitUntil:'domcontentloaded'});
  assert(await page.locator('[data-builder-add]').isEnabled(),'Builder should be enabled for fixture site');
+ const frame=page.frameLocator('#builder-preview-frame');
+ assert(await frame.locator('.pub-header').isVisible(),'Builder same-origin live preview frame should render');
  await page.locator('#builder-new-type').selectOption('text');
  await page.locator('[data-builder-add]').click();
  await page.locator('.ui-builder-block').last().locator('input').first().fill('Éles előnézet tesztblokk');
@@ -66,7 +68,7 @@ try{
  await author.locator('[name=password]').fill('StrongTestingPwd!2026');
  await author.locator('button[type=submit]').click();
  await author.waitForURL(base+'/');
- for(const route of ['/users.php','/sites.php','/site-permissions.php','/migrate.php','/ads.php','/imports.php','/builder.php']){
+ for(const route of ['/users.php','/sites.php','/site-permissions.php','/migrate.php','/ads.php','/imports.php','/builder.php','/audit.php']){
   const response=await author.goto(base+route);
   assert.equal(response.status(),403,'Author must not access '+route);
  }
@@ -92,5 +94,5 @@ try{
   assert.equal(editorResponse.status(),role==='site_admin'?200:403,role+' editor access');
   await rolePage.close();
  }
- console.log('PASS: all 15 admin routes at 320, 390, 768, 1366, 1920 widths.');
+ console.log('PASS: all 16 admin routes at 320, 390, 768, 1366, 1920 widths.');
 }finally{await browser.close();}
