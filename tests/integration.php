@@ -104,6 +104,16 @@ $q=$pdo->prepare('SELECT COUNT(*) FROM import_items i JOIN import_jobs j ON j.id
 $q->execute([$sites[1],$sites[0]]);
 ok((int)$q->fetchColumn()===0,'Import task must not leak across sites.');
 require dirname(__DIR__).'/app/import-worker.php';
+$discoveryTask=['job_id'=>$importJob,'site_id'=>$sites[0],'depth'=>0,'max_items'=>10,'job_source'=>'https://news.example.org/sitemapindex.xml'];
+$added=imp_queue_discovery($pdo,$discoveryTask,[
+ 'https://news.example.org/',
+ 'https://news.example.org/home_page_sitemap.xml',
+ 'https://news.example.org/kultura/2026/10/valodi-cikk'
+],false);
+ok($added===1,'Queue must only accept actual article candidate URLs, not homepage or XML.');
+$q=$pdo->prepare("SELECT COUNT(*) FROM import_items WHERE job_id=? AND task_type='article'");
+$q->execute([$importJob]);
+ok((int)$q->fetchColumn()===2,'Homepage or sitemap must not enter article queue.');
 $task=['id'=>$importItemId,'job_id'=>$importJob,'site_id'=>$sites[0],'source_url'=>$url,'created_by'=>$uid['editor']];
 $parsed=['title'=>'Forráscikk import teszt','lead'=>'Próba lead','blocks'=>[['type'=>'paragraph','text'=>'Szerkeszthető cikkrészlet.']]];
 $first=imp_save_article($pdo,$task,$parsed,'<article><p>Test</p></article>');
