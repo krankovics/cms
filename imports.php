@@ -62,8 +62,14 @@ $lastBeat=(int)($workerStatus['finished_at']??$workerStatus['started_at']??0); ?
 <?php if($job['last_error']):?><p class="ui-import-error"><?=h($job['last_error'])?></p><?php endif;?></div>
 <div class="ui-import-job-actions">
 <a class="ui-btn ui-btn-secondary" href="/import-report.php?site_id=<?=$site?>&amp;job_id=<?=(int)$job['id']?>">Minőségriport</a>
-<?php if(in_array($job['status'],['queued','running','paused','failed','finished'],true)):?>
-<form method="post"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="site_id" value="<?=$site?>"><input type="hidden" name="job_id" value="<?=(int)$job['id']?>"><input type="hidden" name="action" value="<?=$job['status']==='paused'?'resume':(in_array($job['status'],['queued','running'],true)?'pause':'retry')?>"><button type="submit" class="ui-btn ui-btn-secondary"><?=$job['status']==='paused'?'Folytatás':(in_array($job['status'],['queued','running'],true)?'Szüneteltetés':'Sikertelenek újrapróbálása')?></button></form>
+<?php
+$jobAction=$job['status']==='paused'?'resume':(in_array($job['status'],['queued','running'],true)?'pause':((int)$job['failed']>0?'retry':''));
+if($jobAction):
+?>
+<form method="post"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="site_id" value="<?=$site?>"><input type="hidden" name="job_id" value="<?=(int)$job['id']?>"><input type="hidden" name="action" value="<?=h($jobAction)?>"><button type="submit" class="ui-btn ui-btn-secondary"><?=$jobAction==='resume'?'Folytatás':($jobAction==='pause'?'Szüneteltetés':'Sikertelenek újrapróbálása')?></button></form>
+<?php endif;?>
+<?php if(in_array($job['status'],['finished','failed'],true)&&(int)$job['skipped']>0):?>
+<form method="post" onsubmit="return confirm('Csak a hiányos cikktörzs miatt kihagyott forrásokat ellenőrizzük újra. A már elkészült cikkek változatlanok maradnak. Folytatod?')"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="site_id" value="<?=$site?>"><input type="hidden" name="job_id" value="<?=(int)$job['id']?>"><input type="hidden" name="action" value="retry_skipped"><button type="submit" class="ui-btn ui-btn-secondary">Kihagyott cikkek újraellenőrzése</button></form>
 <?php endif;?></div></article><?php endforeach;?>
 </section></div>
 <?php if($items):?><section class="ui-panel ui-import-items"><h2>Feldolgozási napló · #<?=(int)$selected?></h2><p class="ui-page-description">A sitemapek felderítése nem számít cikkimportnak. Csak a „Cikk elkészült” sorok hoztak létre szerkeszthető piszkozatot.</p>

@@ -215,6 +215,68 @@ function imp_blocks_are_substantive(array $blocks):bool{
 }
 
 /**
+ * NewsGraph/Angular hydration source (script id ng-state).
+ * Use only the article whose exact slug and title match this page.
+ * Never harvest unrelated stories from this large site-wide JSON blob.
+ */
+function imp_ng_state_article_blocks(DOMXPath $xpath,string $title,string $url):array{
+ $script=$xpath->query('//script[@id="ng-state" and translate(@type,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz")="application/json"]')->item(0);
+ if(!$script)return [];
+ $raw=(string)$script->textContent;
+ if($raw===''||strlen($raw)>4194304)return [];
+ $state=json_decode($raw,true,128);
+ if(!is_array($state))return [];
+ $path=trim(rawurldecode((string)(parse_url($url,PHP_URL_PATH)??'')),'/');
+ $slug=mb_strtolower((string)basename($path));
+ $expectedTitle=mb_strtolower(trim((string)preg_replace('/[^\pL\pN]+/u',' ',$title)));
+ if(!$slug||mb_strlen($expectedTitle)<8)return [];
+ foreach($state as $entry){
+  $data=$entry['b']['data']??null;
+  if(!is_array($data)||array_is_list($data)||!isset($data['body'])||!is_array($data['body']))continue;
+  $candidateSlug=mb_strtolower(trim((string)($data['slug']??''),'/'));
+  if($candidateSlug!==$slug)continue;
+  $actualTitle=mb_strtolower(trim((string)preg_replace('/[^\pL\pN]+/u',' ',(string)($data['title']??''))));
+  if(!$actualTitle||($expectedTitle!==$actualTitle&&!str_contains($expectedTitle,$actualTitle)&&!str_contains($actualTitle,$expectedTitle)))continue;
+  // A publicly embedded blob may describe protected stories too.
+  if(!empty($data['isPaywalled'])&&!in_array($data['isPaywalled'],[false,0,'0'],true))continue;
+  if(!empty($data['isProtectedContent'])&&!in_array($data['isProtectedContent'],[false,0,'0'],true))continue;
+  if(!empty($data['isRestricted'])&&!in_array($data['isRestricted'],[false,0,'0'],true))continue;
+  if(!empty($data['canonicalUrl'])){
+   $canonical=(string)$data['canonicalUrl'];
+   $canonicalPath=trim(rawurldecode((string)(parse_url($canonical,PHP_URL_PATH)??'')),'/');
+   if($canonicalPath!==''&&$canonicalPath!==$path)continue;
+  }
+  $blocks=[];
+  foreach(array_slice($data['body'],0,200) as $component){
+   if(!is_array($component))continue;
+   foreach(array_slice((array)($component['details']??[]),0,30) as $detail){
+    if(!is_array($detail)||!is_string($detail['value']??null))continue;
+    $html=$detail['value'];
+    if($html===''||strlen($html)>300000||!preg_match('~<(?:p|h[2-4]|ul|ol|blockquote)\b~i',$html))continue;
+    $doc=new DOMDocument('1.0','UTF-8');
+    $before=libxml_use_internal_errors(true);
+    $ok=$doc->loadHTML('<?xml encoding="utf-8"?><body>'.$html.'</body>',LIBXML_NONET|LIBXML_NOWARNING|LIBXML_NOERROR);
+    libxml_clear_errors();libxml_use_internal_errors($before);
+    if(!$ok)continue;
+    $xp=new DOMXPath($doc);
+    foreach($xp->query('//p|//h2|//h3|//h4|//ul|//ol|//blockquote') as $node){
+     $tag=strtolower($node->nodeName);
+     if($tag==='p'&&$xp->evaluate('boolean(ancestor::ul or ancestor::ol or ancestor::blockquote)',$node))continue;
+     if(preg_match('/(?:related|recommend|sidebar|most-read|latest-news)/i',($node->parentNode instanceof DOMElement)?$node->parentNode->getAttribute('class'):''))continue;
+     $text=trim((string)preg_replace('/\s+/u',' ',$node->textContent));
+     if($text===''||mb_strlen($text)>300000)continue;
+     $type=match($tag){'h2','h3','h4'=>'heading','blockquote'=>'quote','ul','ol'=>'list',default=>'paragraph'};
+     if($type==='paragraph'&&mb_strlen($text)<20)continue;
+     $blocks[]=['type'=>$type,'text'=>$text];
+     if(count($blocks)>=200)break 3;
+    }
+   }
+  }
+  if(imp_blocks_are_substantive($blocks))return $blocks;
+ }
+ return [];
+}
+/**
  * Choose the narrative article body, not a card/related-news <article>.
  * Fail closed for thin pages rather than creating a misleading "successful" draft.
  */
@@ -257,6 +319,7 @@ function imp_extract(string $html,string $url):array{
  $lead=trim((string)$xpath->evaluate('string(//meta[@name="description"]/@content)'));
  // JSON-LD is gathered before the sanitizer removes script elements.
  $structuredBody=imp_jsonld_article_blocks($xpath,$title);
+ $hydratedBody=imp_ng_state_article_blocks($xpath,$title,$url);
  // Remove navigation, recommendations and commerce widgets before scoring body candidates.
  $discard=[];
  foreach($xpath->query('//script|//style|//noscript|//iframe|//nav|//footer|//aside|//form|//*[@class or @id]') as $node){
@@ -268,7 +331,7 @@ function imp_extract(string $html,string $url):array{
  }
  foreach($discard as $node)if($node->parentNode)$node->parentNode->removeChild($node);
  $article=imp_select_article_body($xpath);
- if((!$article&&!$structuredBody)||mb_strlen($title)<3)throw new ImportContentRejected('Nem található önálló, ellenőrizhető cikktörzs: a forrásoldalon csak lead, ajánlók vagy hiányos tartalom látható.');
+ if((!$article&&!$structuredBody&&!$hydratedBody)||mb_strlen($title)<3)throw new ImportContentRejected('Nem található önálló, ellenőrizhető cikktörzs: a forrásoldalon csak lead, ajánlók vagy hiányos tartalom látható.');
  $blocks=[];$seen=[];
  $nodes=$article?$xpath->query('.//h2|.//h3|.//h4|.//p|.//ul|.//ol|.//blockquote|.//img',$article):[];
  foreach($nodes as $node){
@@ -287,7 +350,8 @@ function imp_extract(string $html,string $url):array{
   $seen[$type.$text]=true;$blocks[]=['type'=>$type,'text'=>$text];
   if(count($blocks)>=200)break;
  }
- if(!imp_blocks_are_substantive($blocks)&&$structuredBody){$blocks=$structuredBody;$article=null;}
+ if($hydratedBody){$blocks=$hydratedBody;$article=null;}
+ elseif(!imp_blocks_are_substantive($blocks)&&$structuredBody){$blocks=$structuredBody;$article=null;}
  if(!imp_blocks_are_substantive($blocks))
   throw new ImportContentRejected('Hiányos cikktörzs: nem található elég forrásból ellenőrizhető, önálló cikkbekezdés; csak cím és lead nem importálható teljes cikként.');
  $links=[];$sourceHost=strtolower((string)parse_url($url,PHP_URL_HOST));

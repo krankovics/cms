@@ -43,6 +43,34 @@ $wrongPage='<!doctype html><html><head><title>Másik cikk</title><script type="a
 try{imp_extract($wrongPage,'https://example.org/other');throw new RuntimeException('Unrelated articleBody was wrongly selected.');}
 catch(ImportContentRejected $e){ensure(true,'Wrong headline must not become an imported story.');}
 
+// Publisher-specific Angular state embeds the *real* article while DOM has only related cards.
+$storyTitle='Gyerekeket nyomott agyon a leszakadt tetőzet';
+$hydratedValue='<p>'.$paragraph1.'</p><h2>A kutatás újabb részletei</h2><p>'.$paragraph2.'</p>';
+$articleState=['9234'=>['b'=>['data'=>[
+ 'title'=>$storyTitle,'slug'=>'gyerekeket-nyomott-agyon-a-leszakadt-tetozet',
+ 'canonicalUrl'=>'https://example.org/kulfold/2026/10/gyerekeket-nyomott-agyon-a-leszakadt-tetozet',
+ 'isPaywalled'=>'0',
+ 'body'=>[['type'=>'text','details'=>[['type'=>'html','key'=>'value','value'=>$hydratedValue]]]]
+]]]];
+$encodedState=json_encode($articleState,JSON_UNESCAPED_UNICODE|JSON_HEX_TAG|JSON_THROW_ON_ERROR);
+$hydrationPage='<!doctype html><html><head><title>'.$storyTitle.'</title></head><body><main>'
+ .'<h1>'.$storyTitle.'</h1><article class="related">Kapcsolódó hírek</article>'
+ .'<script id="ng-state" type="application/json">'.$encodedState.'</script></main></body></html>';
+$hydrated=imp_extract($hydrationPage,'https://example.org/kulfold/2026/10/gyerekeket-nyomott-agyon-a-leszakadt-tetozet');
+ensure(count($hydrated['blocks'])===3,'Hydrated article must yield actual paragraphs and heading.');
+ensure($hydrated['blocks'][1]['type']==='heading','Hydrated headings must stay editable.');
+ensure($hydrated['blocks'][2]['text']===trim($paragraph2),'Hydrated article must not be replaced by a related card.');
+$misidentified=$articleState;
+$misidentified['9234']['b']['data']['slug']='not-the-story';
+$badPage=str_replace($encodedState,json_encode($misidentified,JSON_UNESCAPED_UNICODE|JSON_HEX_TAG|JSON_THROW_ON_ERROR),$hydrationPage);
+try{imp_extract($badPage,'https://example.org/kulfold/2026/10/gyerekeket-nyomott-agyon-a-leszakadt-tetozet');throw new RuntimeException('Wrong slug was trusted.');}
+catch(ImportContentRejected $e){ensure(true,'Hydration records for other articles must be ignored.');}
+$paywall=$articleState;
+$paywall['9234']['b']['data']['isPaywalled']='1';
+$payPage=str_replace($encodedState,json_encode($paywall,JSON_UNESCAPED_UNICODE|JSON_HEX_TAG|JSON_THROW_ON_ERROR),$hydrationPage);
+try{imp_extract($payPage,'https://example.org/kulfold/2026/10/gyerekeket-nyomott-agyon-a-leszakadt-tetozet');throw new RuntimeException('Protected article was read.');}
+catch(ImportContentRejected $e){ensure(true,'Restricted hydrated content must not be processed.');}
+
 $rss='<?xml version="1.0"?><rss version="2.0"><channel><item><link>https://example.org/a</link></item><item><link>https://example.org/b</link></item></channel></rss>';
 $feed=imp_discover($rss,'https://example.org/rss.xml');
 ensure(count($feed['urls'])===2,'RSS links not discovered.');
