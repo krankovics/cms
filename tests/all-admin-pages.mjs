@@ -105,6 +105,24 @@ try{
  assert(await page.locator('[data-builder-add]').isEnabled(),'Builder should be enabled for fixture site');
  const frame=page.frameLocator('#builder-preview-frame');
  assert(await frame.locator('.pub-header').isVisible(),'Builder same-origin live preview frame should render');
+ // Fullscreen authoring, nested rows and boxes, drag/drop and publishing.
+ await page.setViewportSize({width:1366,height:900});
+ await page.locator('[data-builder-fullscreen]').click();
+ assert(await page.locator('body').evaluate(el=>el.classList.contains('builder-fullscreen')),'Desktop builder must enter fullscreen.');
+ await page.locator('[data-builder-fullscreen]').click();
+ assert(!(await page.locator('body').evaluate(el=>el.classList.contains('builder-fullscreen'))),'Fullscreen toggle must close.');
+ await page.locator('[data-builder-add-row]').click();
+ assert.equal(await page.locator('.ui-builder-row').count(),3,'Legacy blocks should convert to rows and a new row can be added.');
+ await page.locator('.ui-builder-row').last().locator('.ui-builder-box-add').click();
+ assert.equal(await page.locator('.ui-builder-row').last().locator('.ui-builder-box').count(),2,'Add box splits the row into two areas.');
+ await page.locator('.ui-builder-row').last().locator('.ui-builder-box').last().locator('.ui-builder-box-type').selectOption('text');
+ await page.locator('.ui-builder-row').last().locator('.ui-builder-box').last().locator('.ui-builder-block-add').click();
+ await page.locator('.ui-builder-row').last().locator('.ui-builder-box').last().locator('input').first().fill('Dobozba húzott teszt');
+ const sourceGrip=page.locator('.ui-builder-row').last().locator('.ui-builder-box').last().locator('.ui-builder-block .ui-builder-grip').first();
+ const targetBox=page.locator('.ui-builder-row').last().locator('.ui-builder-box').first().locator('.ui-builder-box-blocks');
+ await sourceGrip.dragTo(targetBox);
+ assert.equal(await page.locator('.ui-builder-row').last().locator('.ui-builder-box').first().locator('.ui-builder-block').count(),1,'Block must move between boxes via drag/drop.');
+ assert.equal(await page.locator('.ui-builder-row').last().locator('.ui-builder-box').last().locator('.ui-builder-block').count(),0,'Dragged block must disappear from old box.');
  await page.locator('#builder-new-type').selectOption('text');
  await page.locator('[data-builder-add]').click();
  await page.locator('.ui-builder-block').last().locator('input').first().fill('Éles előnézet tesztblokk');
