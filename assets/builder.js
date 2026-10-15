@@ -21,6 +21,7 @@ let rows=data.map(item=>item.type==='row'?item:rowTemplate(item.type)).map((row,
 function itemType(item){return types[item?.type]?item.type:'text';}
 if(!rows.length)rows=[rowTemplate('hero')];
 let dirty=false;
+let dragging=null;
 const totalBlocks=()=>rows.reduce((acc,row)=>acc+row.columns.reduce((sum,box)=>sum+box.blocks.length,0),0);
 const markDirty=()=>{dirty=true;};
 const btn=(text,label,onClick,disabled=false,extra='')=>{
@@ -53,16 +54,17 @@ function enableDrag(handle,sourceType,position){
  handle.draggable=true;handle.classList.add('ui-builder-drag');
  handle.setAttribute('aria-label','Húzd a '+sourceType+' elemet az új helyére');
  handle.addEventListener('dragstart',e=>{
-  e.stopPropagation();e.dataTransfer.setData('application/x-comesy-builder',JSON.stringify({type:sourceType,position}));
+  e.stopPropagation();dragging={type:sourceType,position};e.dataTransfer.setData('application/x-comesy-builder',JSON.stringify(dragging));
   e.dataTransfer.setData('application/x-comesy-'+sourceType,'1');
   e.dataTransfer.effectAllowed='move';
  });
+ handle.addEventListener('dragend',()=>{dragging=null;});
 }
 function acceptDrop(target,typesAllowed,apply){
  target.addEventListener('dragover',e=>{
   if(readOnly)return;
   const offered=[...e.dataTransfer.types];
-  if(!typesAllowed.some(kind=>offered.includes('application/x-comesy-'+kind)))return;
+  if(!typesAllowed.includes(dragging?.type)&&!typesAllowed.some(kind=>offered.includes('application/x-comesy-'+kind)))return;
   e.preventDefault();e.stopPropagation();target.classList.add('is-drag-target');
   e.dataTransfer.dropEffect='move';
  });
@@ -70,7 +72,7 @@ function acceptDrop(target,typesAllowed,apply){
  target.addEventListener('drop',e=>{
   e.preventDefault();e.stopPropagation();target.classList.remove('is-drag-target');
   if(readOnly)return;
-  let payload;try{payload=JSON.parse(e.dataTransfer.getData('application/x-comesy-builder'));}catch{return;}
+  let payload=dragging; if(!payload)try{payload=JSON.parse(e.dataTransfer.getData('application/x-comesy-builder'));}catch{return;}
   if(!typesAllowed.includes(payload?.type)||!Array.isArray(payload.position))return;
   apply(payload.position);
  });
