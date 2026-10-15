@@ -193,7 +193,7 @@ function moveBox(source,target){
  const [a,b]=source,[r,c]=target;const from=rows[a]?.columns,into=rows[r]?.columns;
  if(!from||!into||!from[b]||(a===r&&b===c))return;
  if(a!==r&&into.length>=4){alert('Egy sor legfeljebb négy dobozt tartalmazhat.');return;}
- const node=from.splice(b,1)[0];into.splice(a===r&&b<c?c-1:c,0,node);
+ const node=from.splice(b,1)[0];into.splice(c,0,node);
  if(from.length===0)from.push(boxTemplate());
  balance(rows[a]);if(a!==r)balance(rows[r]);markDirty();render();
 }
@@ -204,7 +204,7 @@ function moveBlock(source,target){
  if(from===into&&k===i)return;
  if(from!==into&&into.length>=15){alert('Egy dobozban legfeljebb 15 blokk lehet.');return;}
  const item=from.splice(k,1)[0];
- into.splice(from===into&&k<i?i-1:i,0,item);markDirty();render();
+ into.splice(i,0,item);markDirty();render();
 }
 render();
 document.querySelector('[data-builder-add]')?.addEventListener('click',()=>{
