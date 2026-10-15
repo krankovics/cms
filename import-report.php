@@ -42,6 +42,32 @@ $q=$pdo->prepare("SELECT i.id,i.source_url,i.task_type,i.status,i.attempts,i.art
  WHERE i.job_id=? AND i.site_id=? ORDER BY i.id DESC LIMIT 100");
 $q->execute([$jobId,$site]);$sample=$q->fetchAll();
 
+if(($_GET['format']??'')==='url-map'){
+ // Proposals only: the public demo currently disables indexing and is not a
+ // verified frontend domain. Never mark these as active 301 redirects.
+ $q=$pdo->prepare('SELECT m.source_url,a.slug,a.status,s.slug site_slug
+   FROM import_article_map m
+   JOIN articles a ON a.id=m.article_id AND a.site_id=m.site_id
+   JOIN sites s ON s.id=m.site_id
+   WHERE m.site_id=? AND EXISTS(
+     SELECT 1 FROM import_items i
+     WHERE i.job_id=? AND i.site_id=m.site_id AND i.article_id=m.article_id
+   ) ORDER BY m.id DESC LIMIT 1000');
+ $q->execute([$site,$jobId]);
+ header('Content-Type: text/csv; charset=utf-8');
+ header('Content-Disposition: attachment; filename="comesy-url-proposals-'.$jobId.'.csv"');
+ header('Cache-Control: no-store, private');
+ $out=fopen('php://output','w');
+ fprintf($out,"\\xEF\\xBB\\xBF");
+ fputcsv($out,['source_url','suggested_path','article_status','redirect_ready','notes'],';','"','');
+ while($item=$q->fetch()){
+  $path='/public.php?site='.rawurlencode($item['site_slug']).'&article='.rawurlencode($item['slug']);
+  $src=(string)$item['source_url'];
+  if(preg_match('/^[\\s]*[=+@\\-]/u',$src))$src="'".$src;
+  fputcsv($out,[$src,$path,$item['status'],'NO','Check final frontend domain, canonical URL, publication and 301 rules before activation'],';','"','');
+ }
+ fclose($out);exit;
+}
 if(($_GET['format']??'')==='csv'){
  header('Content-Type: text/csv; charset=utf-8');
  header('Content-Disposition: attachment; filename="comesy-import-'.$jobId.'-last-100.csv"');
@@ -67,7 +93,7 @@ $total=(int)($stats['total']??0);
 ?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Importminőség | comesy</title><link rel="stylesheet" href="/assets/ui.css"><link rel="stylesheet" href="/assets/imports.css"><script src="/assets/ui.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
 <main class="ui-page ui-imports-page" id="main-content">
 <header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Tartalommigráció · #<?=$jobId?></p><h1 class="ui-page-title">Importminőség és erőforrások</h1><p class="ui-page-description"><?=h($job['source_url'])?> · <?=h($job['status'])?></p></div>
-<div class="ui-page-actions"><a href="/imports.php?site_id=<?=$site?>&amp;job_id=<?=$jobId?>" class="ui-btn ui-btn-secondary">Vissza az importhoz</a><a class="ui-btn ui-btn-primary" href="/import-report.php?site_id=<?=$site?>&amp;job_id=<?=$jobId?>&amp;format=csv">Utolsó 100 tétel CSV</a></div></header>
+<div class="ui-page-actions"><a href="/imports.php?site_id=<?=$site?>&amp;job_id=<?=$jobId?>" class="ui-btn ui-btn-secondary">Vissza az importhoz</a><a class="ui-btn ui-btn-primary" href="/import-report.php?site_id=<?=$site?>&amp;job_id=<?=$jobId?>&amp;format=csv">Utolsó 100 tétel CSV</a><a class="ui-btn ui-btn-secondary" href="/import-report.php?site_id=<?=$site?>&amp;job_id=<?=$jobId?>&amp;format=url-map">URL-átirányítási javaslatok CSV</a></div></header>
 <section class="ui-import-report-grid" aria-label="Importstatisztikák">
 <div class="ui-import-stat"><strong><?=irn($stats['articles']??0)?></strong><span>Felderített cikktétel</span></div>
 <div class="ui-import-stat"><strong><?=irn($stats['completed']??0)?></strong><span>Kész</span></div>
