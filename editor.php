@@ -4,6 +4,7 @@ require __DIR__.'/app/bootstrap.php';
 require __DIR__.'/app/site-access.php';
 require __DIR__.'/app/article-sites.php';
 require_once __DIR__.'/app/rich-content.php';
+require_once __DIR__.'/app/import-source-style.php';
 $u=require_user();
 header('Content-Type: text/html; charset=utf-8');
 $canEdit=in_array($u['role'],['platform_admin','site_admin','editor','author'],true);
@@ -40,6 +41,7 @@ function ed_blocks($raw):array{
  return $out;
 }
 $error='';$message='';$article=null;$id=max(0,(int)($_GET['id']??0));
+$sourceStyle=null;$sourceUrl='';
 try{
  $pdo=db();
  if($id){$q=$pdo->prepare('SELECT * FROM articles WHERE id=?');$q->execute([$id]);$article=$q->fetch();if(!$article)throw new RuntimeException('A cikk nem található.');if(!in_array((int)$article['site_id'],allowed_primary_sites($pdo,$u),true)){http_response_code(403);exit('Nincs jogosultság a cikk szerkesztéséhez.');}if($u['role']==='author'&&(int)$article['author_id']!==(int)$u['id']){http_response_code(403);exit('Csak a saját cikkeidet szerkesztheted.');}}
@@ -143,6 +145,14 @@ try{
  }
  $selectedTerms=[];if($id){$q=$pdo->prepare('SELECT term_id FROM article_terms WHERE article_id=?');$q->execute([$id]);$selectedTerms=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));}
  $meta=[];if($id){$q=$pdo->prepare('SELECT * FROM article_meta WHERE article_id=?');$q->execute([$id]);$meta=$q->fetch()?:[];}
+ if($id&&$article){
+  try{
+   $sourceQuery=$pdo->prepare('SELECT source_url FROM import_article_map WHERE site_id=? AND article_id=? ORDER BY id DESC LIMIT 1');
+   $sourceQuery->execute([(int)$article['site_id'],$id]);$sourceUrl=(string)($sourceQuery->fetchColumn()?:'');
+   if($sourceUrl!=='')$sourceStyle=cms_source_style_read((int)$article['site_id'],$sourceUrl);
+  }catch(PDOException $e){error_log('editor source design: '.$e->getMessage());}
+ }
+
  $revisions=[];
  if($id){$q=$pdo->prepare('SELECT id,revision_number,created_at,status FROM article_revisions WHERE article_id=? ORDER BY revision_number DESC LIMIT 20');$q->execute([$id]);$revisions=$q->fetchAll();}
 }catch(Throwable $e){error_log('comesy editor: '.$e->getMessage());$error=$e instanceof PDOException?'A cikk mentése adatbázishiba miatt nem sikerült. Ellenőrizd a Beállítások / Adatbázis-migráció oldalt. Hibakód: '.h((string)$e->getCode()):$e->getMessage();$sites=$sites??[];$terms=$terms??[];$selectedTerms=$selectedTerms??[];$meta=$meta??[];$selectedSites=$selectedSites??[];$revisions=$revisions??[];$editorMedia=$editorMedia??[];}
@@ -162,7 +172,14 @@ $initial=json_decode($article['content_json']??'[]',true);if(!is_array($initial)
 <details class="ui-featured-url"><summary>Vagy külső kép URL megadása</summary><label for="og-image-url">Kép URL-je</label><input type="url" id="og-image-url" name="og_image_url" maxlength="1000" placeholder="https://..." value="<?=h($meta['og_image_url']??'')?>"></details>
 <p class="hint">A kiválasztott képet a cikk mentésekor rögzítjük. A külső kép csak hivatkozásként kerül a cikkhez.</p>
 </div></details><label for="status" id="publishing-status">Státusz</label><select id="status" name="status"><option value="draft" <?=($article['status']??'draft')==='draft'?'selected':''?>>Piszkozat</option><?php if(in_array($u['role'],['platform_admin','site_admin','editor'],true)):?><option value="published" <?=($article['status']??'')==='published'?'selected':''?>>Publikált</option><?php endif;?><option value="review" <?=($article['status']??'')==='review'?'selected':''?>>Ellenőrzésre vár</option><?php if(in_array($u['role'],['platform_admin','site_admin','editor'],true)):?><option value="scheduled" <?=($article['status']??'')==='scheduled'?'selected':''?>>Időzített</option><?php endif;?></select>
-<div class="ui-editor-schedule" id="editor-schedule-fields" hidden><label for="schedule-at">Publikálás időpontja (Budapest)</label><input type="datetime-local" name="schedule_at" id="schedule-at" value="<?=h($scheduleValue)?>"><p class="hint">Az időpont a webhely időzónájában értendő, a feldolgozó UTC-ben tárolja. A közzétételhez futó ütemező szükséges.</p></div><button type="button" id="preview-button" class="ui-editor-preview">Előnézet új lapon ↗</button><p id="local-save" class="hint"></p><button type="submit" class="editor-save-button ui-btn ui-btn-primary" <?=!$sites?'disabled':''?>>Cikk mentése</button></div><?php if($revisions):?><div class="panel"><h3>Korábbi verziók</h3><?php foreach($revisions as $r):?><div class="revision"><small>#<?=(int)$r['revision_number']?> · <?=h($r['created_at'])?></small><button type="submit" name="action" value="restore" formaction="/editor.php?id=<?=$id?>" onclick="document.getElementById('revision-id').value='<?=(int)$r['id']?>';true">Visszaállítás</button></div><?php endforeach;?><input type="hidden" name="revision_id" id="revision-id"></div><?php endif;?></aside></form><div class="ui-editor-mobile-action"><button form="editor-form" type="submit" class="ui-btn ui-btn-primary" <?=!$sites?'disabled':''?>>Cikk mentése</button></div></main><dialog id="featured-media-picker" class="ui-featured-picker" aria-labelledby="featured-picker-title">
+<div class="ui-editor-schedule" id="editor-schedule-fields" hidden><label for="schedule-at">Publikálás időpontja (Budapest)</label><input type="datetime-local" name="schedule_at" id="schedule-at" value="<?=h($scheduleValue)?>"><p class="hint">Az időpont a webhely időzónájában értendő, a feldolgozó UTC-ben tárolja. A közzétételhez futó ütemező szükséges.</p></div><button type="button" id="preview-button" class="ui-editor-preview">Előnézet új lapon ↗</button><?php if($sourceUrl!==''):?>
+<div class="ui-source-style-status"><strong>Importált forrásarculat</strong>
+<span id="source-style-label"><?=!empty($sourceStyle['css'])?'Mentett stílus: '.h($sourceStyle['host']):'A forrás CSS-e még nincs rögzítve'?></span>
+<?php if(in_array($u['role'],['platform_admin','site_admin','editor'],true)):?>
+<button type="button" id="source-style-refresh" data-id="<?=$id?>" data-csrf="<?=h(csrf())?>" class="ui-btn ui-btn-secondary">Forrásstílus letöltése / frissítése</button>
+<?php endif;?>
+<a class="ui-btn ui-btn-secondary" href="/source-preview.php?id=<?=$id?>" target="_blank" rel="noopener">Mentett piszkozat forrásnézete ↗</a>
+</div><?php endif;?><p id="local-save" class="hint"></p><button type="submit" class="editor-save-button ui-btn ui-btn-primary" <?=!$sites?'disabled':''?>>Cikk mentése</button></div><?php if($revisions):?><div class="panel"><h3>Korábbi verziók</h3><?php foreach($revisions as $r):?><div class="revision"><small>#<?=(int)$r['revision_number']?> · <?=h($r['created_at'])?></small><button type="submit" name="action" value="restore" formaction="/editor.php?id=<?=$id?>" onclick="document.getElementById('revision-id').value='<?=(int)$r['id']?>';true">Visszaállítás</button></div><?php endforeach;?><input type="hidden" name="revision_id" id="revision-id"></div><?php endif;?></aside></form><div class="ui-editor-mobile-action"><button form="editor-form" type="submit" class="ui-btn ui-btn-primary" <?=!$sites?'disabled':''?>>Cikk mentése</button></div></main><dialog id="featured-media-picker" class="ui-featured-picker" aria-labelledby="featured-picker-title">
 <div class="ui-featured-picker-head"><div><h2 id="featured-picker-title">Kiemelt kép kiválasztása</h2><p>Válassz egy meglévő képet, vagy tölts fel újat.</p></div><button type="button" id="featured-picker-close" class="ui-picker-close" aria-label="Ablak bezárása">✕</button></div>
 <div class="ui-featured-picker-tools">
 <label for="featured-picker-search">Képek keresése</label>
@@ -180,4 +197,4 @@ $initial=json_decode($article['content_json']??'[]',true);if(!is_array($initial)
 <input type="file" id="featured-picker-file" hidden accept="image/jpeg,image/png,image/webp,image/gif" aria-label="Képfájl kiválasztása">
 <div class="ui-featured-picker-footer"><span id="featured-picker-count"><?=count($editorMedia)?> kép érhető el</span><div class="ui-featured-picker-buttons"><button type="button" class="ui-btn ui-btn-secondary" id="featured-picker-more" hidden>További képek</button><button type="button" class="ui-btn ui-btn-secondary" id="featured-picker-cancel">Mégse</button></div></div>
 </dialog>
-<dialog id="ed-modal" class="ed-modal"><h2 id="ed-modal-title"></h2><div id="ed-modal-body"></div><div id="ed-modal-actions"></div></dialog><script src="/assets/editor.js" defer></script><script type="application/json" id="initial-content"><?=json_encode($initial,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE)?></script></body></html>
+<dialog id="ed-modal" class="ed-modal"><h2 id="ed-modal-title"></h2><div id="ed-modal-body"></div><div id="ed-modal-actions"></div></dialog><script src="/assets/editor.js" defer></script><script type="application/json" id="source-style-data"><?=json_encode(['css'=>(string)($sourceStyle['css']??''),'source'=>$sourceUrl,'host'=>(string)($sourceStyle['host']??'')],JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE)?></script><script type="application/json" id="initial-content"><?=json_encode($initial,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_UNICODE)?></script></body></html>
