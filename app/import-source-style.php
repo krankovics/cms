@@ -20,7 +20,7 @@ function cms_source_style_read(int $site,string $url):?array{
 }
 /** Pick only semantic article styles and a tight CSS property allowlist. */
 function cms_source_style_extract_css(string $css):string{
- $css=substr($css,0,300000);
+ $css=substr($css,0,650000);
  // We do not ship arbitrary source CSS. This excludes @rules, url(), expression(),
  // CSS variables, image tracking resources, and global selectors.
  $css=preg_replace('~/\*.*?\*/~s','',$css);
@@ -119,7 +119,7 @@ function cms_source_style_collect(int $site,string $html,string $url,bool $force
  foreach(cms_source_style_links($html,$url) as $href){
   try{
    // Use the existing SSRF/robots-protected importer HTTP pipeline.
-   $response=imp_fetch($href,196608);
+   $response=imp_fetch($href,524288);
    if(!preg_match('~(?:text/css|text/plain|application/octet-stream)~i',(string)($response['headers']['content-type']??'text/css')))continue;
    $part=cms_source_style_extract_css($response['body']);
    if($part!==''){$css.="\n".$part;$count++;}
