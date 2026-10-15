@@ -37,6 +37,7 @@ jobs:
           node --check assets/editor.js
           node --check assets/ui.js
           node --check assets/admin-pages-v2.js
+          node --check assets/builder.js
           node tests/theme-contrast.mjs
           php tests/import-parser.php
       - name: Run isolated MySQL integration checks
@@ -60,6 +61,8 @@ jobs:
           pid=$!
           trap 'kill "$pid" || true; rm -f app/config.php' EXIT
           sleep 2
+          php publish-worker.php --max=10 || { cat /tmp/comesy-php-test.log; exit 1; }
+          php tests/scheduling-smoke.php || { cat /tmp/comesy-php-test.log; exit 1; }
           python3 tests/http-smoke.py || { cat /tmp/comesy-php-test.log; exit 1; }
           node tests/browser-smoke.mjs || { cat /tmp/comesy-php-test.log; exit 1; }
           node tests/all-admin-pages.mjs || { cat /tmp/comesy-php-test.log; exit 1; }
