@@ -149,6 +149,17 @@ try{
  await admin.locator('.ui-asset-preview').first().click();
  assert((await admin.locator('[data-asset-detail-alt]').textContent()).includes('Megújított képleírás'),'Alt text update not persisted');
  await admin.locator('#media-inspector [data-panel-close]').first().click();
+ await admin.goto(base+'/media.php');
+ const mediaArea=await admin.evaluate(()=>({
+  grid:document.querySelector('.ui-gallery').getBoundingClientRect().width,
+  wrap:document.querySelector('.ui-media-workbench').getBoundingClientRect().width
+ }));
+ assert(mediaArea.grid>=mediaArea.wrap-2,'Media gallery must use full canvas.');
+ await admin.locator('.ui-asset-preview').first().click();
+ assert(await admin.locator('#media-inspector').evaluate(el=>el.classList.contains('is-open')),'Desktop image details should open on demand.');
+ await admin.keyboard.press('Escape');
+ assert(await admin.locator('#media-inspector').evaluate(el=>!el.classList.contains('is-open')),'Escape should close media details.');
+
  await admin.goto(base+'/users.php',{waitUntil:'networkidle'});
  await admin.locator('[data-ui-search="user-list"]').fill('editor');
  assert((await admin.locator('.ui-person-row:not([hidden])').count())===1,'User search filtering incorrect');
