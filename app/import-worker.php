@@ -1,0 +1,149 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/import-engine.php';
+function imp_requeue_orphaned(PDO $pdo):void{
+ $pdo->exec("UPDATE import_items i JOIN import_jobs j ON j.id=i.job_id SET i.status='pending',i.available_at=NOW(),i.claimed_at=NULL WHERE i.status='processing' AND i.claimed_at<DATE_SUB(NOW(),INTERVAL 20 MINUTE) AND j.status IN ('running','queued')");
+}
+function imp_claim(PDO $pdo):?array{
+ $pdo->beginTransaction();
+ try{
+  $q=$pdo->query("SELECT i.*,j.mode,j.source_url AS job_source,j.max_items,j.created_by FROM import_items i JOIN import_jobs j ON j.id=i.job_id WHERE i.status='pending' AND i.available_at<=NOW() AND j.status IN ('queued','running') ORDER BY i.id LIMIT 1 FOR UPDATE SKIP LOCKED");
+  $task=$q->fetch();
+  if(!$task){$pdo->commit();return null;}
+  $pdo->prepare("UPDATE import_items SET status='processing',attempts=attempts+1,claimed_at=NOW() WHERE id=?")->execute([$task['id']]);
+  $pdo->prepare("UPDATE import_jobs SET status='running' WHERE id=? AND status='queued'")->execute([$task['job_id']]);
+  $pdo->commit();return $task;
+ }catch(Throwable $e){$pdo->rollBack();throw $e;}
+}
+function imp_queue_discovery(PDO $pdo,array $task,array $urls,bool $index):int{
+ $jobId=(int)$task['job_id'];$site=(int)$task['site_id'];$depth=(int)$task['depth'];$limit=(int)$task['max_items'];
+ $q=$pdo->prepare("SELECT COUNT(*) FROM import_items WHERE job_id=? AND task_type='article'");$q->execute([$jobId]);$used=(int)$q->fetchColumn();
+ $queue=$pdo->prepare('INSERT IGNORE INTO import_items(job_id,site_id,source_url,source_url_hash,task_type,depth) VALUES(?,?,?,?,?,?)');
+ $count=0;
+ foreach($urls as $url){
+  if(!$index&&$used>=$limit)break;
+  if($index&&$depth>=3)continue;
+  $type=$index?'discover':'article';
+  try{
+   $url=imp_validate_url((string)$url);
+   if(parse_url($url,PHP_URL_HOST)!==parse_url($task['job_source'],PHP_URL_HOST))continue;
+  }catch(Throwable $e){continue;}
+  $queue->execute([$jobId,$site,$url,hash('sha256',$url),$type,$depth+1]);
+  if($queue->rowCount()){ $count++;if(!$index)$used++; }
+ }
+ return $count;
+}
+function imp_snapshot(string $raw,int $site,int $job):string{
+ $hash=hash('sha256',$raw);
+ $relative='storage/import/'.$site.'/'.$job.'/'.$hash.'.html';
+ $dest=dirname(__DIR__).'/'.$relative;
+ $dir=dirname($dest);
+ if(!is_dir($dir)&&!mkdir($dir,0750,true)&&!is_dir($dir))throw new RuntimeException('Nem lehet forráspillanatképet menteni.');
+ if(!is_file($dest)&&file_put_contents($dest,$raw,LOCK_EX)===false)throw new RuntimeException('Forráspillanatkép mentési hiba.');
+ chmod($dest,0640);return $relative;
+}
+function imp_save_article(PDO $pdo,array $task,array $data,string $html):array{
+ $source=$task['source_url'];$site=(int)$task['site_id'];$actor=$task['created_by']?(int)$task['created_by']:null;
+ $urlHash=hash('sha256',$source);$contentHash=hash('sha256',$html);
+ $json=json_encode($data['blocks'],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
+ $snapshot=imp_snapshot($html,$site,(int)$task['job_id']);
+ $pdo->beginTransaction();
+ try{
+  $q=$pdo->prepare('SELECT id,article_id,source_hash FROM import_article_map WHERE site_id=? AND source_url_hash=? FOR UPDATE');
+  $q->execute([$site,$urlHash]);$map=$q->fetch();
+  $articleId=(int)($map['article_id']??0);
+  $status='completed';$message=null;
+  if($map&&$map['source_hash']===$contentHash&&$articleId){$status='skipped';}
+  else{
+   $currentStatus=null;
+   if($articleId){
+    $q=$pdo->prepare('SELECT status FROM articles WHERE id=? AND site_id=? FOR UPDATE');
+    $q->execute([$articleId,$site]);$currentStatus=$q->fetchColumn();
+    if($currentStatus===false)$articleId=0;
+   }
+   if($articleId&&$currentStatus!=='draft'&&$currentStatus!=='review'){
+    $status='skipped';$message='A forrás változott, de a publikált cikk csak kézi jóváhagyással írható felül.';
+   }else{
+    if($articleId){
+     $pdo->prepare('UPDATE articles SET title=?,\u0060lead\u0060=?,content_json=?,updated_at=NOW() WHERE id=? AND site_id=?')
+      ->execute([$data['title'],$data['lead'],$json,$articleId,$site]);
+    }else{
+     $slug=mb_strtolower($data['title']);
+     $slug=iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$slug)?:$slug;
+     $slug=substr(trim((string)preg_replace('/[^a-z0-9]+/','-',$slug),'-'),0,175).'-'.substr($urlHash,0,14);
+     $q=$pdo->prepare("INSERT INTO articles(site_id,author_id,title,slug,\u0060lead\u0060,content_json,status) VALUES(?,?,?,?,?,?,'draft')");
+     $q->execute([$site,$actor,$data['title'],$slug,$data['lead'],$json]);$articleId=(int)$pdo->lastInsertId();
+    }
+    $q=$pdo->prepare('INSERT INTO article_meta(article_id,seo_description,canonical_url) VALUES(?,?,?) ON DUPLICATE KEY UPDATE seo_description=VALUES(seo_description),canonical_url=VALUES(canonical_url)');
+    $q->execute([$articleId,mb_substr($data['lead'],0,500),$source]);
+    $q=$pdo->prepare('INSERT IGNORE INTO article_sites(article_id,site_id) VALUES(?,?)');$q->execute([$articleId,$site]);
+    $q=$pdo->prepare('SELECT COALESCE(MAX(revision_number),0)+1 FROM article_revisions WHERE article_id=?');$q->execute([$articleId]);$rev=(int)$q->fetchColumn();
+    $q=$pdo->prepare("INSERT INTO article_revisions(article_id,editor_id,revision_number,title,\u0060lead\u0060,content_json,status) VALUES(?,?,?,?,?,?,'draft')");
+    $q->execute([$articleId,$actor,$rev,$data['title'],$data['lead'],$json]);
+    if(!$map){
+     $q=$pdo->prepare('INSERT INTO import_article_map(site_id,source_url,source_url_hash,article_id,source_hash,snapshot_path) VALUES(?,?,?,?,?,?)');
+     $q->execute([$site,$source,$urlHash,$articleId,$contentHash,$snapshot]);
+    }else{
+     $q=$pdo->prepare('UPDATE import_article_map SET article_id=?,source_hash=?,snapshot_path=?,updated_at=NOW() WHERE id=?');
+     $q->execute([$articleId,$contentHash,$snapshot,$map['id']]);
+    }
+    $pdo->prepare('INSERT INTO audit_log(user_id,action,object_type,object_id,meta_json) VALUES(?,?,?,?,?)')
+     ->execute([$actor,'import.article','article',$articleId,json_encode(['source_url'=>$source,'job_id'=>$task['job_id'],'revision'=>$rev],JSON_THROW_ON_ERROR)]);
+   }
+  }
+  $pdo->commit();return ['status'=>$status,'article_id'=>$articleId,'hash'=>$contentHash,'error'=>$message];
+ }catch(Throwable $e){$pdo->rollBack();throw $e;}
+}
+function imp_process(PDO $pdo,array $task):void{
+ $url=(string)$task['source_url'];$mode=(string)$task['mode'];$type=(string)$task['task_type'];
+ if($type==='discover'){
+  if($mode==='site'){
+   $p=parse_url($url);$url=$p['scheme'].'://'.$p['host'].'/sitemap.xml';
+  }
+  $result=imp_fetch($url);
+  if($mode==='demo'&&!str_contains(strtolower((string)($result['headers']['content-type']??'')),'xml')){
+   $doc=new DOMDocument();$previous=libxml_use_internal_errors(true);
+   $doc->loadHTML('<?xml encoding="utf-8"?>'.$result['body'],LIBXML_NONET|LIBXML_NOERROR|LIBXML_NOWARNING);
+   libxml_clear_errors();libxml_use_internal_errors($previous);
+   $links=[];
+   foreach($doc->getElementsByTagName('a') as $anchor){$href=$anchor->getAttribute('href');if($href)$links[]=imp_resolve_url($href,$result['url']);}
+   $discovered=['urls'=>$links,'index'=>false];
+  }else{$discovered=imp_discover($result['body'],$result['url'],min(1000,(int)$task['max_items']));}
+  $added=imp_queue_discovery($pdo,$task,$discovered['urls'],$discovered['index']);
+  $pdo->prepare('UPDATE import_jobs SET discovered=discovered+? WHERE id=?')->execute([$added,$task['job_id']]);
+  $pdo->prepare("UPDATE import_items SET status='completed',claimed_at=NULL WHERE id=?")->execute([$task['id']]);
+  return;
+ }
+ $result=imp_fetch($url);
+ $contentType=strtolower((string)($result['headers']['content-type']??'text/html'));
+ if(!str_contains($contentType,'html'))throw new RuntimeException('A forrás nem HTML-cikk.');
+ $data=imp_extract($result['body'],$result['url']);
+ $saved=imp_save_article($pdo,$task,$data,$result['body']);
+ $pdo->prepare('UPDATE import_items SET status=?,article_id=?,source_hash=?,last_error=?,claimed_at=NULL WHERE id=?')
+  ->execute([$saved['status'],$saved['article_id'],$saved['hash'],$saved['error'],$task['id']]);
+ $col=$saved['status']==='skipped'?'skipped':'completed';
+ $pdo->prepare('UPDATE import_jobs SET '.$col.'='.$col.'+1 WHERE id=?')->execute([$task['job_id']]);
+}
+function imp_work_once(PDO $pdo):bool{
+ imp_requeue_orphaned($pdo);
+ $task=imp_claim($pdo);
+ if(!$task)return false;
+ try{imp_process($pdo,$task);}
+ catch(Throwable $e){
+  $message=mb_substr($e->getMessage(),0,1000);
+  error_log('comesy import task #'.$task['id'].': '.$message);
+  $attempt=(int)$task['attempts']+1;$retry=$attempt<3;
+  if($retry){
+   $delay=min(3600,60*(2**$attempt));
+   $pdo->prepare("UPDATE import_items SET status='pending',available_at=DATE_ADD(NOW(), INTERVAL ? SECOND),claimed_at=NULL,last_error=? WHERE id=?")
+    ->execute([$delay,$message,$task['id']]);
+  }else{
+   $pdo->prepare("UPDATE import_items SET status='failed',claimed_at=NULL,last_error=? WHERE id=?")->execute([$message,$task['id']]);
+   $pdo->prepare('UPDATE import_jobs SET failed=failed+1,last_error=? WHERE id=?')->execute([$message,$task['job_id']]);
+  }
+ }
+ $q=$pdo->prepare("SELECT COUNT(*) FROM import_items WHERE job_id=? AND status IN ('pending','processing')");
+ $q->execute([$task['job_id']]);$remaining=(int)$q->fetchColumn();
+ if($remaining===0)$pdo->prepare("UPDATE import_jobs SET status=IF(failed>0,'failed','finished') WHERE id=? AND status='running'")->execute([$task['job_id']]);
+ return true;
+}
