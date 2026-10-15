@@ -119,3 +119,21 @@ function cms_rich_content_chars(string $html):int{
  $plain=trim((string)preg_replace('/\s+/u',' ',html_entity_decode(strip_tags($html),ENT_QUOTES|ENT_HTML5,'UTF-8')));
  return mb_strlen($plain);
 }
+
+/** Deterministic asset references from already sanitized, rich imported HTML. */
+function cms_rich_references(string $html):array{
+ if($html===''||strlen($html)>800000)return ['images'=>[],'links'=>[]];
+ $dom=new DOMDocument('1.0','UTF-8');$prior=libxml_use_internal_errors(true);
+ $ok=$dom->loadHTML('<?xml encoding="utf-8"?><div>'.$html.'</div>',LIBXML_NONET|LIBXML_NOERROR|LIBXML_NOWARNING);
+ libxml_clear_errors();libxml_use_internal_errors($prior);
+ if(!$ok)return ['images'=>[],'links'=>[]];
+ $xpath=new DOMXPath($dom);$images=[];$links=[];
+ foreach($xpath->query('//img[@src]') as $node){
+  $url=cms_rich_url((string)$node->getAttribute('src'));if($url)$images[$url]=$url;
+ }
+ foreach($xpath->query('//a[@href] | //iframe[@src] | //audio[@src] | //video[@src] | //source[@src]') as $node){
+  $attr=$node->tagName==='a'?'href':'src';
+  $url=cms_rich_url((string)$node->getAttribute($attr));if($url)$links[$url]=$url;
+ }
+ return ['images'=>array_values($images),'links'=>array_values($links)];
+}
