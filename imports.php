@@ -47,6 +47,7 @@ $labels=['queued'=>'Sorban','running'=>'Folyamatban','paused'=>'Szüneteltetve',
 <p><?=number_format((int)$job['completed'],0,',',' ')?> kész · <?=(int)$job['skipped']?> kihagyva · <?=(int)$job['failed']?> hiba · <?=(int)$job['discovered']?> felderítve</p>
 <?php if($job['last_error']):?><p class="ui-import-error"><?=h($job['last_error'])?></p><?php endif;?></div>
 <div class="ui-import-job-actions">
+<a class="ui-btn ui-btn-secondary" href="/import-report.php?site_id=<?=$site?>&amp;job_id=<?=(int)$job['id']?>">Minőségriport</a>
 <?php if(in_array($job['status'],['queued','running','paused','failed','finished'],true)):?>
 <form method="post"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="site_id" value="<?=$site?>"><input type="hidden" name="job_id" value="<?=(int)$job['id']?>"><input type="hidden" name="action" value="<?=$job['status']==='paused'?'resume':(in_array($job['status'],['queued','running'],true)?'pause':'retry')?>"><button type="submit" class="ui-btn ui-btn-secondary"><?=$job['status']==='paused'?'Folytatás':(in_array($job['status'],['queued','running'],true)?'Szüneteltetés':'Sikertelenek újrapróbálása')?></button></form>
 <?php endif;?></div></article><?php endforeach;?>
