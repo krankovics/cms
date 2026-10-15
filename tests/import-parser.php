@@ -4,6 +4,23 @@ require dirname(__DIR__).'/app/import-engine.php';
 function ensure(bool $condition,string $message):void{if(!$condition)throw new RuntimeException($message);}
 
 require_once dirname(__DIR__).'/app/import-source-style.php';
+
+require_once dirname(__DIR__).'/app/import-site-design.php';
+$siteShell='<html><head><meta property="og:site_name" content="Hírportál Próba"></head><body>'
+ .'<header><a href="/"><img class="site-logo" src="/assets/logo.svg" alt="Hírportál Próba logo"></a>'
+ .'<nav aria-label="primary"><a href="/belfold">Belföld</a><a href="/kulfold">Külföld</a><a href="/gazdasag">Gazdaság</a>'
+ .'<a href="javascript:alert(1)">Rossz</a><a href="https://tracker.invalid/click">Követő</a></nav></header>'
+ .'<article><img src="/cover.jpg" alt="Borító"><p>Tartalom</p></article>'
+ .'<footer><nav><a href="/impresszum">Impresszum</a><a href="/adatvedelem">Adatvédelem</a></nav><small>© 2026 Hírportál Próba</small></footer>'
+ .'<script>alert(1)</script></body></html>';
+$shell=cms_source_design_extract($siteShell,'https://example.org/story');
+ensure($shell['name']==='Hírportál Próba','Site identity must come from og:site_name.');
+ensure($shell['logo_url']==='https://example.org/assets/logo.svg','Header logo must be extracted, not article cover.');
+ensure(count($shell['header_links'])===3&&$shell['header_links'][0]['label']==='Belföld','Main navigation should retain safe titles and order.');
+ensure($shell['header_links'][0]['url']==='https://example.org/belfold','Menu links must be resolved against original host.');
+ensure(count($shell['footer_links'])===2&&str_contains($shell['copyright'],'© 2026'),'Footer legal/navigation metadata should be retained.');
+ensure(!str_contains(json_encode($shell),'tracker.invalid')&&!str_contains(json_encode($shell),'javascript:'),'Untrusted navigation URLs must be dropped.');
+
 $styleSource='<html><head><style>body{font-family:Georgia,serif;color:#18243a;background-color:#ffffff}'
  .'.article-body p{font-size:18px;line-height:1.7;color:#123456}.article-body h2{font-weight:700}'
  .'.malicious{background-image:url(https://tracker.example/t)}'
