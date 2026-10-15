@@ -48,6 +48,18 @@ function cms_rich_embed(array $v):string{
  $url=cms_rich_url((string)($v['url']??''));$provider=(string)($v['provider']??'');
  if(!$url)return '';
  $host=strtolower((string)parse_url($url,PHP_URL_HOST));
+ if(in_array($provider,['video','audio'],true)){
+  return $provider==='video'?'<video controls playsinline preload="metadata" class="pub-rich-video" src="'.cms_rich_escape($url).'"></video>':
+   '<audio controls preload="metadata" class="pub-rich-audio" src="'.cms_rich_escape($url).'"></audio>';
+ }
+ if($provider==='facebook'&&preg_match('/(^|\\.)facebook\\.com$/',$host)){
+  $iframe='https://www.facebook.com/plugins/post.php?'.http_build_query(['href'=>$url,'show_text'=>'true','width'=>500]);
+  return '<div class="pub-rich-embed pub-rich-embed-facebook"><iframe loading="lazy" title="Facebook beágyazás" src="'.cms_rich_escape($iframe).'" referrerpolicy="strict-origin-when-cross-origin"></iframe><p><a href="'.cms_rich_escape($url).'" target="_blank" rel="noopener noreferrer">Eredeti bejegyzés</a></p></div>';
+ }
+ if($provider==='soundcloud'&&preg_match('/(^|\\.)soundcloud\\.com$/',$host)){
+  $iframe='https://w.soundcloud.com/player/?'.http_build_query(['url'=>$url,'auto_play'=>'false','hide_related'=>'true']);
+  return '<div class="pub-rich-embed pub-rich-embed-soundcloud"><iframe loading="lazy" title="SoundCloud lejátszó" src="'.cms_rich_escape($iframe).'"></iframe></div>';
+ }
  $allowed=[
   'youtube'=>'www.youtube-nocookie.com','spotify'=>'open.spotify.com',
   'vimeo'=>'player.vimeo.com','instagram'=>'www.instagram.com'
@@ -61,7 +73,7 @@ function cms_rich_embed(array $v):string{
   return '<div class="pub-rich-embed pub-rich-embed-'.$provider.'"><iframe loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen title="'.cms_rich_escape(ucfirst($provider)).' beágyazás" src="'.cms_rich_escape($url).'"></iframe></div>';
  }
  // Other platforms can refuse third-party iframes. Keep a meaningful source card.
- if(!in_array($provider,['facebook','tiktok','soundcloud','apple-podcasts','x','instagram'],true))return '';
+ if(!in_array($provider,['facebook','tiktok','soundcloud','apple-podcasts','x','instagram','external'],true))return '';
  return '<p class="pub-rich-embed-link"><a rel="noopener noreferrer nofollow" target="_blank" href="'.cms_rich_escape($url).'">'.cms_rich_escape(strtoupper($provider)).' beágyazott tartalom megnyitása ↗</a></p>';
 }
 function cms_rich_delta(string $text):string{
