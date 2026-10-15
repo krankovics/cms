@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require __DIR__.'/app/bootstrap.php';
+require __DIR__.'/app/site-settings.php';
 $u=require_user();
 if($u['role']!=='platform_admin'){http_response_code(403);exit('Nincs jogosultság.');}
 $error='';$saved=isset($_GET['saved']);$sites=[];
@@ -13,18 +14,23 @@ try{
   $domain=mb_strtolower(trim((string)($_POST['domain']??'')));
   $slug=mb_strtolower(trim((string)($_POST['slug']??'')));
   if(mb_strlen($name)<2||mb_strlen($name)>190||!preg_match('/^(?=.{3,190}$)[a-z0-9-]+(?:\\.[a-z0-9-]+)+$/D',$domain)||!preg_match('/^[a-z0-9][a-z0-9-]{1,99}$/D',$slug))throw new RuntimeException('Érvénytelen név, domain vagy azonosító.');
+  $current=null;
+  if($id){$q=$pdo->prepare('SELECT settings_json FROM sites WHERE id=?');$q->execute([$id]);$current=$q->fetch();}
+  $settings=cms_validate_site_settings($_POST,$current?cms_site_settings($current):[]);
+  $settingsJson=json_encode($settings,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
   if($id){
-   $q=$pdo->prepare('UPDATE sites SET name=?,domain=?,slug=? WHERE id=?');
-   $q->execute([$name,$domain,$slug,$id]);
+   $q=$pdo->prepare('UPDATE sites SET name=?,domain=?,slug=?,settings_json=? WHERE id=?');
+   $q->execute([$name,$domain,$slug,$settingsJson,$id]);
    if(!$q->rowCount()){ $check=$pdo->prepare('SELECT id FROM sites WHERE id=?');$check->execute([$id]);if(!$check->fetchColumn())throw new RuntimeException('A webhely nem található.');}
   }else{
-   $q=$pdo->prepare('INSERT INTO sites(name,domain,slug) VALUES(?,?,?)');$q->execute([$name,$domain,$slug]);
+   $q=$pdo->prepare('INSERT INTO sites(name,domain,slug,settings_json) VALUES(?,?,?,?)');$q->execute([$name,$domain,$slug,$settingsJson]);
   }
   header('Location: /sites.php?saved=1');exit;
  }
- $sites=$pdo->query('SELECT s.id,s.name,s.domain,s.slug,(SELECT COUNT(*) FROM articles a WHERE a.site_id=s.id) article_count FROM sites s ORDER BY s.name')->fetchAll();
+ $sites=$pdo->query('SELECT s.id,s.name,s.domain,s.slug,s.settings_json,(SELECT COUNT(*) FROM articles a WHERE a.site_id=s.id) article_count FROM sites s ORDER BY s.name')->fetchAll();
 }catch(Throwable $e){error_log('sites: '.$e->getMessage());$error=$e instanceof PDOException?'Az adatbázis-művelet sikertelen. A domain és az azonosító egyedi kell legyen.':$e->getMessage();}
 $edit=max(0,(int)($_GET['edit']??0));$selected=null;foreach($sites as $s)if((int)$s['id']===$edit)$selected=$s;
+$siteSettings=cms_site_settings($selected??[]);
 ?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Webhelyek | comesy</title><link rel="stylesheet" href="/assets/ui.css"><script src="/assets/ui.js" defer></script><script src="/assets/admin-pages-v2.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
 <main class="ui-admin-section" id="main-content">
 <header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Adminisztráció</p><h1 class="ui-page-title">Webhelyek</h1><p class="ui-page-description">A comesy felületen kezelt kiadói webhelyek és tartalmaik.</p></div>
@@ -39,6 +45,16 @@ $edit=max(0,(int)($_GET['edit']??0));$selected=null;foreach($sites as $s)if((int
 <label class="ui-field">Név <input name="name" data-pane-first required minlength="2" maxlength="190" value="<?=h($selected['name']??'')?>" placeholder="Kiadói webhely"></label>
 <label class="ui-field">Domain <input name="domain" required maxlength="190" placeholder="pelda.hu" value="<?=h($selected['domain']??'')?>"></label>
 <label class="ui-field">Azonosító (slug) <input name="slug" required maxlength="100" placeholder="pelda" value="<?=h($selected['slug']??'')?>"></label>
+<fieldset class="ui-site-features"><legend>Webhelyfunkciók</legend><p class="ui-page-description">A kikapcsolás nem törli a meglévő adatokat.</p>
+<?php foreach(['builder_enabled'=>'Vizuális oldalépítő','reader_accounts_enabled'=>'Nyilvános olvasói fiókok','comments_enabled'=>'Hozzászólások','newsletter_enabled'=>'Hírlevél','ai_enabled'=>'AI-funkciók','ad_slots_enabled'=>'Natív hirdetési zónák'] as $flag=>$label):?>
+<label class="ui-site-checkbox"><input type="checkbox" name="<?=h($flag)?>" value="1" <?=!empty($siteSettings[$flag])?'checked':''?>> <?=h($label)?></label>
+<?php endforeach;?></fieldset>
+<fieldset class="ui-site-features"><legend>Megjelenés és kiadói adatok</legend>
+<label class="ui-field">Kiadó megnevezése <input name="publisher_name" maxlength="190" value="<?=h($siteSettings['publisher_name'])?>"></label>
+<label class="ui-field">Webhely leírása <textarea name="site_description" maxlength="500" rows="3"><?=h($siteSettings['site_description'])?></textarea></label>
+<label class="ui-field">Kiemelőszín <input type="color" name="accent_color" value="<?=h($siteSettings['accent_color'])?>"></label>
+<label class="ui-field">Logó URL <input type="url" name="logo_url" maxlength="1000" value="<?=h($siteSettings['logo_url'])?>"></label>
+</fieldset>
 <div class="ui-admin-actions"><button class="ui-btn ui-btn-primary" type="submit">Mentés</button><?php if($selected):?><a class="ui-btn ui-btn-secondary" href="/sites.php">Mégse</a><?php endif;?></div></form>
 <p>Az egyes webhelyek szerkesztési jogosultságait a <a href="/site-permissions.php">Hozzáféréseknél</a> tudod beállítani.</p>
 </aside></div><button class="ui-pane-dim" data-ui-pane-dim type="button" aria-label="Panel bezárása"></button></main></body></html>
