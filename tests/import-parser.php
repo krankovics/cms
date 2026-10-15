@@ -37,9 +37,9 @@ $withImages='<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas
 $links=imp_discover($withImages,'https://example.org/sitemap.xml');
 ensure($links['urls']===['https://example.org/article'],'Nested media locations are not article links.');
 $largeSitemap='<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-for($i=0;$i<30000;$i++)$largeSitemap.='<url><loc>https://example.org/news/'.str_pad((string)$i,7,'0',STR_PAD_LEFT).'</loc><lastmod>2026-10-15</lastmod></url>';
+for($i=0;$i<50000;$i++)$largeSitemap.='<url><loc>https://example.org/news/'.str_pad((string)$i,7,'0',STR_PAD_LEFT).'</loc><lastmod>2026-10-15</lastmod></url>';
 $largeSitemap.='</urlset>';
-ensure(strlen($largeSitemap)>2500000,'Streaming XML fixture should resemble a large sitemap.');
+ensure(strlen($largeSitemap)>3145728,'Streaming XML fixture should resemble a large sitemap.');
 $parsed=imp_discover($largeSitemap,'https://example.org/sitemap.xml',100);
 ensure(count($parsed['urls'])===100,'Streaming sitemap reader must obey per-pass URL limit.');
 unset($largeSitemap);
