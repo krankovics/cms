@@ -34,7 +34,7 @@ jobs:
       - name: Prepare public release
         run: |
           mkdir -p deploy
-          cp index.php login.php logout.php setup.php profile.php avatar.php editor.php articles.php migrate.php settings.php taxonomy.php media.php media-file.php editor-upload.php site-permissions.php sites.php users.php ads.php ad-slot.php ad-click.php imports.php import-worker.php deploy/
+          cp index.php login.php logout.php setup.php profile.php avatar.php editor.php articles.php migrate.php settings.php taxonomy.php media.php media-file.php editor-upload.php site-permissions.php sites.php users.php ads.php ad-slot.php ad-click.php imports.php import-worker.php api-v1.php deploy/
           mkdir -p deploy/app/avatars deploy/database deploy/assets deploy/storage/media deploy/storage/import
           cp app/bootstrap.php app/header.php app/site-access.php app/article-sites.php app/taxonomy-actions.php app/user-actions.php app/ad-actions.php app/import-engine.php app/import-jobs.php app/import-worker.php app/.htaccess deploy/app/
           cp app/avatars/.htaccess deploy/app/avatars/
@@ -63,6 +63,7 @@ jobs:
           php -l deploy/app/ad-actions.php
           php -l deploy/imports.php
           php -l deploy/import-worker.php
+          php -l deploy/api-v1.php
           php -l deploy/app/import-engine.php
           php -l deploy/app/import-jobs.php
           php -l deploy/app/import-worker.php
