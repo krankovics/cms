@@ -44,7 +44,7 @@ $canUpload=in_array($u['role'],['platform_admin','site_admin','editor','author']
 $pagerParams=['view_site'=>$viewSite??0,'q'=>$search];
 function media_page_link(array $p,int $page):string{return '/media.php?'.http_build_query(array_merge($p,['page'=>$page]));}
 ?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Médiatár | comesy</title><link rel="stylesheet" href="/assets/ui.css"><script src="/assets/ui.js" defer></script><script src="/assets/admin-pages-v2.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
-<main class="ui-page" id="main-content"><header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Tartalomkezelés</p><h1 class="ui-page-title">Médiatár</h1><p class="ui-page-description">Képek kezelése, keresése és webhelyenkénti böngészése.</p></div>
+<main class="ui-page ui-media-page" id="main-content"><header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Tartalomkezelés</p><h1 class="ui-page-title">Médiatár</h1><p class="ui-page-description">Képek kezelése, keresése és webhelyenkénti böngészése.</p></div>
 <?php if($canUpload):?><div class="ui-page-actions"><button type="button" class="ui-btn ui-btn-primary" data-ui-dialog-open="media-upload-dialog"><svg class="ui-icon" aria-hidden="true"><use href="#cs-plus"></use></svg>Kép feltöltése</button></div><?php endif;?></header>
 <?php if($error):?><p class="ui-notice error" role="alert"><?=h($error)?></p><?php endif;?>
 <?php if(isset($_GET['saved'])):?><p class="ui-notice success" role="status"><?=$_GET['saved']==='alt'?'Az alternatív szöveget mentettük.':'A képet sikeresen feltöltöttük.'?></p><?php endif;?>
@@ -54,20 +54,20 @@ function media_page_link(array $p,int $page):string{return '/media.php?'.http_bu
 <button type="submit" class="ui-btn ui-btn-primary">Szűrés</button><?php if($search!==''||($viewSite??0)):?><a href="/media.php" class="ui-btn ui-btn-ghost">Alaphelyzet</a><?php endif;?>
 </form>
 <div class="ui-result-bar"><span><strong><?=(int)$total?></strong> kép</span><span><?=$total?($offset+1).'–'.min($total,$offset+$perPage).' / '.$total:'Nincs találat'?></span></div>
-<div class="ui-workbench">
+<div class="ui-workbench ui-media-workbench">
 <section class="ui-workbench-list" aria-label="Képek">
 <?php if($items):?><div class="ui-gallery" id="media-list">
 <?php foreach($items as $asset):$url='/media-file.php?id='.(int)$asset['id'];?>
 <article class="ui-asset">
-<button type="button" class="ui-asset-preview" aria-label="<?=h($asset['original_name'])?> részletei" data-panel-open="media-inspector" data-asset-id="<?=(int)$asset['id']?>" data-asset-editable="<?=in_array((int)$asset['site_id'],$primary,true)?'1':'0'?>" data-asset-name="<?=h($asset['original_name'])?>" data-asset-alt="<?=h($asset['alt_text'])?>" data-asset-size="<?=round(((int)$asset['size_bytes'])/1024)?> KB" data-asset-type="<?=h($asset['mime_type'])?>" data-asset-site="<?=h($asset['site_name'])?>" data-asset-date="<?=h($asset['created_at'])?>" data-asset-url="<?=h($url)?>">
+<button type="button" class="ui-asset-preview" aria-label="<?=h($asset['original_name'])?> részletei" data-panel-open="media-inspector" data-asset-id="<?=(int)$asset['id']?>" aria-expanded="false" aria-controls="media-inspector" data-asset-editable="<?=in_array((int)$asset['site_id'],$primary,true)?'1':'0'?>" data-asset-name="<?=h($asset['original_name'])?>" data-asset-alt="<?=h($asset['alt_text'])?>" data-asset-size="<?=round(((int)$asset['size_bytes'])/1024)?> KB" data-asset-type="<?=h($asset['mime_type'])?>" data-asset-site="<?=h($asset['site_name'])?>" data-asset-date="<?=h($asset['created_at'])?>" data-asset-url="<?=h($url)?>">
 <img src="<?=h($url)?>" loading="lazy" alt="<?=h($asset['alt_text'])?>"></button>
-<div class="ui-asset-info"><strong title="<?=h($asset['original_name'])?>"><?=h($asset['original_name'])?></strong><small><?=h($asset['site_name'])?></small><button type="button" class="ui-asset-copy" data-copy-url="<?=h($url)?>">URL másolása</button></div>
+<div class="ui-asset-info"><strong title="<?=h($asset['original_name'])?>"><?=h($asset['original_name'])?></strong><small><?=h($asset['site_name'])?></small><button type="button" class="ui-asset-copy" data-copy-url="<?=h($url)?>">Kép URL másolása</button></div>
 </article>
 <?php endforeach;?></div>
 <?php else:?><div class="ui-panel ui-empty-state"><strong>Nincs megjeleníthető kép.</strong><p>A szűrők módosításával vagy új kép feltöltésével folytathatod.</p><?php if($canUpload):?><button type="button" class="ui-btn ui-btn-secondary" data-ui-dialog-open="media-upload-dialog">Kép feltöltése</button><?php endif;?></div><?php endif;?>
 <?php if($total>$perPage):?><nav class="ui-pagination" aria-label="Médiatár lapozása"><span><?=$page?> / <?=$lastPage?>. oldal</span><div class="ui-pagination-links"><?php if($page>1):?><a href="<?=h(media_page_link($pagerParams,$page-1))?>" rel="prev">← Előző</a><?php endif;?><?php if($page<$lastPage):?><a href="<?=h(media_page_link($pagerParams,$page+1))?>" rel="next">Következő →</a><?php endif;?></div></nav><?php endif;?>
 </section>
-<aside class="ui-panel ui-workbench-pane" id="media-inspector" data-ui-pane aria-label="Kép részletei">
+<aside class="ui-panel ui-workbench-pane ui-media-drawer" id="media-inspector" data-ui-pane aria-label="Kép részletei">
 <div class="ui-pane-header"><div><h2>Részletek</h2><p>A kiválasztott médiaelem adatai</p></div><button type="button" class="ui-pane-close" data-panel-close aria-label="Panel bezárása">✕</button></div>
 <div class="ui-pane-body">
 <div class="ui-inspector-empty ui-text-muted">Válassz ki egy képet a galériából az előnézethez.</div>
@@ -90,6 +90,8 @@ function media_page_link(array $p,int $page):string{return '/media.php?'.http_bu
 document.addEventListener('DOMContentLoaded',()=>{
  document.querySelectorAll('[data-asset-name]').forEach(button=>button.addEventListener('click',()=>{
   const panel=document.getElementById('media-inspector');
+  document.querySelectorAll('.ui-asset').forEach(card=>card.classList.remove('is-selected'));
+  button.closest('.ui-asset')?.classList.add('is-selected');
   panel.querySelector('.ui-inspector-empty').hidden=true;panel.querySelector('.ui-inspector-detail').hidden=false;
   const val=(name)=>button.dataset[name]||'';
   const img=panel.querySelector('[data-asset-detail-image]');img.src=val('assetUrl');img.alt=val('assetAlt');
