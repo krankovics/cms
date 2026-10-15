@@ -59,6 +59,16 @@ function cms_source_design_extract(string $html,string $source):array{
   $fallback['logo_url']=$logo;
   if(preg_match('/(?:logo|brand)/',$context))break;
  }
+ if($fallback['logo_url']===''){
+  // Some modern publisher headers render their logo only client-side. Prefer
+  // a declared logo asset, falling back to the site's icon without copying SVG DOM.
+  foreach($xpath->query('//meta[@property="og:logo"] | //link[contains(translate(@rel,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"icon")]') as $tag){
+   if(!$tag instanceof DOMElement)continue;
+   $raw=$tag->tagName==='meta'?$tag->getAttribute('content'):$tag->getAttribute('href');
+   $logo=cms_source_design_url($raw,$source);
+   if($logo!==''){$fallback['logo_url']=$logo;break;}
+  }
+ }
  // Prefer explicit main navigation in header; avoid footers, menus nested in article.
  $navs=$xpath->query('//header//nav | //nav[@role="navigation"] | //nav[contains(translate(@class,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"main")] | //nav[contains(translate(@aria-label,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"primary")]');
  $best=[];$score=-1;
