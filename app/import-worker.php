@@ -163,7 +163,7 @@ function imp_process(PDO $pdo,array $task):array{
  return [
   'result'=>$saved['status']==='skipped'?'unchanged':'imported',
   'response_bytes'=>strlen($result['body']),
-  'block_count'=>count($data['blocks']),
+  'block_count'=>imp_editorial_block_count($data['blocks']),
   'image_count'=>imp_rich_images($data['blocks']),
   'link_count'=>count($data['links']??[]),
   'quality_flags'=>imp_quality_flags($data)
@@ -189,6 +189,15 @@ function imp_store_metrics(PDO $pdo,array $task,array $stats,int $durationMs):vo
   json_encode(array_slice(array_values(array_unique(array_map('strval',$flags))),0,20),JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR)
  ]);
 }
+function imp_editorial_block_count(array $blocks):int{
+ $count=0;
+ foreach($blocks as $b){
+  if(($b['type']??'')==='richhtml'){
+   $count+=max(1,(int)preg_match_all('~<(?:p|h[2-6]|figure|table|iframe|blockquote|ul|ol|video|audio)\\b~i',(string)($b['text']??'')));
+  }else $count++;
+ }
+ return $count;
+}
 function imp_rich_images(array $blocks):int{
  $images=[];
  foreach($blocks as $b){
@@ -202,7 +211,7 @@ function imp_rich_images(array $blocks):int{
 function imp_quality_flags(array $article):array{
  $flags=[];
  if(mb_strlen(trim((string)($article['lead']??'')))<60)$flags[]='short_lead';
- if(count($article['blocks']??[])<3)$flags[]='few_blocks';
+ if(imp_editorial_block_count($article['blocks']??[])<3)$flags[]='few_blocks';
  if(imp_rich_images($article['blocks']??[])===0)$flags[]='no_images';
  if(!count(array_filter($article['blocks']??[],fn($b)=>($b['type']??'')==='heading'||(($b['type']??'')==='richhtml'&&preg_match('~<h[2-6]\\b~i',(string)($b['text']??''))))))$flags[]='no_headings';
  return $flags;
