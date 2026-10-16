@@ -489,6 +489,35 @@ document.addEventListener('DOMContentLoaded',()=>{
  });
  setInterval(()=>{if(!dirty)return;try{localStorage.setItem(backupKey,JSON.stringify({title:document.getElementById('title').value,lead:document.getElementById('lead').value,delta:richMode?null:quill.getContents(),richHTML:richMode?richSource.innerHTML:null,time:Date.now()}));status.textContent='Helyi piszkozat mentve';dirty=false;}catch(e){}},15000);
  document.getElementById('preview-button').addEventListener('click',()=>{
+  // The canonical server-side preview renders the SAME publisher shell,
+  // typography and responsive layout as the source preview. POST unsaved edits
+  // only for the lifetime of the request, without modifying the stored article.
+  const articleId=Number(new URLSearchParams(location.search).get('id')||0);
+  if(Number.isSafeInteger(articleId)&&articleId>0){
+   const csrf=form.querySelector('input[name="csrf"]')?.value||'';
+   const previewForm=document.createElement('form');
+   previewForm.method='POST';
+   previewForm.action='/source-preview.php?id='+articleId;
+   previewForm.target='_blank';
+   previewForm.style.display='none';
+   const content=richMode?richSource.innerHTML:quill.getSemanticHTML();
+   const data={
+    csrf,
+    preview_title:document.getElementById('title').value,
+    preview_lead:document.getElementById('lead').value,
+    preview_image:document.getElementById('og-image-url')?.value||'',
+    preview_content:JSON.stringify([{type:'richhtml',text:content}])
+   };
+   for(const [key,value] of Object.entries(data)){
+    const input=document.createElement('input');input.type='hidden';input.name=key;input.value=value;
+    previewForm.append(input);
+   }
+   document.body.append(previewForm);
+   previewForm.submit();
+   previewForm.remove();
+   return;
+  }
+  // Unsaved new articles without an ID retain the isolated temporary preview.
   // Separate tab, only on demand. Rich HTML stays inside an isolated sandbox
   // with no script execution and no access to the authenticated CMS origin.
   const titleText=document.getElementById('title').value;
