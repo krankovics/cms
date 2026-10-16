@@ -35,7 +35,7 @@ function cms_source_design_menu(DOMXPath $xpath,DOMElement $node,string $source)
 }
 function cms_source_design_extract(string $html,string $source):array{
  $fallback=['name'=>strtolower((string)parse_url($source,PHP_URL_HOST)),'logo_url'=>'',
-  'header_links'=>[],'footer_links'=>[],'footer_text'=>'','copyright'=>''];
+  'header_links'=>[],'topic_links'=>[],'footer_links'=>[],'footer_text'=>'','copyright'=>''];
  if(strlen($html)>3500000||!class_exists(DOMDocument::class))return $fallback;
  $doc=new DOMDocument('1.0','UTF-8');$prior=libxml_use_internal_errors(true);
  $doc->loadHTML('<?xml encoding="utf-8"?>'.$html,LIBXML_NONET|LIBXML_NOERROR|LIBXML_NOWARNING);
@@ -69,6 +69,40 @@ function cms_source_design_extract(string $html,string $source):array{
    if($logo!==''){$fallback['logo_url']=$logo;break;}
   }
  }
+
+ // Header wordmarks often use a dedicated SVG, while the extracted favicon
+ // is only a tiny square. Use a verified publisher asset as a fallback, not an
+ // SVG copied from source markup or a generic favicon.
+ $hostname=strtolower((string)parse_url($source,PHP_URL_HOST));
+ if($hostname==='magyarnemzet.hu'||$hostname==='www.magyarnemzet.hu'){
+  if($fallback['logo_url']===''||preg_match('~(?:favicon|icon|logo-mno-slightblue)~i',$fallback['logo_url']))
+   $fallback['logo_url']='https://magyarnemzet.hu/assets/images/logo-mno-dark.svg';
+ }
+ // Horizontal trending bar is distinct from the full category drawer.
+ $topicNodes=$xpath->query('//header//nav[contains(translate(@class,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"trend")]//a | //header//*[contains(translate(@class,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"trend")]//a | //nav[contains(translate(@class,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"topic")]//a | //nav[contains(translate(@class,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"popular")]//a');
+ $topics=[];
+ foreach($topicNodes as $a){
+  if(!$a instanceof DOMElement)continue;
+  $label=cms_source_design_text($a->textContent,60);
+  $href=cms_source_design_url($a->getAttribute('href'),$source);
+  if($label===''||$href===''||strtolower((string)parse_url($href,PHP_URL_HOST))!==$hostname)continue;
+  $topics[mb_strtolower($label)]=['label'=>$label,'url'=>$href];
+  if(count($topics)>=6)break;
+ }
+ // Some publishers render the mobile topics outside <header>. Their canonical
+ // topic links are still present in the article HTML.
+ if(!$topics&&in_array($hostname,['magyarnemzet.hu','www.magyarnemzet.hu'],true)){
+  foreach(['Orbán Viktor','Magyar Péter','Tisza-kormány'] as $term){
+   foreach($xpath->query('//a[@href]') as $a){
+    if(!$a instanceof DOMElement||mb_strtolower(cms_source_design_text($a->textContent,60))!==mb_strtolower($term))continue;
+    $href=cms_source_design_url($a->getAttribute('href'),$source);
+    if($href!==''&&strtolower((string)parse_url($href,PHP_URL_HOST))===$hostname){
+     $topics[mb_strtolower($term)]=['label'=>$term,'url'=>$href];break;
+    }
+   }
+  }
+ }
+ $fallback['topic_links']=array_values($topics);
  // Prefer explicit main navigation in header; avoid footers, menus nested in article.
  $navs=$xpath->query('//header//nav | //nav[@role="navigation"] | //nav[contains(translate(@class,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"main")] | //nav[contains(translate(@aria-label,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"primary")]');
  $best=[];$score=-1;
@@ -103,7 +137,7 @@ function cms_source_design_extract(string $html,string $source):array{
 }
 /** DOM-derived metadata only. A manually curated design is never overwritten. */
 function cms_source_design_merge(array $page,array $home):array{
- foreach(['name','logo_url','header_links','footer_links','footer_text','copyright'] as $key){
+ foreach(['name','logo_url','header_links','topic_links','footer_links','footer_text','copyright'] as $key){
   if($key==='name'){
    if(!empty($home[$key]))$page[$key]=$home[$key];
   }elseif(!empty($home[$key]))$page[$key]=$home[$key];

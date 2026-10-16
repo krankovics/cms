@@ -21,12 +21,11 @@ document.addEventListener('DOMContentLoaded',()=>{
  const sourceChrome=(doc)=>{
   if(!shell.name&&!shell.logo_url&&!shell.header_links?.length&&!shell.footer_links?.length)return;
   const sheet=doc.createElement('style');
-  sheet.textContent='body{margin:0;background:#f3f5f9}.cms-source-header{background:#fff;border-bottom:1px solid #e0e5ed}.cms-source-head-inner{max-width:1200px;margin:auto;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}.cms-source-brand{display:flex;align-items:center;gap:10px;font:800 23px system-ui;color:#202c42;text-decoration:none}.cms-source-brand img{max-width:230px;max-height:56px;object-fit:contain}.cms-source-menu{display:flex;align-items:center;gap:15px;flex-wrap:wrap}.cms-source-menu a,.cms-source-footer a{font:600 13px system-ui;color:inherit;text-decoration:none}.cms-source-footer{background:#17243e;color:#fff;margin-top:26px;padding:25px 20px}.cms-source-footer-inner{max-width:1200px;margin:auto;display:grid;gap:14px}.cms-source-footer nav{display:flex;flex-wrap:wrap;gap:15px}.cms-source-footer p{font:13px/1.5 system-ui;margin:0}';
+  sheet.textContent="body{margin:0!important;background:#fff!important;max-width:none!important;padding:0!important}.cms-source-header{background:#fff;border-bottom:1px solid #061126}.cms-source-head-inner{max-width:1240px;min-height:81px;margin:auto;display:grid;grid-template-columns:43px minmax(0,1fr) 82px;align-items:center;gap:9px;padding:12px 17px}.cms-source-brand{grid-column:2;grid-row:1;display:flex;justify-content:center;align-items:center;text-decoration:none;color:#080e20;font:800 28px Georgia,serif;text-align:center}.cms-source-brand img{max-width:55vw;max-height:59px;object-fit:contain}.cms-source-brand img+span{display:none}.cms-source-head-start{grid-column:1;grid-row:1}.cms-source-head-end{grid-column:3;grid-row:1;display:flex;align-items:center;gap:13px;justify-content:flex-end}.cms-source-icon{width:23px;height:23px;stroke:#080e20;stroke-width:2;fill:none;stroke-linecap:round}.cms-source-menu-toggle{position:relative}.cms-source-menu-toggle summary{cursor:pointer;list-style:none}.cms-source-menu-toggle summary::-webkit-details-marker{display:none}.cms-source-menu-toggle nav{display:none;position:absolute;top:35px;right:0;z-index:12;width:min(320px,82vw);max-height:65vh;overflow:auto;background:#fff;padding:16px;border:1px solid #dce1e9;border-radius:8px;box-shadow:0 10px 28px #0002}.cms-source-menu-toggle[open] nav{display:grid;gap:10px}.cms-source-menu-toggle nav a{font:600 14px system-ui;color:#071124;text-decoration:none}.cms-source-trends{overflow-x:auto;border-top:1px solid #071124;border-bottom:2px solid #071124}.cms-source-trends-inner{display:flex;gap:45px;padding:10px 13px;white-space:nowrap}.cms-source-trends a{font:800 14px system-ui;text-transform:uppercase;color:#080e20;text-decoration:none}.cms-source-breadcrumb{display:flex;gap:14px;align-items:center;color:#6b7484;font:600 15px system-ui;margin:55px 0 35px}.cms-source-breadcrumb a{color:#080e20;text-decoration:none}main.cms-source-article,article.cms-source-article{max-width:980px;margin:0 auto 30px;padding:0 17px 30px;border:0;box-shadow:none;border-radius:0;background:#fff;color:#080e20}.cms-source-article h1{font:800 clamp(28px,7.3vw,48px)/1.22 system-ui;color:#080e20;letter-spacing:-.02em;margin:0 0 28px}.cms-source-article p.lead{font:18px/1.65 system-ui;color:#111729}.cms-source-footer{background:#17243e;color:#fff;padding:26px 18px;margin-top:30px}.cms-source-footer-inner{max-width:1200px;margin:auto;display:grid;gap:15px}.cms-source-footer nav{display:flex;flex-wrap:wrap;gap:15px}.cms-source-footer a{font:600 13px system-ui;color:inherit;text-decoration:none}.cms-source-footer p{font:13px/1.5 system-ui;margin:0}";
   doc.head.append(sheet);
   if(sourceStyle.css){const designCss=doc.createElement('style');designCss.textContent=sourceStyle.css;doc.head.append(designCss);}
   const nav=(items,where)=>{
    const links=(Array.isArray(items)?items:[]).slice(0,14);
-   if(!links.length)return;
    const el=doc.createElement('nav');el.className=where==='header'?'cms-source-menu':'';
    el.setAttribute('aria-label',where==='header'?'A forrás főmenüje':'A forrás láblécmenüje');
    for(const item of links){
@@ -37,15 +36,36 @@ document.addEventListener('DOMContentLoaded',()=>{
    }
    return el;
   };
+
+  const makeIcon=path=>{
+   const svg=doc.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('class','cms-source-icon');
+   const shape=doc.createElementNS('http://www.w3.org/2000/svg','path');shape.setAttribute('d',path);svg.append(shape);return svg;
+  };
   const header=doc.createElement('header');header.className='cms-source-header';
   const inner=doc.createElement('div');inner.className='cms-source-head-inner';
+  const search=doc.createElement('span');search.className='cms-source-head-start';search.setAttribute('aria-hidden','true');search.append(makeIcon('M16.5 16.5 21 21 M18 10.5a7.5 7.5 0 1 1-15 0a7.5 7.5 0 1 1 15 0'));inner.append(search);
   const brand=doc.createElement('a');brand.className='cms-source-brand';
   brand.href=safeSourceUrl(sourceStyle.source)||'#';brand.target='_blank';brand.rel='noopener noreferrer';
-  const logo=safeSourceUrl(shell.logo_url||'');
+  const logo=safeSourceUrl(shell.logo_url||'')||(['magyarnemzet.hu','www.magyarnemzet.hu'].includes(sourceStyle.host)?'https://magyarnemzet.hu/assets/images/logo-mno-dark.svg':'');
   if(logo){const img=doc.createElement('img');img.src=logo;img.alt=String(shell.name||sourceStyle.host||'').slice(0,100);brand.append(img);}
-  else brand.textContent=String(shell.name||sourceStyle.host||'').slice(0,100);
-  inner.append(brand);const topNav=nav(shell.header_links,'header');if(topNav)inner.append(topNav);
-  header.append(inner);doc.body.prepend(header);
+  const name=doc.createElement('span');name.textContent=String(shell.name||sourceStyle.host||'').slice(0,100);brand.append(name);inner.append(brand);
+  const tools=doc.createElement('div');tools.className='cms-source-head-end';
+  const account=doc.createElement('span');account.setAttribute('aria-hidden','true');account.append(makeIcon('M12 11a4 4 0 1 0 0-8a4 4 0 1 0 0 8 M4 21v-3a8 8 0 0 1 16 0v3'));tools.append(account);
+  const drawer=doc.createElement('details');drawer.className='cms-source-menu-toggle';
+  const summary=doc.createElement('summary');summary.setAttribute('aria-label','Menü megnyitása');summary.append(makeIcon('M3 6h18 M3 12h18 M3 18h18'));drawer.append(summary);
+  drawer.append(nav(shell.header_links,'drawer','A forrás főmenüje'));tools.append(drawer);inner.append(tools);header.append(inner);
+  const topics=nav(shell.topic_links,'','Kiemelt témák');
+  if(topics.children.length){const bar=doc.createElement('div');bar.className='cms-source-trends';const row=doc.createElement('div');row.className='cms-source-trends-inner';while(topics.firstChild)row.append(topics.firstChild);bar.append(row);header.append(bar);}
+  doc.body.prepend(header);
+  const article=doc.querySelector('main.cms-source-article,article.cms-source-article');
+  if(article){
+   const breadcrumb=doc.createElement('nav');breadcrumb.className='cms-source-breadcrumb';breadcrumb.setAttribute('aria-label','Morzsanavigáció');
+   const title=doc.createElement('a');title.href=safeSourceUrl(sourceStyle.source)||'#';title.textContent=String(shell.name||sourceStyle.host||'');title.target='_blank';title.rel='noopener noreferrer';breadcrumb.append(title);
+   try{const url=new URL(sourceStyle.source);const section=url.pathname.split('/').filter(Boolean)[0]||'';
+    if(section){const span=doc.createElement('span');span.textContent='›';breadcrumb.append(span);const label=doc.createElement('span');label.textContent=({belfold:'Belföld',kulfold:'Külföld',gazdasag:'Gazdaság',sport:'Sport',kultura:'Kultúra',tudomany:'Tudomány'})[section]||section;breadcrumb.append(label);}
+   }catch{}
+   article.prepend(breadcrumb);
+  }
   const footer=doc.createElement('footer');footer.className='cms-source-footer';
   const footerInner=doc.createElement('div');footerInner.className='cms-source-footer-inner';
   const footerNav=nav(shell.footer_links,'footer');if(footerNav)footerInner.append(footerNav);
@@ -482,7 +502,10 @@ document.addEventListener('DOMContentLoaded',()=>{
    headStyle.textContent='body{margin:0;background:#f5f7fb;color:#1d2a3c;font-family:system-ui}main{max-width:900px;margin:24px auto;padding:26px;background:white;border:1px solid #e2e8f0;border-radius:12px}h1{font-size:clamp(22px,4vw,34px)}.lead{font-size:18px;color:#5d6777;line-height:1.6}iframe{width:100%;height:75vh;border:0}';
    d.head.append(headStyle);
    const main=d.createElement('main'),h=d.createElement('h1'),lead=d.createElement('p');
-   h.textContent=titleText;lead.textContent=leadText;lead.className='lead';main.append(h,lead);
+   h.textContent=titleText;lead.textContent=leadText;lead.className='lead';main.className='cms-source-article';main.append(h,lead);
+   const featuredUrl=safeSourceUrl(document.getElementById('og-image-url')?.value||'');
+   if(featuredUrl){const cover=d.createElement('img');cover.className='cms-cover';cover.src=featuredUrl;cover.alt='';cover.style.cssText='display:block;max-width:100%;height:auto;margin:20px 0';main.append(cover);}
+
    const frame=d.createElement('iframe');frame.title='A cikk biztonságos előnézete';
    frame.setAttribute('sandbox','');frame.setAttribute('referrerpolicy','no-referrer');
    frame.srcdoc='<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; img-src https: http: data:; style-src &#39;unsafe-inline&#39;; media-src https: http:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://embed.spotify.com https://www.facebook.com https://www.instagram.com https://w.soundcloud.com https://www.tiktok.com"><style>body{font:16px/1.7 system-ui;margin:10px;color:#1b2636}img,video{max-width:100%;height:auto}figure{margin:20px 0}figcaption{font-size:13px;color:#637083}table{border-collapse:collapse;display:block;overflow:auto;max-width:100%}td,th{border:1px solid #d3dce8;padding:9px}iframe{border:1px solid #d3dce8;max-width:100%;width:100%;min-height:260px}blockquote{border-left:3px solid #5067a2;padding-left:18px}mark{background:#fff1af}</style><style>'+sourceStyle.css+'</style><main class="cms-source-article">'+richSource.innerHTML+'</main>';

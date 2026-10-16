@@ -15,6 +15,14 @@ $siteShell='<html><head><meta property="og:site_name" content="Hírportál Prób
  .'<script>alert(1)</script></body></html>';
 $shell=cms_source_design_extract($siteShell,'https://example.org/story');
 ensure($shell['name']==='Hírportál Próba','Site identity must come from og:site_name.');
+$topicsFixture='<html><head><meta property="og:site_name" content="Magyar Nemzet"></head><body>'
+ .'<header><nav class="trending"><a href="/cimke/orban-viktor">Orbán Viktor</a><a href="/cimke/magyar-peter">Magyar Péter</a></nav>'
+ .'<nav aria-label="primary"><a href="/belfold">Belföld</a><a href="/kulfold">Külföld</a></nav></header></body></html>';
+$mn=cms_source_design_extract($topicsFixture,'https://magyarnemzet.hu/belfold/2026/10/test');
+ensure($mn['logo_url']==='https://magyarnemzet.hu/assets/images/logo-mno-dark.svg','Use publisher masthead asset instead of a generic favicon.');
+ensure(count($mn['topic_links'])===2&&$mn['topic_links'][0]['label']==='Orbán Viktor','Trending topics are separate from full category drawer.');
+ensure(count($mn['header_links'])===2&&$mn['header_links'][0]['label']==='Belföld','Mobile topic strip must not replace the main menu.');
+
 ensure($shell['logo_url']==='https://example.org/assets/logo.svg','Header logo must be extracted, not article cover.');
 ensure(count($shell['header_links'])===3&&$shell['header_links'][0]['label']==='Belföld','Main navigation should retain safe titles and order.');
 ensure($shell['header_links'][0]['url']==='https://example.org/belfold','Menu links must be resolved against original host.');
