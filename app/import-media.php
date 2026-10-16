@@ -75,7 +75,9 @@ function cms_import_media_one(PDO $pdo,int $site,int $article,string $articleUrl
    $q->execute([$site,$original,$name,$mime,$length,(string)$item['alt']]);
    $mediaId=(int)$pdo->lastInsertId();
    $q=$pdo->prepare('INSERT INTO media_import_sources(media_id,site_id,source_url,source_url_hash,source_host,source_article_url,width_px,height_px,sha256,photographer) VALUES(?,?,?,?,?,?,?,?,?,?)');
-   $q->execute([$mediaId,$site,$url,$hash,mb_substr((string)parse_url($url,PHP_URL_HOST),0,255),$articleUrl,$w,$h,hash('sha256',$raw),(string)$item['credit']]);
+   // Record the publisher's hostname even if the image bytes came from a CDN.
+   $publisherHost=(string)(parse_url($articleUrl,PHP_URL_HOST)?:parse_url($url,PHP_URL_HOST));
+   $q->execute([$mediaId,$site,$url,$hash,mb_substr(strtolower($publisherHost),0,255),$articleUrl,$w,$h,hash('sha256',$raw),(string)$item['credit']]);
    $pdo->commit();
   }catch(Throwable $e){
    if($pdo->inTransaction())$pdo->rollBack();
