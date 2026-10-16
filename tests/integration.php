@@ -12,7 +12,7 @@ require dirname(__DIR__).'/app/article-sites.php';
 require dirname(__DIR__).'/app/site-access.php';
 $tests=0;
 function ok(bool $condition,string $message):void{global $tests;$tests++;if(!$condition)throw new RuntimeException($message);}
-foreach(['schema','editor','content','site-permissions','ads','import','import-metrics','layouts','pages-readers'] as $schema){
+foreach(['schema','editor','content','site-permissions','ads','ads-advanced','import','import-metrics','layouts','pages-readers'] as $schema){
  $sql=file_get_contents(dirname(__DIR__).'/database/'.$schema.'.sql');
  foreach(array_filter(array_map('trim',explode(';',$sql))) as $statement)$pdo->exec($statement);
 }
@@ -93,6 +93,24 @@ $q->execute([$campaign,$zone,'Kreatív','https://example.test/a.png','https://ex
 $q=$pdo->prepare('SELECT COUNT(*) FROM ad_creatives cr JOIN ad_campaigns c ON c.id=cr.campaign_id JOIN ad_zones z ON z.id=cr.zone_id WHERE cr.id=? AND c.site_id=z.site_id AND z.site_id=?');
 $q->execute([$creative,$sites[0]]);ok((int)$q->fetchColumn()===1,'Creative linked to matching site campaign and zone.');
 $q->execute([$creative,$sites[1]]);ok((int)$q->fetchColumn()===0,'Creative must not leak to other site.');
+// Extended AdBrain-style placement rules and code creative records.
+require_once dirname(__DIR__).'/app/ad-placements.php';
+$pdo->prepare('INSERT INTO ad_zone_rules(zone_id,position_type,position_value,device_target,page_types,width,height) VALUES(?,?,?,?,?,?,?)')->execute([$zone,'paragraph',3,'all','article,section',300,250]);
+$positions=cms_ad_placements($pdo,$sites[0],'article');
+ok(count($positions)===1&&$positions[0]['position']==='paragraph'&&$positions[0]['value']===3,'Enabled article placements must resolve native rule.');
+ok(cms_ad_placements($pdo,$sites[0],'home')===[],'Placement page-type targeting should exclude home.');
+ok(cms_ad_placements($pdo,$sites[1],'article')===[],'Placements must not leak between websites.');
+$pdo->prepare('INSERT INTO ad_code_creatives(creative_id,format,code_html) VALUES(?,?,?)')->execute([$creative,'code','<div id="test-ad"></div><script>void 0;</script>']);
+$pdo->prepare('INSERT INTO ad_serves(token,site_id,zone_id,campaign_id,creative_id) VALUES(?,?,?,?,?)')->execute([str_repeat('a',32),$sites[0],$zone,$campaign,$creative]);
+$pdo->prepare('UPDATE ad_serves SET rendered_at=UTC_TIMESTAMP(),viewable_at=UTC_TIMESTAMP() WHERE token=?')->execute([str_repeat('a',32)]);
+$q=$pdo->prepare('SELECT COUNT(rendered_at) renders,COUNT(viewable_at) viewable FROM ad_serves WHERE site_id=?');
+$q->execute([$sites[0]]);$values=$q->fetch();
+ok((int)$values['renders']===1&&(int)$values['viewable']===1,'AdBrain delivery tracks render and viewable events distinctly.');
+$q=$pdo->prepare('INSERT INTO cms_page_analytics_daily(site_id,event_date,page_path,page_kind,device,pageviews) VALUES(?,UTC_DATE(),?,?,?,1) ON DUPLICATE KEY UPDATE pageviews=pageviews+1');
+$q->execute([$sites[0],'/public.php?site=test-0&home=home','home','desktop']);$q->execute([$sites[0],'/public.php?site=test-0&home=home','home','desktop']);
+$q=$pdo->prepare('SELECT pageviews FROM cms_page_analytics_daily WHERE site_id=?');$q->execute([$sites[0]]);
+ok((int)$q->fetchColumn()===2,'Daily first-party pageview aggregates must increment atomically.');
+
 $q=$pdo->prepare("INSERT INTO import_jobs(site_id,created_by,mode,source_url,max_items) VALUES(?,?,'url',?,1)");
 $q->execute([$sites[0],$uid['editor'],'https://news.example.org/example']);$importJob=(int)$pdo->lastInsertId();
 $q=$pdo->prepare("INSERT INTO import_items(job_id,site_id,source_url,source_url_hash,task_type) VALUES(?,?,?,?,'article')");
