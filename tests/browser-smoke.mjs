@@ -77,6 +77,14 @@ try{
  await mobile.close();
  const admin=await browser.newPage({viewport:{width:1366,height:850},deviceScaleFactor:1});
  await login(admin,'platform_admin');
+ // Template-family pages must work independently of source-page markup.
+ for(const [suffix,marker] of [['section=belfold','pub-kind-section'],['tag=magyar-peter','pub-kind-tag'],['page=impresszum','pub-static-page'],['login=1','pub-reader-login']]){
+  const response=await admin.request.get(base+'/public.php?site=test-2&preview=1&'+suffix);
+  assert.equal(response.status(),200,'Template family must be previewable: '+suffix);
+  assert((await response.text()).includes(marker),'Missing expected native template block: '+suffix);
+ }
+ const draftPage=await admin.request.get(base+'/public.php?site=test-2&page=impresszum');
+ assert.equal(draftPage.status(),404,'Draft static pages must remain unpublished.');
  // Full rich-editor WYSIWYG retention and requested layout semantics.
  await admin.goto(base+'/articles.php',{waitUntil:'networkidle'});
  const richLink=admin.locator('a.ui-table-title',{hasText:'Szerkesztői gazdag tartalom próba'});
