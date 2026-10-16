@@ -5,9 +5,10 @@ require __DIR__.'/app/layouts.php';
 require_once __DIR__.'/app/rich-content.php';
 require_once __DIR__.'/app/site-design-templates.php';
 require_once __DIR__.'/app/native-site-chrome.php';
+require_once __DIR__.'/app/ad-placements.php';
 header('Content-Type: text/html; charset=utf-8');
 header('X-Frame-Options: SAMEORIGIN');
-header("Content-Security-Policy: default-src 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' https: http: data:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://embed.spotify.com https://w.soundcloud.com https://www.facebook.com https://facebook.com https://www.instagram.com https://instagram.com https://www.tiktok.com https://player.simplecast.com https://embed.podcasts.apple.com https://www.podbean.com; media-src https: http:; frame-ancestors 'self'; base-uri 'none'; form-action 'self'");
+header("Content-Security-Policy: default-src 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self'; connect-src 'self'; font-src https://fonts.gstatic.com; img-src 'self' https: http: data:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://embed.spotify.com https://w.soundcloud.com https://www.facebook.com https://facebook.com https://www.instagram.com https://instagram.com https://www.tiktok.com https://player.simplecast.com https://embed.podcasts.apple.com https://www.podbean.com; media-src https: http:; frame-ancestors 'self'; base-uri 'none'; form-action 'self'");
 header('X-Robots-Tag: noindex, nofollow');
 $pdo=db();
 $siteSlug=trim((string)($_GET['site']??''));
@@ -126,9 +127,17 @@ $title=$searchMode?('Keresés: '.$searchQuery.' | '.$site['name']):($article?($a
 $staffUser=user();
 $staffHref=!empty($settings['reader_accounts_enabled'])?cms_native_site_url($siteSlug,$preview).'&login=1':($preview&&$staffUser?'/profile.php':'');
 $staffLabel=!empty($settings['reader_accounts_enabled'])?'Olvasói fiók':'Szerkesztőségi profil';
+$adPlacements=[];
+if(!$preview&&!empty($settings['ad_slots_enabled'])){
+ try{$adPlacements=cms_ad_placements($pdo,$siteId,$kind);}
+ catch(PDOException $e){error_log('publisher ad positions: '.$e->getMessage());}
+}
+$trackingConfig=['site_id'=>$siteId,'slug'=>$siteSlug,'kind'=>$kind,'content'=>$articleSlug?:($pageSlug?:($tagSlug?:($sectionSlug?:'home')))];
+$positionConfig=['site_id'=>$siteId,'section'=>$sectionSlug,'positions'=>$adPlacements];
+$jsonFlags=JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT;
 ?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?=pub_h($title)?></title><meta name="robots" content="noindex,nofollow"><meta name="description" content="<?=pub_h($article['seo_description']??$settings['site_description'])?>">
-<link rel="stylesheet" href="/assets/public.css"><link rel="stylesheet" href="/assets/native-chrome.css?v=1"><link rel="stylesheet" href="/assets/site-page-families.css?v=2"><?php if(in_array($appearanceHost,['magyarnemzet.hu','www.magyarnemzet.hu'],true)):?><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;800&display=swap"><?php endif;?><?php if($appearance):?><link rel="stylesheet" href="/assets/site-appearance.css"><?php endif;?><style>:root{--pub-accent:<?=pub_h($themeColor)?>}</style><?php if($appearanceCss!==''):?><style id="assigned-appearance-css"><?=$appearanceCss?></style><?php endif;?></head><body class="<?=$appearance?'pub-source-themed':''?><?=in_array($appearanceHost,['magyarnemzet.hu','www.magyarnemzet.hu'],true)?' pub-source-mno':''?> pub-kind-<?=pub_h($kind)?>">
+<link rel="stylesheet" href="/assets/public.css"><link rel="stylesheet" href="/assets/native-chrome.css?v=1"><link rel="stylesheet" href="/assets/site-page-families.css?v=2"><?php if(in_array($appearanceHost,['magyarnemzet.hu','www.magyarnemzet.hu'],true)):?><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;800&display=swap"><?php endif;?><?php if($appearance):?><link rel="stylesheet" href="/assets/site-appearance.css"><?php endif;?><style>:root{--pub-accent:<?=pub_h($themeColor)?>}</style><?php if($appearanceCss!==''):?><style id="assigned-appearance-css"><?=$appearanceCss?></style><?php endif;?><?php if(!$preview):?><script src="/assets/page-analytics.js?v=1" defer></script><?php endif;?><?php if($adPlacements):?><link rel="stylesheet" href="/assets/ad-placements.css?v=1"><script src="/assets/ad-placements.js?v=1" defer></script><?php endif;?></head><body class="<?=$appearance?'pub-source-themed':''?><?=in_array($appearanceHost,['magyarnemzet.hu','www.magyarnemzet.hu'],true)?' pub-source-mno':''?> pub-kind-<?=pub_h($kind)?>">
 <?php if($preview):?><div class="pub-preview-bar">Szerkesztői előnézet · Nem nyilvános kiadás <a href="/builder.php?site_id=<?=$siteId?>&amp;template=<?=pub_h($kind)?>">Vissza az oldalépítőhöz</a></div><?php endif;?>
 <header class="pub-header <?=$appearance?'cms-source-header':''?>">
 <div class="pub-header-inner <?=$appearance?'pub-native-header':''?>">
@@ -183,11 +192,14 @@ $staffLabel=!empty($settings['reader_accounts_enabled'])?'Olvasói fiók':'Szerk
 <label>E-mail-cím<input name="email" type="email" autocomplete="username" maxlength="190" required></label><label>Jelszó<input name="password" type="password" autocomplete="current-password" required></label><button type="submit">Bejelentkezés</button></form>
 <details><summary>Új olvasói fiók létrehozása</summary><form method="post" action="/reader-auth.php" class="pub-reader-form"><input type="hidden" name="csrf" value="<?=pub_h(csrf())?>"><input type="hidden" name="site" value="<?=pub_h($siteSlug)?>"><input type="hidden" name="action" value="register"><label>Név<input name="display_name" maxlength="190" required></label><label>E-mail-cím<input name="email" type="email" autocomplete="email" required></label><label>Jelszó (minimum 12 karakter)<input name="password" type="password" autocomplete="new-password" minlength="12" required></label><button type="submit">Regisztráció</button></form></details>
 <?php endif;?></section>
-<?php elseif($type==='ad'&&!empty($block['zone'])&&!empty($settings['ad_slots_enabled'])):?><section class="pub-section pub-ad"><p>Hirdetés</p><iframe title="Hirdetés" loading="lazy" referrerpolicy="no-referrer" src="/ad-slot.php?site_id=<?=$siteId?>&amp;zone=<?=rawurlencode($block['zone'])?><?=$sectionSlug?'&amp;section='.rawurlencode($sectionSlug):''?>"></iframe></section>
+<?php elseif($type==='ad'&&!empty($block['zone'])&&!empty($settings['ad_slots_enabled'])):?><section class="pub-section pub-ad"><p>Hirdetés</p><?php if($preview):?><p class="pub-preview-ad">Hirdetési pozíció: <?=pub_h((string)$block['zone'])?> (előnézet, mérés nélkül)</p><?php else:?><iframe title="Hirdetés" loading="lazy" referrerpolicy="no-referrer" src="/ad-slot.php?site_id=<?=$siteId?>&amp;zone=<?=rawurlencode($block['zone'])?><?=$sectionSlug?'&amp;section='.rawurlencode($sectionSlug):''?>"></iframe><?php endif;?></section>
 <?php endif;?>
 <?php endforeach;?>
 <?php endif;?>
 </main><footer class="pub-footer <?=$appearance?'cms-source-footer':''?>"><p>© <?=date('Y')?> <?=pub_h($settings['publisher_name']?:$site['name'])?></p>
 <?php if($appearance&&is_array($appearanceDesign['footer_links']??null)):?><nav class="pub-template-footer-links" aria-label="Kiadói lábléclinkek">
 <?php foreach(array_slice($appearanceDesign['footer_links'],0,15) as $link):if(!is_array($link))continue;$href=cms_rich_url((string)($link['url']??''));if(!$href)continue;?><a target="_blank" rel="noopener noreferrer" href="<?=pub_h($href)?>"><?=pub_h(mb_substr((string)($link['label']??''),0,100))?></a><?php endforeach;?></nav><?php endif;?>
-<p>comesy · Content. Media. System.</p></footer></body></html>
+<p>comesy · Content. Media. System.</p></footer>
+<?php if(!$preview):?><script id="cms-page-analytics" type="application/json"><?=json_encode($trackingConfig,$jsonFlags)?></script><?php endif;?>
+<?php if($adPlacements):?><script id="cms-ad-placements" type="application/json"><?=json_encode($positionConfig,$jsonFlags)?></script><?php endif;?>
+</body></html>
