@@ -66,8 +66,9 @@ function ad_mutate(PDO $pdo,array $u,int $site,array $data):void{
    $code=ad_slug((string)($data['code']??'')?:$name);
    $placement=(string)($data['placement']??'article');
    if(mb_strlen($name)<2||!$code||strlen($code)>100||!in_array($placement,['home','section','tag','article','sidebar','video','layer','footer','sticky','custom'],true))throw new RuntimeException('Érvénytelen hirdetési zóna.');
-   if($id)$pdo->prepare('UPDATE ad_zones SET name=?,code=?,placement=? WHERE id=?')->execute([$name,$code,$placement,$id]);
-   else{$pdo->prepare('INSERT INTO ad_zones(site_id,name,code,placement) VALUES(?,?,?,?)')->execute([$site,$name,$code,$placement]);$id=(int)$pdo->lastInsertId();}
+   $zoneEnabled=isset($data['zone_enabled_present'])?(isset($data['enabled'])?1:0):1;
+   if($id)$pdo->prepare('UPDATE ad_zones SET name=?,code=?,placement=?,enabled=? WHERE id=?')->execute([$name,$code,$placement,$zoneEnabled,$id]);
+   else{$pdo->prepare('INSERT INTO ad_zones(site_id,name,code,placement,enabled) VALUES(?,?,?,?,?)')->execute([$site,$name,$code,$placement,$zoneEnabled]);$id=(int)$pdo->lastInsertId();}
    $position=(string)($data['position_type']??'manual');
    $device=(string)($data['device_target']??'all');
    $types=(string)($data['page_types']??'home,section,tag,article');
