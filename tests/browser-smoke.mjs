@@ -276,6 +276,16 @@ try{
  assert.equal(await admin.locator('.cs-site-tabs [aria-current="page"]').count(),1,'Current site manager tab must be indicated.');
  assert.equal(await admin.locator('#cs-site-menu-form').count(),1,'Menu must be editable within the site manager.');
  await overflow(admin,'site manager mobile');
+ await admin.goto(base+'/site-manage.php?site_id=1&tab=appearance',{waitUntil:'domcontentloaded'});
+ assert.equal(await admin.locator('#cs-source-import-url').count(),1,'The source style URL import must be available on the Arculat tab.');
+ assert.equal(await admin.locator('.cs-site-import-toggle input[name="assign_to_site"]').count(),1,'Import should offer automatic assignment to the selected webhely.');
+ const importCsrf=await admin.locator('.cs-site-import input[name="csrf"]').inputValue();
+ const unsafeImport=await admin.request.post(base+'/site-manage.php?site_id=1&tab=appearance',{form:{
+  csrf:importCsrf,site_id:'1',action:'import_source_style',source_url:'http://127.0.0.1/',assign_to_site:'1'
+ }});
+ assert.equal(unsafeImport.status(),200,'Unsafe source URL must be rejected without attempting an external import.');
+ assert((await unsafeImport.text()).includes('Privát vagy fenntartott hálózati cím'),'Style imports must share SSRF protection with the source importer.');
+ await overflow(admin,'site manager appearance mobile');
  await admin.goto(base+'/settings.php',{waitUntil:'networkidle'});
  await overflow(admin,'settings mobile');
  await admin.close();
