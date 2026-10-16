@@ -313,11 +313,21 @@ $pdo->prepare('INSERT INTO article_media_uses(site_id,article_id,media_id,role,o
 $q=$pdo->prepare('SELECT COUNT(*) FROM article_media_uses WHERE article_id=? AND caption LIKE ?');
 $q->execute([$orphanId,'%esemény%']);
 ok((int)$q->fetchColumn()===1,'Imported image captions must be linked to the exact article.');
+$fixtureBlocks=json_encode([['type'=>'richhtml','text'=>'<figure><img src="'.htmlspecialchars($fixtureImageUrl,ENT_QUOTES).'" alt="A tesztfotó"><figcaption>Képaláírás, Fotó: Stúdió</figcaption></figure>']],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
+$pdo->prepare('UPDATE articles SET content_json=? WHERE id=?')->execute([$fixtureBlocks,$orphanId]);
 cms_import_media_enqueue($pdo,$sites[0],$orphanId);
 cms_import_media_enqueue($pdo,$sites[0],$orphanId);
 $q=$pdo->prepare('SELECT COUNT(*),MAX(next_offset) FROM media_import_queue WHERE site_id=? AND article_id=?');
 $q->execute([$sites[0],$orphanId]);$queueInfo=$q->fetch(PDO::FETCH_NUM);
 ok((int)$queueInfo[0]===1&&(int)$queueInfo[1]===0,'Media queue should be repeatable and resumable without duplicate jobs.');
+ok(cms_import_media_work_once($pdo),'Media worker should consume pending tasks.');
+$q=$pdo->prepare('SELECT status,found_count,imported_count,failed_count FROM media_import_queue WHERE site_id=? AND article_id=?');
+$q->execute([$sites[0],$orphanId]);$mediaDone=$q->fetch();
+ok($mediaDone['status']==='done'&&(int)$mediaDone['found_count']===1&&(int)$mediaDone['imported_count']===1&&(int)$mediaDone['failed_count']===0,'Image worker should reuse an already-downloaded file without fetching it again.');
+$q=$pdo->prepare('SELECT caption,alt_text FROM article_media_uses WHERE article_id=? AND media_id=? LIMIT 1');
+$q->execute([$orphanId,$importMediaId]);$mediaUse=$q->fetch();
+ok(str_contains((string)$mediaUse['caption'],'Képaláírás')&&$mediaUse['alt_text']==='A tesztfotó','Image worker must update per-article caption and alt independently of the source asset.');
+
 $q=$pdo->prepare('SELECT rights_status FROM media_import_sources WHERE media_id=?');$q->execute([$importMediaId]);
 ok($q->fetchColumn()==='unknown','Imported copyrighted images must default to rights unverified.');
 $pdo->prepare('DELETE FROM media_import_queue WHERE site_id=? AND article_id=?')->execute([$sites[0],$orphanId]);
