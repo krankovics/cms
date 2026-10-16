@@ -58,6 +58,8 @@ $types=['campaign'=>'Kampányok','zone'=>'Zónák','advertiser'=>'Hirdetők','cr
 <?php if($kind==='advertiser'):?><label class="ui-field">Kapcsolattartó e-mail <input type="email" name="email" value="<?=ad_value($edit,'contact_email')?>"></label><?php endif;?>
 <?php if($kind==='zone'):?>
 <label class="ui-field">Zónakód <input name="code" maxlength="100" value="<?=ad_value($edit,'code')?>" placeholder="Automatikusan a névből"></label>
+<input type="hidden" name="zone_enabled_present" value="1">
+<label class="ui-check"><input type="checkbox" name="enabled" value="1" <?=!$edit||!empty($edit['enabled'])?'checked':''?>> Pozíció engedélyezve</label>
 <label class="ui-field">Elhelyezés <select name="placement"><?php foreach(['home'=>'Nyitóoldal','section'=>'Rovat','tag'=>'Címke','article'=>'Cikk','sidebar'=>'Oldalsáv','video'=>'Videó','layer'=>'Layer','footer'=>'Lábléc','sticky'=>'Sticky','custom'=>'Egyedi'] as $val=>$label):?><option value="<?=h($val)?>" <?=($edit['placement']??'article')===$val?'selected':''?>><?=h($label)?></option><?php endforeach;?></select></label>
 <div class="ui-ads-rules">
 <label class="ui-field">Pozíció működése <select name="position_type">
