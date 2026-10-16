@@ -8,6 +8,7 @@ $u=require_user();
 try{
  if($_SERVER['REQUEST_METHOD']!=='GET')throw new RuntimeException('Nem támogatott művelet.');
  $pdo=db();
+ $hasImportMeta=(bool)$pdo->query("SHOW TABLES LIKE 'media_import_sources'")->fetchColumn()&&(bool)$pdo->query("SHOW TABLES LIKE 'article_media_uses'")->fetchColumn();
  $ids=allowed_resource_sites($pdo,$u,'media');
  if(!$ids){echo json_encode(['items'=>[],'total'=>0,'page'=>1,'has_more'=>false],JSON_UNESCAPED_UNICODE);exit;}
  $search=mb_substr(trim((string)($_GET['q']??'')),0,100);
@@ -16,8 +17,9 @@ try{
  $where='m.site_id IN ('.implode(',',array_map('intval',$ids)).')';
  $params=[];
  if($search!==''){
-  $where.=" AND (m.original_name LIKE ? OR m.alt_text LIKE ? OR s.name LIKE ? OR EXISTS(SELECT 1 FROM media_import_sources mi WHERE mi.media_id=m.id AND (mi.source_host LIKE ? OR mi.source_url LIKE ? OR mi.photographer LIKE ? OR mi.copyright_holder LIKE ?)) OR EXISTS(SELECT 1 FROM article_media_uses am JOIN articles a ON a.id=am.article_id WHERE am.media_id=m.id AND (am.caption LIKE ? OR am.photo_credit LIKE ? OR am.alt_text LIKE ? OR a.title LIKE ?)))";
-  $like='%'.addcslashes($search,'\\%_').'%';$params=array_fill(0,11,$like);
+  if($hasImportMeta){$where.=" AND (m.original_name LIKE ? OR m.alt_text LIKE ? OR s.name LIKE ? OR EXISTS(SELECT 1 FROM media_import_sources mi WHERE mi.media_id=m.id AND (mi.source_host LIKE ? OR mi.source_url LIKE ? OR mi.photographer LIKE ? OR mi.copyright_holder LIKE ?)) OR EXISTS(SELECT 1 FROM article_media_uses am JOIN articles a ON a.id=am.article_id WHERE am.media_id=m.id AND (am.caption LIKE ? OR am.photo_credit LIKE ? OR am.alt_text LIKE ? OR a.title LIKE ?)))";}
+  else{$where.=' AND (m.original_name LIKE ? OR m.alt_text LIKE ? OR s.name LIKE ?)';}
+  $like='%'.addcslashes($search,'\\%_').'%';$params=array_fill(0,$hasImportMeta?11:3,$like);
  }
  $count=$pdo->prepare('SELECT COUNT(*) FROM media_assets m JOIN sites s ON s.id=m.site_id WHERE '.$where);
  $count->execute($params);$total=(int)$count->fetchColumn();
