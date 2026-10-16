@@ -213,8 +213,8 @@ body{margin:0;background:#fff;color:#090e20;font:17px/1.65 system-ui,-apple-syst
 .cms-source-regional summary:after{content:"⌄";font-size:30px;line-height:.75}
 .cms-source-regional nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 26px}
 .cms-source-regional nav a{color:#fff;text-decoration:none;font:14px/1.5 system-ui;overflow-wrap:anywhere}
-.cms-source-footer:not(.cms-source-footer--publisher){margin-top:30px}
-.cms-source-footer--publisher{margin-top:0;padding:0;background:transparent}
+ .cms-source-footer:not([data-variant="publisher"]){margin-top:30px}
+.cms-source-footer[data-variant="publisher"]{margin-top:0;padding:0;background:transparent}
 .cms-source-banner{position:static;max-width:none;border-radius:0;box-shadow:none;padding:5px 10px;justify-content:center;font-size:10px;background:#172440;color:#fff;opacity:1}
 .cms-source-banner span{display:inline;opacity:.7}
 .cms-source-breadcrumb{min-width:0;overflow:hidden}
@@ -283,7 +283,7 @@ body{margin:0;background:#fff;color:#090e20;font:17px/1.65 system-ui,-apple-syst
 <?php foreach($footerActions as $item):if(!is_array($item))continue;$href=cms_rich_url((string)($item['url']??''));if(!$href)continue;?>
 <a href="<?=sp_h($href)?>" target="_blank" rel="noopener noreferrer"><?=sp_h((string)($item['label']??''))?></a>
 <?php endforeach;?></nav><?php endif;?></div></section><?php endif;?>
-<footer class="cms-source-footer cms-source-footer--publisher">
+<footer class="cms-source-footer" data-variant="publisher">
 <?php if($isMagyarNemzet):?><div class="cms-source-footer-legal">
 <p><?=sp_h('A Magyar Nemzet kiadója a Mediaworks Hungary Zrt. © Minden jog fenntartva')?></p>
 <p>© <?=date('Y')?> <img src="https://magyarnemzet.hu/assets/images/logo-mno-slightblue.svg" alt="Magyar Nemzet"></p>
