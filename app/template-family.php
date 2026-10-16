@@ -8,7 +8,8 @@ require_once __DIR__.'/site-design-templates.php';
 function cms_template_family_definitions(array $profile):array{
  $host=strtolower((string)($profile['host']??''));
  $mno=in_array($host,['magyarnemzet.hu','www.magyarnemzet.hu'],true);
- if(!$mno)return [
+ if(!$mno){
+  $generic=[
   'home'=>[['type'=>'hero','title'=>'Kiemelt történetek','text'=>'','columns'=>1],['type'=>'latest','title'=>'Friss cikkek','limit'=>18,'columns'=>3]],
   'section'=>[['type'=>'hero','title'=>'Rovat','columns'=>1],['type'=>'latest','title'=>'A rovat hírei','limit'=>18,'columns'=>2]],
   'tag'=>[['type'=>'hero','title'=>'Címke','columns'=>1],['type'=>'latest','title'=>'Kapcsolódó cikkek','limit'=>18,'columns'=>1]],
@@ -16,6 +17,9 @@ function cms_template_family_definitions(array $profile):array{
   'page'=>[['type'=>'page_body','title'=>'Oldaltartalom','columns'=>1]],
   'login'=>cms_default_layout('login')
  ];
+  if(empty($profile['site_design']['has_login']))unset($generic['login']);
+  return $generic;
+ }
  return [
   'home'=>[['type'=>'latest','title'=>'Vezető hírek','limit'=>5,'columns'=>2],['type'=>'latest','title'=>'Friss híreink','limit'=>15,'offset'=>5,'columns'=>3],['type'=>'latest','title'=>'Még több olvasnivaló','limit'=>12,'offset'=>20,'columns'=>4]],
   'section'=>[['type'=>'hero','title'=>'Belföld','columns'=>1],['type'=>'latest','title'=>'Friss hírek','limit'=>10,'columns'=>2],['type'=>'latest','title'=>'A rovat további cikkei','limit'=>18,'offset'=>10,'columns'=>1]],
