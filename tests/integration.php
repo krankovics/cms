@@ -241,4 +241,20 @@ ok(count($menuNative)===1&&$menuNative[0]['label']==='Belföld','The native menu
 ok(str_contains(cms_native_href($menuNative[0]['url'],'test-0',true),'preview=1&section=belfold'),'Native navigation must preserve editor-preview access.');
 ok(cms_native_href('javascript:alert(1)','test-0')===cms_native_site_url('test-0'),'Unsafe imported navigation must never become an executable link.');
 
+// Source-host article reuse is opt-in and must preserve original ownership.
+require_once dirname(__DIR__).'/app/site-import-assignment.php';
+$orphanImport=$pdo->prepare("INSERT INTO articles(site_id,author_id,title,slug,status,content_json) VALUES(?,?,?,'forrasbol-importalt-cikk','draft','[]')");
+$orphanImport->execute([$sites[0],$uid['editor'],'Forrásdomainről importált próbacikk']);
+$orphanId=(int)$pdo->lastInsertId();
+$sourceLink=$pdo->prepare('INSERT INTO import_article_map(site_id,source_url,source_url_hash,article_id,source_hash) VALUES(?,?,?,?,?)');
+$originalUrl='https://test1.invalid/belfold/importalt-proba';
+$sourceLink->execute([$sites[0],$originalUrl,hash('sha256',$originalUrl),$orphanId,hash('sha256','demo')]);
+$candidates=cms_site_import_candidates($pdo,$sites[1],'test1.invalid');
+ok(count($candidates)===1&&(int)$candidates[0]['id']===$orphanId,'Site admin should discover previously imported articles from an exact matching hostname.');
+ok(cms_site_import_candidates($pdo,$sites[2],'test2.invalid')===[],'Other source hostnames cannot be suggested for unrelated websites.');
+ok(!in_array($sites[1],article_site_ids($pdo,['id'=>$orphanId,'site_id'=>$sites[0]]),true),'Discovering eligible imports must not silently associate them.');
+$connected=cms_site_link_import_candidates($pdo,['id'=>$sites[1],'domain'=>'test1.invalid'],$uid['platform_admin']);
+ok($connected===1&&in_array($sites[1],article_site_ids($pdo,['id'=>$orphanId,'site_id'=>$sites[0]]),true),'Explicit assignment should add a second site without moving the original article.');
+ok(cms_site_link_import_candidates($pdo,['id'=>$sites[1],'domain'=>'test1.invalid'],$uid['platform_admin'])===0,'Repeated association must be idempotent.');
+
 echo "PASS: $tests database integration assertions.\n";
