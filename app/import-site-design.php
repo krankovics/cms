@@ -37,12 +37,16 @@ function cms_source_design_extract(string $html,string $source):array{
  $fallback=['name'=>strtolower((string)parse_url($source,PHP_URL_HOST)),'logo_url'=>'',
   'header_links'=>[],'topic_links'=>[],'footer_links'=>[],'footer_text'=>'','copyright'=>'',
   'social_title'=>'','social_links'=>[],'footer_actions'=>[],
-  'publisher_logo_url'=>'','publisher_text'=>'','regional_links'=>[]];
+  'publisher_logo_url'=>'','publisher_text'=>'','regional_links'=>[],'has_login'=>false];
  if(strlen($html)>3500000||!class_exists(DOMDocument::class))return $fallback;
  $doc=new DOMDocument('1.0','UTF-8');$prior=libxml_use_internal_errors(true);
  $doc->loadHTML('<?xml encoding="utf-8"?>'.$html,LIBXML_NONET|LIBXML_NOERROR|LIBXML_NOWARNING);
  libxml_clear_errors();libxml_use_internal_errors($prior);
  $xpath=new DOMXPath($doc);
+ // Login is an optional page family. Detect a visible login destination,
+ // but never import credentials, authentication endpoints or source scripts.
+ $loginHref=$xpath->query('//a[@href][contains(translate(@href,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"/bejelentkezes") or contains(translate(@href,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"/login") or contains(translate(@href,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"/sign-in")]');
+ $fallback['has_login']=$loginHref!==false&&$loginHref->length>0;
  // Explicit publisher identity beats arbitrary visible logo text.
  $name=cms_source_design_text((string)$xpath->evaluate('string(//meta[translate(@property,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz")="og:site_name"]/@content)'),100);
  if($name==='')$name=cms_source_design_text((string)$xpath->evaluate('string(//header//img[contains(translate(@class,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"logo")]/@alt)'),100);
@@ -198,7 +202,7 @@ function cms_source_design_extract(string $html,string $source):array{
 }
 /** DOM-derived metadata only. A manually curated design is never overwritten. */
 function cms_source_design_merge(array $page,array $home):array{
- foreach(['name','logo_url','header_links','topic_links','footer_links','footer_text','copyright','social_title','social_links','footer_actions','publisher_logo_url','publisher_text','regional_links'] as $key){
+ foreach(['name','logo_url','header_links','topic_links','footer_links','footer_text','copyright','social_title','social_links','footer_actions','publisher_logo_url','publisher_text','regional_links','has_login'] as $key){
   if($key==='name'){
    if(!empty($home[$key]))$page[$key]=$home[$key];
   }elseif(!empty($home[$key]))$page[$key]=$home[$key];
