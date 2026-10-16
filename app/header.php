@@ -7,7 +7,7 @@ $canWrite=in_array($u['role'],['platform_admin','site_admin','editor','author'],
 $navGroups=[
  ['title'=>'Munkaterület','links'=>[
   ['href'=>'/','page'=>'index.php','text'=>'Áttekintés','icon'=>'home'],
-  ...($canWrite?[['href'=>'/articles.php','page'=>'articles.php','text'=>'Cikkek','icon'=>'file'],['href'=>'/editor.php','page'=>'editor.php','text'=>'Új cikk','icon'=>'plus'],['href'=>'/taxonomy.php','page'=>'taxonomy.php','text'=>'Kategóriák és címkék','icon'=>'tag'],['href'=>'/media.php','page'=>'media.php','text'=>'Médiatár','icon'=>'image']]:[])
+  ...($canWrite?[['href'=>'/articles.php','page'=>'articles.php','text'=>'Cikkek','icon'=>'file'],['href'=>'/editor.php','page'=>'editor.php','text'=>'Új cikk','icon'=>'plus'],['href'=>'/taxonomy.php','page'=>'taxonomy.php','text'=>'Kategóriák és címkék','icon'=>'tag'],['href'=>'/media.php','page'=>'media.php','text'=>'Médiatár','icon'=>'image'],['href'=>'/pages.php','page'=>'pages.php','text'=>'Oldalak','icon'=>'file']]:[])
  ]],
  ...((in_array($u['role'],['platform_admin','site_admin','editor'],true))?[['title'=>'Kiadói platform','links'=>[
   ['href'=>'/imports.php','page'=>'imports.php','text'=>'Importközpont','icon'=>'import'],
@@ -33,8 +33,8 @@ if($currentPage==='migrate.php')$currentTitle='Adatbázis-migráció';
 ?>
 <script>document.body.classList.add('comesy-admin');</script>
 <link rel="stylesheet" href="/assets/admin-v2.css">
-<?php if(in_array($currentPage,['articles.php','taxonomy.php','media.php','users.php','sites.php'],true)):?><link rel="stylesheet" href="/assets/admin-pages-v2.css"><?php endif;?>
-<?php if(in_array($currentPage,['editor.php','sites.php','site-permissions.php','profile.php','settings.php','migrate.php'],true)):?><link rel="stylesheet" href="/assets/admin-secondary-v2.css"><?php endif;?>
+<?php if(in_array($currentPage,['articles.php','taxonomy.php','media.php','pages.php','users.php','sites.php'],true)):?><link rel="stylesheet" href="/assets/admin-pages-v2.css"><?php endif;?>
+<?php if(in_array($currentPage,['editor.php','pages.php','sites.php','site-permissions.php','profile.php','settings.php','migrate.php'],true)):?><link rel="stylesheet" href="/assets/admin-secondary-v2.css"><?php endif;?>
 <link rel="stylesheet" href="/assets/admin-compact.css">
 <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" class="ui-icon-sprite" width="0" height="0" style="position:absolute;overflow:hidden">
  <symbol id="cs-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></symbol>
