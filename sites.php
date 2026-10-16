@@ -44,6 +44,11 @@ try{
 }catch(Throwable $e){error_log('sites: '.$e->getMessage());$error=$e instanceof PDOException?'Az adatbázis-művelet sikertelen. A domain és az azonosító egyedi kell legyen.':$e->getMessage();}
 $edit=max(0,(int)($_GET['edit']??0));$selected=null;foreach($sites as $s)if((int)$s['id']===$edit)$selected=$s;
 $siteSettings=cms_site_settings($selected??[]);
+$importCandidateError='';
+if($selected){
+ try{$importCandidates=cms_site_import_candidates($pdo,(int)$selected['id'],(string)$selected['domain']);}
+ catch(Throwable $e){$importCandidateError='A korábbi importok ellenőrzése nem sikerült. Ellenőrizd az adatbázis-migrációt.';error_log('site import candidates: '.$e->getMessage());}
+}
 ?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Webhelyek | comesy</title><link rel="stylesheet" href="/assets/ui.css"><script src="/assets/ui.js" defer></script><script src="/assets/admin-pages-v2.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
 <main class="ui-admin-section" id="main-content">
 <header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Adminisztráció</p><h1 class="ui-page-title">Webhelyek</h1><p class="ui-page-description">A comesy felületen kezelt kiadói webhelyek és tartalmaik.</p></div>
