@@ -19,6 +19,8 @@ $load->execute([$siteId]);$site=$load->fetch();
 if(!$site){http_response_code(404);exit('A webhely nem található.');}
 $settings=cms_site_settings($site);
 $tabs=['appearance'=>'Arculat','templates'=>'Sablonok','menu'=>'Menü','pages'=>'Oldalak','sections'=>'Rovatok','tags'=>'Címkék','ads'=>'Hirdetések','analytics'=>'Analitika'];
+$canMonetize=in_array($u['role'],['platform_admin','site_admin'],true);
+if(!$canMonetize){unset($tabs['ads'],$tabs['analytics']);}
 $tab=(string)($_GET['tab']??'appearance');
 if(!isset($tabs[$tab]))$tab='appearance';
 $base='/site-manage.php?site_id='.$siteId;
