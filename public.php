@@ -71,7 +71,7 @@ function pub_article_list(PDO $pdo,int $siteId,string $slug,int $limit,string $s
  $scope='(a.site_id=? OR EXISTS(SELECT 1 FROM article_sites link WHERE link.article_id=a.id AND link.site_id=?))';
  $filter=$preview?'':" AND a.status='published' AND (a.published_at IS NULL OR a.published_at<=NOW())";
  if($section!=='')$filter.=" AND EXISTS(SELECT 1 FROM article_terms at JOIN taxonomy_terms tt ON tt.id=at.term_id WHERE at.article_id=a.id AND tt.type='category' AND tt.slug=? AND tt.site_id IN (0,?))";
- $sql='SELECT a.id,a.title,a.slug,a.`lead`,a.published_at,m.og_image_url FROM articles a LEFT JOIN article_meta m ON m.article_id=a.id WHERE '.$scope.$filter.' ORDER BY a.published_at DESC,a.id DESC LIMIT '.max(1,min(30,$limit));
+ $sql='SELECT a.id,a.title,a.slug,a.`lead`,a.status,a.published_at,a.updated_at,m.og_image_url FROM articles a LEFT JOIN article_meta m ON m.article_id=a.id WHERE '.$scope.$filter.' ORDER BY COALESCE(a.published_at,a.updated_at) DESC,a.id DESC LIMIT '.max(1,min(30,$limit));
  $q=$pdo->prepare($sql);$q->execute($section!==''?[$siteId,$siteId,$section,$siteId]:[$siteId,$siteId]);return $q->fetchAll();
 }
 function pub_blocks(string $json):void{
