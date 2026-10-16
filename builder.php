@@ -10,7 +10,7 @@ if(!$allowed){http_response_code(403);exit('Nincs szerkeszthető webhely.');}
 $site=(int)($_REQUEST['site_id']??$allowed[0]);
 if(!in_array($site,$allowed,true)){http_response_code(403);exit('Nincs hozzáférés ehhez a webhelyhez.');}
 $kind=(string)($_REQUEST['template']??'home');
-if(!in_array($kind,['home','section','article'],true))$kind='home';
+if(!in_array($kind,['home','section','tag','article','page','login'],true))$kind='home';
 $error='';$message='';
 try{
  if($_SERVER['REQUEST_METHOD']==='POST'){
@@ -44,7 +44,7 @@ try{
  error_log('builder tables missing: '.$e->getMessage());$schemaReady=false;
  $error='Az oldalépítő táblái még nem érhetők el. A szuperadmin futtassa az adatbázis-migrációt.';
 }
-$kindLabels=['home'=>'Nyitóoldal','section'=>'Rovatoldal','article'=>'Cikkoldal'];
+$kindLabels=['home'=>'Nyitóoldal','section'=>'Rovatoldal','tag'=>'Címkeoldal','article'=>'Cikkoldal','page'=>'Statikus oldal','login'=>'Olvasói belépés'];
 $readOnly=!$flags['builder_enabled']||!$schemaReady;
 ?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Oldalépítő | comesy</title><link rel="stylesheet" href="/assets/ui.css"><link rel="stylesheet" href="/assets/builder.css"><script src="/assets/ui.js" defer></script><script src="/assets/builder.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
 <main class="ui-page ui-builder-page" id="main-content">
@@ -61,7 +61,7 @@ $readOnly=!$flags['builder_enabled']||!$schemaReady;
 <input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="site_id" value="<?=$site?>"><input type="hidden" name="template" value="<?=h($kind)?>"><input type="hidden" name="revision" value="<?=(int)($record['revision_number']??0)?>">
 <input type="hidden" name="layout_json" value="<?=h(json_encode($layout,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR))?>">
 <div id="builder-block-list" class="ui-builder-blocks"></div>
-<div class="ui-builder-add"><label for="builder-new-type">Komponens hozzáadása</label><select id="builder-new-type" <?=$readOnly?'disabled':''?>><option value="hero">Hero</option><option value="latest">Dinamikus cikklista</option><option value="text">Szövegdoboz</option><option value="image">Kép</option><option value="ad">Hirdetési zóna</option><?php if($kind==='article'):?><option value="article">Cikktartalom</option><?php endif;?></select><button type="button" class="ui-btn ui-btn-secondary" data-builder-add <?=$readOnly?'disabled':''?>>Hozzáadás</button></div>
+<div class="ui-builder-add"><label for="builder-new-type">Komponens hozzáadása</label><select id="builder-new-type" <?=$readOnly?'disabled':''?>><option value="hero">Hero</option><option value="latest">Dinamikus cikklista</option><option value="text">Szövegdoboz</option><option value="image">Kép</option><option value="ad">Hirdetési zóna</option><?php if($kind==='article'):?><option value="article">Cikktartalom</option><?php endif;?><?php if($kind==='page'):?><option value="page_body">Statikus oldal tartalma</option><?php endif;?><?php if($kind==='login'):?><option value="reader_form">Olvasói bejelentkezés</option><?php endif;?></select><button type="button" class="ui-btn ui-btn-secondary" data-builder-add <?=$readOnly?'disabled':''?>>Hozzáadás</button></div>
 <div class="ui-builder-actions"><button type="submit" name="action" value="save" class="ui-btn ui-btn-secondary" <?=$readOnly?'disabled':''?>>Piszkozat mentése</button><button type="submit" name="action" value="publish" class="ui-btn ui-btn-primary" <?=$readOnly?'disabled':''?>>Sablon publikálása</button></div>
 </form>
 </section>
@@ -70,7 +70,7 @@ $readOnly=!$flags['builder_enabled']||!$schemaReady;
 <section class="ui-panel"><h2>Verziótörténet</h2><?php if(!$revisions):?><p class="ui-page-description">Még nincs mentett sablon.</p><?php endif;?>
 <?php foreach($revisions as $rev):?><form method="post" class="ui-builder-revision" onsubmit="return confirm('Ebből a verzióból új piszkozat készüljön?')"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="site_id" value="<?=$site?>"><input type="hidden" name="template" value="<?=h($kind)?>"><input type="hidden" name="action" value="restore"><input type="hidden" name="revision" value="<?=(int)($record['revision_number']??0)?>"><input type="hidden" name="revision_id" value="<?=(int)$rev['id']?>"><strong>#<?=(int)$rev['revision_number']?> · <?=h($rev['event'])?></strong><small><?=h($rev['created_at'])?> · <?=h($rev['editor']??'Rendszer')?></small><button type="submit" class="ui-btn ui-btn-secondary" <?=$readOnly?'disabled':''?>>Visszaállítás</button></form><?php endforeach;?></section>
 </aside></div>
-<section class="ui-panel ui-builder-menu"><h2>Webhely navigáció</h2><p class="ui-page-description">A menüpontok minden publikus oldalon megjelennek, a kézi sorrend a mentéskor rögzül.</p>
+<section class="ui-panel ui-builder-menu"><h2>Webhely navigáció</h2><p class="ui-page-description">Natív menü URL-ek: /section/belfold, /tag/magyar-peter, /page/impresszum, /bejelentkezes. A rovatok és címkék a Kategóriák és címkék menüben, a statikus oldalak az Oldalak menüben szerkeszthetők.</p><p class="ui-page-description">A menüpontok minden publikus oldalon megjelennek, a kézi sorrend a mentéskor rögzül.</p>
 <form method="post" id="builder-menu-form" data-readonly="<?=$readOnly?'1':'0'?>"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="site_id" value="<?=$site?>"><input type="hidden" name="template" value="<?=h($kind)?>"><input type="hidden" name="action" value="menu"><input type="hidden" name="menu_json" value="<?=h(json_encode($menu,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR))?>">
 <div id="builder-menu-rows"></div><div class="ui-builder-actions"><button type="button" data-menu-add class="ui-btn ui-btn-secondary" <?=$readOnly?'disabled':''?>>+ Menüpont</button><button type="submit" class="ui-btn ui-btn-primary" <?=$readOnly?'disabled':''?>>Navigáció mentése</button></div>
 </form></section>
