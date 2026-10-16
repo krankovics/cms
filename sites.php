@@ -61,7 +61,7 @@ $siteSettings=cms_site_settings($selected??[]);
 <label class="ui-field">Logó URL <input type="url" name="logo_url" maxlength="1000" value="<?=h($siteSettings['logo_url'])?>"></label>
 <div class="ui-site-appearance" style="display:grid;gap:10px;margin-top:14px;padding:14px;border:1px solid var(--ui-border,#dce3ea);border-radius:10px">
 <label class="ui-field" for="source-template-id">Arculati sablon
-<select name="source_template_id" id="source-template-id" style="width:100%;min-height:42px;padding:9px 10px;border:1px solid var(--ui-border,#dce3ea);border-radius:8px">
+<select name="source_template_id" id="source-template-id" style="width:100%;min-height:46px;padding:9px 10px;border:1px solid var(--ui-border,#dce3ea);border-radius:8px">
 <option value="">Nincs hozzárendelve (webhely alapmegjelenése)</option>
 <?php foreach($appearanceTemplates as $tpl):?><option value="<?=h($tpl['id'])?>" <?=($siteSettings['source_template_id']??'')===$tpl['id']?'selected':''?>><?=h($tpl['title'])?> · <?=h($tpl['host'])?><?=!$tpl['reviewed']?' · automatikus':''?></option><?php endforeach;?>
 </select></label>
