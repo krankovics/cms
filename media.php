@@ -37,7 +37,7 @@ try{
    $useId=max(0,(int)($_POST['use_id']??0));
    if($useId){
     $caption=mb_substr(trim((string)($_POST['caption']??'')),0,1800);
-    $pdo->prepare('UPDATE article_media_uses SET caption=? WHERE id=? AND media_id=? AND site_id=?')->execute([$caption,$useId,$assetId,$assetSite]);
+    $pdo->prepare('UPDATE article_media_uses SET caption=?,alt_text=? WHERE id=? AND media_id=? AND site_id=?')->execute([$caption,$alt,$useId,$assetId,$assetSite]);
    }
    header('Location: /media.php?'.http_build_query(['view_site'=>$viewSite,'q'=>$search,'page'=>$page,'saved'=>'meta']));exit;
   }
@@ -72,7 +72,7 @@ try{
 }
  $count=$pdo->prepare('SELECT COUNT(*) FROM media_assets m JOIN sites s ON s.id=m.site_id'.$where);$count->execute($params);$total=(int)$count->fetchColumn();
  $lastPage=max(1,(int)ceil($total/$perPage));$page=min($page,$lastPage);$offset=($page-1)*$perPage;
- if($hasMediaImport){$q=$pdo->prepare("SELECT m.id,m.site_id,m.original_name,m.alt_text,m.mime_type,m.size_bytes,m.created_at,s.name site_name,im.source_url,im.source_host,im.source_article_url,im.photographer,im.copyright_holder,im.rights_status,im.width_px,im.height_px,(SELECT am.caption FROM article_media_uses am WHERE am.media_id=m.id AND am.caption<>'' ORDER BY am.id LIMIT 1) caption,(SELECT am.id FROM article_media_uses am WHERE am.media_id=m.id ORDER BY am.id LIMIT 1) use_id,(SELECT COUNT(*) FROM article_media_uses am WHERE am.media_id=m.id) article_uses FROM media_assets m JOIN sites s ON s.id=m.site_id LEFT JOIN media_import_sources im ON im.media_id=m.id".$where.' ORDER BY m.id DESC LIMIT '.$perPage.' OFFSET '.$offset);}
+ if($hasMediaImport){$q=$pdo->prepare("SELECT m.id,m.site_id,m.original_name,m.alt_text,m.mime_type,m.size_bytes,m.created_at,s.name site_name,im.source_url,im.source_host,im.source_article_url,im.photographer,im.copyright_holder,im.rights_status,im.width_px,im.height_px,(SELECT am.caption FROM article_media_uses am WHERE am.media_id=m.id AND am.caption<>'' ORDER BY am.id LIMIT 1) caption,(SELECT am.id FROM article_media_uses am WHERE am.media_id=m.id AND am.caption<>'' ORDER BY am.id LIMIT 1) use_id,(SELECT COUNT(*) FROM article_media_uses am WHERE am.media_id=m.id) article_uses FROM media_assets m JOIN sites s ON s.id=m.site_id LEFT JOIN media_import_sources im ON im.media_id=m.id".$where.' ORDER BY m.id DESC LIMIT '.$perPage.' OFFSET '.$offset);}
  else{$q=$pdo->prepare('SELECT m.id,m.site_id,m.original_name,m.alt_text,m.mime_type,m.size_bytes,m.created_at,s.name site_name FROM media_assets m JOIN sites s ON s.id=m.site_id'.$where.' ORDER BY m.id DESC LIMIT '.$perPage.' OFFSET '.$offset);}
  $q->execute($params);$items=$q->fetchAll();
  if($viewSite&&$hasMediaImport){
