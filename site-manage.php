@@ -18,7 +18,7 @@ $load=$pdo->prepare('SELECT id,name,domain,slug,settings_json FROM sites WHERE i
 $load->execute([$siteId]);$site=$load->fetch();
 if(!$site){http_response_code(404);exit('A webhely nem található.');}
 $settings=cms_site_settings($site);
-$tabs=['appearance'=>'Arculat','templates'=>'Sablonok','menu'=>'Menü','pages'=>'Oldalak','sections'=>'Rovatok','tags'=>'Címkék'];
+$tabs=['appearance'=>'Arculat','templates'=>'Sablonok','menu'=>'Menü','pages'=>'Oldalak','sections'=>'Rovatok','tags'=>'Címkék','ads'=>'Hirdetések','analytics'=>'Analitika'];
 $tab=(string)($_GET['tab']??'appearance');
 if(!isset($tabs[$tab]))$tab='appearance';
 $base='/site-manage.php?site_id='.$siteId;
@@ -156,6 +156,17 @@ $publicUrl='/public.php?site='.rawurlencode((string)$site['slug']).'&preview=1';
 <?php if($error):?><p class="ui-notice error" role="alert"><?=h($error)?></p><?php endif;?>
 <?php if($dataError):?><p class="ui-notice error" role="alert"><?=h($dataError)?> <a href="/migrate.php">Adatbázis-migráció ↗</a></p><?php endif;?>
 <section class="ui-panel cs-site-content" aria-labelledby="cs-section-title">
+<?php if($tab==='ads'):?>
+<div class="cs-site-section-head"><div><h2 id="cs-section-title">Hirdetési admin</h2><p>AdBrain-alapú hirdetési pozíciók, zónák, kampányok, képes és HTML/JS-kódos kreatívok.</p></div></div>
+<p class="cs-site-helper">A hirdetési pozíciókat webhelyenként és oldaltípusonként állíthatod be. A hirdetéskód csak elkülönített iframe-ben fut. A megjelenítéshez kapcsold be a Hirdetési pozíciókat a webhely beállításainál.</p>
+<div class="cs-site-card-grid">
+<?php foreach([['Zónák és pozíciók','zone','Fejléc, lábléc, oldalsáv, bekezdés, sticky és egyedi CSS-pozíció'],['Kampányok','campaign','Hirdetők, kezdés/befejezés, rovatcélzás és prioritás'],['Kreatívok és kódok','creative','Képes kreatívok és sandboxolt külső hirdetési kódok']] as [$title,$kind,$description]):?>
+<article class="cs-site-card"><strong><?=h($title)?></strong><p><?=h($description)?></p><a class="ui-btn ui-btn-secondary" href="/ads.php?site_id=<?=$siteId?>&amp;kind=<?=h($kind)?>">Szerkesztés ↗</a></article>
+<?php endforeach;?></div>
+<?php elseif($tab==='analytics'):?>
+<div class="cs-site-section-head"><div><h2 id="cs-section-title">Hirdetési és tartalmi analitika</h2><p>Hirdetéskérések, render, viewability, kattintások, webhelyforgalom és legolvasottabb cikkek.</p></div>
+<a class="ui-btn ui-btn-primary" href="/ad-analytics.php?site_id=<?=$siteId?>">Analitika megnyitása ↗</a></div>
+<p class="cs-site-helper">A forgalmi adatok a publikus oldalakból, cookie és személyes azonosító nélkül készülnek. A riportok zónákra, kreatívokra és időszakokra bonthatók.</p>
 <?php if($tab==='appearance'):?>
 <div class="cs-site-section-head"><div><h2 id="cs-section-title">Arculat és webhelyazonosság</h2><p>Az itt mentett arculatot a webhely minden oldaltípusának megjelenítése használja.</p></div>
 <?php if($canAppearance):?><a class="ui-btn ui-btn-secondary" href="/sites.php?edit=<?=$siteId?>">Összes webhelybeállítás ↗</a><?php endif;?></div>
