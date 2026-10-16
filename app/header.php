@@ -20,7 +20,8 @@ $navGroups=[
   ['href'=>'/audit.php','page'=>'audit.php','text'=>'Auditnapló','icon'=>'shield']
  ]]]:[]),
  ...((in_array($u['role'],['platform_admin','site_admin','ad_manager'],true))?[['title'=>'Monetizáció','links'=>[
-  ['href'=>'/ads.php','page'=>'ads.php','text'=>'Hirdetésadmin','icon'=>'ad']
+  ['href'=>'/ads.php','page'=>'ads.php','text'=>'Hirdetésadmin','icon'=>'ad'],
+  ['href'=>'/ad-analytics.php','page'=>'ad-analytics.php','text'=>'Analitika','icon'=>'layout']
  ]]]:[]),
   ['title'=>'Fiók','links'=>[
   ['href'=>'/settings.php','page'=>'settings.php','text'=>'Beállítások','icon'=>'settings'],
