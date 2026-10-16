@@ -1,0 +1,11 @@
+/* Native auto-inserted ad placements. No third-party markup runs on this page. */
+.pub-auto-ad{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:5px;max-width:100%;min-width:0;margin:20px auto;padding:6px 4px;color:#6b7280;background:transparent}
+.pub-auto-ad iframe{display:block;width:100%;max-width:100%;border:0;background:transparent;overflow:hidden}
+.pub-ad-disclosure{font:400 10px/1.4 system-ui,sans-serif;color:#7d8594;text-align:center}
+.pub-ad-header,.pub-ad-footer{max-width:970px}
+.pub-ad-sidebar{max-width:320px}
+.pub-native-ads-sidebar{float:right;max-width:320px;width:calc(100% - 30px);margin:15px 0 20px 20px}
+.pub-auto-ad.pub-sticky-ad{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:min(750px,calc(100vw - 22px));max-height:min(38vh,310px);padding:4px 26px 0;border-radius:12px 12px 0 0;background:#f7f9fc;box-shadow:0 -6px 20px #17203526;z-index:80;margin:0}
+.pub-sticky-ad iframe{max-height:30vh}
+.pub-sticky-close{position:absolute;top:-8px;right:-8px;background:#172334;color:#fff;border:0;border-radius:50%;width:34px;height:34px;cursor:pointer;font-size:24px;line-height:1}
+@media(max-width:900px){.pub-native-ads-sidebar{float:none;width:100%;margin:15px auto}.pub-auto-ad{max-width:100%}.pub-auto-ad.pub-sticky-ad{max-height:28vh}.pub-sticky-ad iframe{max-height:20vh}}
