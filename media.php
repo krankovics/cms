@@ -1,9 +1,9 @@
 <?php
 require __DIR__.'/app/bootstrap.php';
 require __DIR__.'/app/site-access.php';
-$u=require_user();$error='';$items=[];$sites=[];$allowed=[];$primary=[];$total=0;$page=max(1,min(10000,(int)($_GET['page']??1)));$perPage=48;$search=trim((string)($_GET['q']??''));$mediaQueueSummary=[];
+$u=require_user();$error='';$items=[];$sites=[];$allowed=[];$primary=[];$total=0;$page=max(1,min(10000,(int)($_GET['page']??1)));$perPage=48;$search=trim((string)($_GET['q']??''));$mediaQueueSummary=[];$hasMediaImport=false;
 try{
- $pdo=db();$sites=$pdo->query('SELECT id,name FROM sites ORDER BY name')->fetchAll();$allowed=allowed_resource_sites($pdo,$u,'media');$primary=allowed_primary_sites($pdo,$u);
+ $pdo=db();$hasMediaImport=(bool)$pdo->query("SHOW TABLES LIKE 'media_import_sources'")->fetchColumn()&&(bool)$pdo->query("SHOW TABLES LIKE 'article_media_uses'")->fetchColumn()&&(bool)$pdo->query("SHOW TABLES LIKE 'media_import_queue'")->fetchColumn();$sites=$pdo->query('SELECT id,name FROM sites ORDER BY name')->fetchAll();$allowed=allowed_resource_sites($pdo,$u,'media');$primary=allowed_primary_sites($pdo,$u);
  $site=(int)($_POST['site_id']??($primary[0]??0));
  $viewSite=(int)($_GET['view_site']??0);
  if($viewSite&&!in_array($viewSite,$allowed,true))throw new RuntimeException('Nincs jogosultság a kiválasztott médiatárhoz.');
@@ -66,14 +66,16 @@ try{
  $where=' WHERE m.site_id IN ('.implode(',',array_map('intval',$allowed?:[-1])).')';$params=[];
  if($viewSite){$where.=' AND m.site_id=?';$params[]=$viewSite;}
  if($search!==''){
-  $where.=" AND (m.original_name LIKE ? OR m.alt_text LIKE ? OR s.name LIKE ? OR EXISTS(SELECT 1 FROM media_import_sources im WHERE im.media_id=m.id AND (im.source_host LIKE ? OR im.source_url LIKE ? OR im.photographer LIKE ? OR im.copyright_holder LIKE ?)) OR EXISTS(SELECT 1 FROM article_media_uses am JOIN articles a ON a.id=am.article_id WHERE am.media_id=m.id AND (am.caption LIKE ? OR am.alt_text LIKE ? OR am.photo_credit LIKE ? OR a.title LIKE ?)))";
-  $like='%'.addcslashes(mb_substr($search,0,100),'\\%_').'%';$params=array_merge($params,array_fill(0,11,$like));
+  $like='%'.addcslashes(mb_substr($search,0,100),'\\%_').'%';
+  if($hasMediaImport){$where.=" AND (m.original_name LIKE ? OR m.alt_text LIKE ? OR s.name LIKE ? OR EXISTS(SELECT 1 FROM media_import_sources im WHERE im.media_id=m.id AND (im.source_host LIKE ? OR im.source_url LIKE ? OR im.photographer LIKE ? OR im.copyright_holder LIKE ?)) OR EXISTS(SELECT 1 FROM article_media_uses am JOIN articles a ON a.id=am.article_id WHERE am.media_id=m.id AND (am.caption LIKE ? OR am.alt_text LIKE ? OR am.photo_credit LIKE ? OR a.title LIKE ?)))";$params=array_merge($params,array_fill(0,11,$like));}
+  else{$where.=' AND (m.original_name LIKE ? OR m.alt_text LIKE ? OR s.name LIKE ?)';$params=array_merge($params,[$like,$like,$like]);}
 }
  $count=$pdo->prepare('SELECT COUNT(*) FROM media_assets m JOIN sites s ON s.id=m.site_id'.$where);$count->execute($params);$total=(int)$count->fetchColumn();
  $lastPage=max(1,(int)ceil($total/$perPage));$page=min($page,$lastPage);$offset=($page-1)*$perPage;
- $q=$pdo->prepare("SELECT m.id,m.site_id,m.original_name,m.alt_text,m.mime_type,m.size_bytes,m.created_at,s.name site_name,im.source_url,im.source_host,im.source_article_url,im.photographer,im.copyright_holder,im.rights_status,im.width_px,im.height_px,(SELECT am.caption FROM article_media_uses am WHERE am.media_id=m.id AND am.caption<>'' ORDER BY am.id LIMIT 1) caption,(SELECT am.id FROM article_media_uses am WHERE am.media_id=m.id ORDER BY am.id LIMIT 1) use_id,(SELECT COUNT(*) FROM article_media_uses am WHERE am.media_id=m.id) article_uses FROM media_assets m JOIN sites s ON s.id=m.site_id LEFT JOIN media_import_sources im ON im.media_id=m.id".$where.' ORDER BY m.id DESC LIMIT '.$perPage.' OFFSET '.$offset);
+ if($hasMediaImport){$q=$pdo->prepare("SELECT m.id,m.site_id,m.original_name,m.alt_text,m.mime_type,m.size_bytes,m.created_at,s.name site_name,im.source_url,im.source_host,im.source_article_url,im.photographer,im.copyright_holder,im.rights_status,im.width_px,im.height_px,(SELECT am.caption FROM article_media_uses am WHERE am.media_id=m.id AND am.caption<>'' ORDER BY am.id LIMIT 1) caption,(SELECT am.id FROM article_media_uses am WHERE am.media_id=m.id ORDER BY am.id LIMIT 1) use_id,(SELECT COUNT(*) FROM article_media_uses am WHERE am.media_id=m.id) article_uses FROM media_assets m JOIN sites s ON s.id=m.site_id LEFT JOIN media_import_sources im ON im.media_id=m.id".$where.' ORDER BY m.id DESC LIMIT '.$perPage.' OFFSET '.$offset);}
+ else{$q=$pdo->prepare('SELECT m.id,m.site_id,m.original_name,m.alt_text,m.mime_type,m.size_bytes,m.created_at,s.name site_name FROM media_assets m JOIN sites s ON s.id=m.site_id'.$where.' ORDER BY m.id DESC LIMIT '.$perPage.' OFFSET '.$offset);}
  $q->execute($params);$items=$q->fetchAll();
- if($viewSite){
+ if($viewSite&&$hasMediaImport){
   $q=$pdo->prepare('SELECT status,COUNT(*) cnt,SUM(imported_count) imported,SUM(failed_count) failures FROM media_import_queue WHERE site_id=? GROUP BY status');
   $q->execute([$viewSite]);foreach($q->fetchAll() as $v)$mediaQueueSummary[$v['status']]=$v;
  }
@@ -91,7 +93,8 @@ function media_page_link(array $p,int $page):string{return '/media.php?'.http_bu
 <label class="ui-field">Webhely <select name="view_site"><option value="0">Összes elérhető</option><?php foreach($sites as $s):if(!in_array((int)$s['id'],$allowed,true))continue;?><option value="<?=(int)$s['id']?>" <?=($viewSite??0)===(int)$s['id']?'selected':''?>><?=h($s['name'])?></option><?php endforeach;?></select></label>
 <button type="submit" class="ui-btn ui-btn-primary">Szűrés</button><?php if($search!==''||($viewSite??0)):?><a href="/media.php" class="ui-btn ui-btn-ghost">Alaphelyzet</a><?php endif;?>
 </form>
-<?php if($canUpload):?><section class="ui-panel" style="margin:12px 0;padding:14px"><strong>Korábbi importok képeinek feldolgozása</strong>
+<?php if($canUpload&&!$hasMediaImport):?><p class="ui-notice">Az új képimport az <a href="/migrate.php">adatbázis-migráció</a> után aktiválódik. A korábbi médiatár továbbra is használható.</p><?php endif;?>
+<?php if($canUpload&&$hasMediaImport):?><section class="ui-panel" style="margin:12px 0;padding:14px"><strong>Korábbi importok képeinek feldolgozása</strong>
 <p class="ui-page-description">A képek a meglévő import workerrel, a háttérben töltődnek le. A forrás és a képaláírás megmarad, az ismétlődő képek deduplikálódnak. A képek felhasználási joga alapból ellenőrizetlen.</p>
 <?php if($viewSite&&in_array($viewSite,$primary,true)):?>
 <form method="post" style="display:flex;gap:9px;flex-wrap:wrap"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="site_id" value="<?=$viewSite?>">
