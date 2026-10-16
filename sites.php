@@ -14,6 +14,13 @@ try{
  if($_SERVER['REQUEST_METHOD']==='POST'){
   if(!valid_csrf())throw new RuntimeException('Érvénytelen munkamenet.');
   $id=max(0,(int)($_POST['id']??0));
+  if($id>0&&($_POST['action']??'')==='link_imported'){
+   $siteQuery=$pdo->prepare('SELECT id,domain,slug FROM sites WHERE id=? LIMIT 1');
+   $siteQuery->execute([$id]);$sourceSite=$siteQuery->fetch();
+   if(!$sourceSite)throw new RuntimeException('A webhely nem található.');
+   $linked=cms_site_link_import_candidates($pdo,$sourceSite,(int)$u['id']);
+   header('Location: /sites.php?edit='.$id.'&linked='.$linked);exit;
+  }
   $name=trim((string)($_POST['name']??''));
   $domain=mb_strtolower(trim((string)($_POST['domain']??'')));
   $slug=mb_strtolower(trim((string)($_POST['slug']??'')));
