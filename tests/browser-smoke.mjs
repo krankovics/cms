@@ -272,7 +272,7 @@ try{
  await admin.setViewportSize({width:320,height:740});
  await overflow(admin,'320 users');
  await admin.goto(base+'/site-manage.php?site_id=1&tab=menu',{waitUntil:'networkidle'});
- assert.equal(await admin.locator('.cs-site-tabs a').count(),6,'Site manager must expose six sections.');
+ assert.equal(await admin.locator('.cs-site-tabs a').count(),8,'Site manager must expose eight sections including monetization.');
  assert.equal(await admin.locator('.cs-site-tabs [aria-current="page"]').count(),1,'Current site manager tab must be indicated.');
  assert.equal(await admin.locator('#cs-site-menu-form').count(),1,'Menu must be editable within the site manager.');
  await overflow(admin,'site manager mobile');
@@ -286,6 +286,11 @@ try{
  assert.equal(unsafeImport.status(),200,'Unsafe source URL must be rejected without attempting an external import.');
  assert((await unsafeImport.text()).includes('Privát vagy fenntartott hálózati cím'),'Style imports must share SSRF protection with the source importer.');
  await overflow(admin,'site manager appearance mobile');
+ await admin.goto(base+'/site-manage.php?site_id=1&tab=ads',{waitUntil:'domcontentloaded'});
+ assert.equal(await admin.locator('.cs-site-tabs a').count(),8,'Publisher should expose ad and analytics controls.');
+ await admin.goto(base+'/site-manage.php?site_id=1&tab=analytics',{waitUntil:'domcontentloaded'});
+ assert.equal(await admin.locator('a[href="/ad-analytics.php?site_id=1"]').count(),1,'Publisher analytics must be linked.');
+
  await admin.goto(base+'/settings.php',{waitUntil:'networkidle'});
  await overflow(admin,'settings mobile');
  await admin.close();
