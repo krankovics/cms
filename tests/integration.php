@@ -205,6 +205,20 @@ cms_source_style_write($sites[1],$reviewUrl,$review);
 $refreshed=cms_source_style_collect($sites[1],$sourceDoc,$reviewUrl,true);
 ok(($refreshed['site_design']['name']??'')==='Jóváhagyott forráswebhely','Reimport must not overwrite approved site shell overrides.');
 ok(!empty($refreshed['site_design_reviewed']),'A refreshed source profile retains its approval flag.');
+// Collected appearances form a reusable, assignable site-level template library.
+require_once dirname(__DIR__).'/app/site-design-templates.php';
+$templateId=cms_design_template_id($sites[0],'source-example.invalid');
+ok(cms_design_template_read($templateId)!==null,'A collected style must be addressable as a reusable appearance template.');
+$availableTemplates=cms_design_templates_list();
+ok(count(array_filter($availableTemplates,static fn($t)=>$t['id']===$templateId))===1,'Template library must list imported source styles.');
+$assignedSettings=cms_validate_site_settings(['source_template_id'=>$templateId],['publisher_name'=>'Kiadó', 'newsletter_enabled'=>true]);
+ok($assignedSettings['source_template_id']===$templateId&&$assignedSettings['publisher_name']==='','Site settings must validate a selected template alongside existing fields.');
+$otherSiteSettings=['settings_json'=>json_encode(['source_template_id'=>$templateId],JSON_UNESCAPED_UNICODE)];
+ok((cms_design_template_for_site($otherSiteSettings)['host']??'')==='source-example.invalid','A template imported for one site must be reusable on another site.');
+ok(cms_design_template_validate_selection('')==='','A template assignment must be removable.');
+try{cms_design_template_validate_selection(str_repeat('f',64));throw new RuntimeException('Missing template accepted.');}
+catch(RuntimeException $e){ok(str_contains($e->getMessage(),'nem található'),'Missing or forged template references must be rejected.');}
+
 
 
 echo "PASS: $tests database integration assertions.\n";
