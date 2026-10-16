@@ -12,7 +12,7 @@ require dirname(__DIR__).'/app/article-sites.php';
 require dirname(__DIR__).'/app/site-access.php';
 $tests=0;
 function ok(bool $condition,string $message):void{global $tests;$tests++;if(!$condition)throw new RuntimeException($message);}
-foreach(['schema','editor','content','site-permissions','ads','import','import-metrics','layouts'] as $schema){
+foreach(['schema','editor','content','site-permissions','ads','import','import-metrics','layouts','pages-readers'] as $schema){
  $sql=file_get_contents(dirname(__DIR__).'/database/'.$schema.'.sql');
  foreach(array_filter(array_map('trim',explode(';',$sql))) as $statement)$pdo->exec($statement);
 }
@@ -257,4 +257,26 @@ $connected=cms_site_link_import_candidates($pdo,['id'=>$sites[1],'domain'=>'test
 ok($connected===1&&in_array($sites[1],article_site_ids($pdo,['id'=>$orphanId,'site_id'=>$sites[0]]),true),'Explicit assignment should add a second site without moving the original article.');
 ok(cms_site_link_import_candidates($pdo,['id'=>$sites[1],'domain'=>'test1.invalid'],$uid['platform_admin'])===0,'Repeated association must be idempotent.');
 
+
+// Source appearance must initialize six independently editable page families.
+require_once dirname(__DIR__).'/app/template-family.php';
+$familySource=['host'=>'magyarnemzet.hu','source_url'=>'https://magyarnemzet.hu/belfold/test'];
+$familyMade=cms_template_family_seed($pdo,$sites[2],$uid['platform_admin'],$familySource,true);
+ok(count($familyMade)===6,'A selected source appearance must create six unique page families.');
+$familyQuery=$pdo->prepare('SELECT template_key,draft_json FROM site_templates WHERE site_id=?');
+$familyQuery->execute([$sites[2]]);$families=$familyQuery->fetchAll();
+ok(count($families)===6,'All homepage/category/tag/article/page/login layouts should have their own record.');
+$homeDef=json_decode((string)array_values(array_filter($families,static fn($f)=>$f['template_key']==='home'))[0]['draft_json'],true);
+ok(count($homeDef)===3&&($homeDef[1]['offset']??-1)===5,'Home blocks must render distinct article slices.');
+$pageCheck=$pdo->prepare('SELECT title,status FROM site_pages WHERE site_id=? AND slug=?');
+$pageCheck->execute([$sites[2],'impresszum']);$pageSeed=$pageCheck->fetch();
+ok($pageSeed&&$pageSeed['status']==='draft','Impresszum must be an editable, non-public draft until approved.');
+ok(cms_template_family_seed($pdo,$sites[2],$uid['platform_admin'],$familySource,true)===[],'Running template setup again must not destroy edits.');
+$termCheck=$pdo->prepare('SELECT type FROM taxonomy_terms WHERE site_id=? AND slug=?');
+$termCheck->execute([$sites[2],'magyar-peter']);
+ok($termCheck->fetchColumn()==='tag','Source category/tag samples must become native taxonomy records.');
+$readerHash=password_hash('VeryStrongPassword123!',PASSWORD_DEFAULT);
+$readerInsert=$pdo->prepare('INSERT INTO site_readers(site_id,email,display_name,password_hash) VALUES(?,?,?,?)');
+$readerInsert->execute([$sites[2],'test-reader@example.invalid','Olvasó teszt',$readerHash]);
+ok(password_verify('VeryStrongPassword123!',$readerHash),'Reader login stores a verifiable, non-plaintext password.');
 echo "PASS: $tests database integration assertions.\n";
