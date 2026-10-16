@@ -8,21 +8,21 @@ let items;try{items=JSON.parse(layoutInput.value)}catch(e){items=[];}
 if(!Array.isArray(items))items=[];
 const list=document.getElementById('builder-block-list');
 let dirty=false;
-const texts={hero:'Hero',latest:'Cikklista',text:'Szöveg',image:'Kép',ad:'Hirdetési hely',article:'Cikktartalom'};
+const texts={hero:'Hero',latest:'Cikklista',text:'Szöveg',image:'Kép',ad:'Hirdetési hely',article:'Cikktartalom',page_body:'Statikus oldaltartalom',reader_form:'Olvasói bejelentkezés'};
 const esc=(s)=>String(s??'');
 const field=(name,value,kind='text')=>{
  const label=document.createElement('label');label.className='ui-builder-field';
  const caption=document.createElement('span');
- caption.textContent={title:'Cím',text:'Szöveg',columns:'Oszlopok',limit:'Megjelenített cikkek',image_url:'Kép URL',zone:'Zónakód'}[name]||name;
+ caption.textContent={title:'Cím',text:'Szöveg',columns:'Oszlopok',limit:'Megjelenített cikkek',offset:'Első kihagyott cikk (lapozás)',image_url:'Kép URL',zone:'Zónakód'}[name]||name;
  label.append(caption);
  const input=kind==='textarea'?document.createElement('textarea'):document.createElement('input');
  if(kind!=='textarea')input.type=kind;
  input.value=esc(value);
- if(kind==='number'){input.min='1';input.max=name==='columns'?'4':'30';}
+ if(kind==='number'){input.min='1';input.max=name==='columns'?'4':name==='offset'?'150':'30';}
  input.maxLength=name==='text'?3000:name==='title'?190:1000;
  input.disabled=readOnly;
  input.addEventListener('input',()=>{
-  if(name==='columns'||name==='limit')items[Number(label.closest('[data-block-index]').dataset.blockIndex)][name]=Math.max(1,Number(input.value)||1);
+  if(name==='columns'||name==='limit'||name==='offset')items[Number(label.closest('[data-block-index]').dataset.blockIndex)][name]=Math.max(name==='offset'?0:1,Number(input.value)||0);
   else items[Number(label.closest('[data-block-index]').dataset.blockIndex)][name]=input.value;
   dirty=true;
  });
@@ -51,6 +51,7 @@ function render(){
   if(item.type==='ad')body.append(field('zone',item.zone||''));
   if(['latest'].includes(item.type))body.append(field('limit',item.limit||10,'number'));
   if(['latest'].includes(item.type))body.append(field('columns',item.columns||2,'number'));
+  if(['latest'].includes(item.type))body.append(field('offset',item.offset||0,'number'));
   card.append(body);
   card.addEventListener('dragstart',event=>{event.dataTransfer.setData('text/plain',String(index));event.dataTransfer.effectAllowed='move';});
   card.addEventListener('dragover',event=>{if(!readOnly){event.preventDefault();card.classList.add('is-drag-target');}});
@@ -69,7 +70,7 @@ document.querySelector('[data-builder-add]')?.addEventListener('click',()=>{
  if(items.length>=30){alert('Legfeljebb 30 komponens lehet.');return;}
  const type=document.getElementById('builder-new-type').value;
  if(!texts[type])return;
- const block={type,title:'',text:'',columns:type==='latest'?3:1,limit:10,zone:'',image_url:''};
+ const block={type,title:'',text:'',columns:type==='latest'?3:1,limit:10,zone:'',image_url:'',offset:0};
  items.push(block);dirty=true;render();list.lastElementChild?.scrollIntoView({behavior:'smooth',block:'nearest'});
 });
 form.addEventListener('submit',event=>{
