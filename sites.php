@@ -102,7 +102,8 @@ if($selected){
 </fieldset>
 <?php if($selected&&!empty($siteSettings['source_template_id'])):?>
 <section class="ui-admin-panel" style="margin:15px 0;padding:15px"><strong>Sabloncsomag · 6 oldaltípus</strong>
-<p class="ui-page-description">Címlap, rovat, címke, cikk, statikus oldal és olvasói belépés. A csomag automatikusan elkészül az arculat első hozzárendelésekor. Az újragenerálás csak a hiányzó sablonokat egészíti ki, a szerkesztett és publikált változatokat megőrzi.</p>
+<p class="ui-page-description">Címlap, rovat, címke, cikk és statikus oldal, illetve bejelentkezés, ha az eredeti webhelyen van. A sabloncsomag az első hozzárendeléskor jön létre, az újragenerálás nem írja felül a szerkesztett változatokat.</p>
+<p class="ui-page-description">Első használat előtt futtasd a <a href="/migrate.php">nem destruktív adatbázis-migrációt</a>. Az olvasói belépés a Webhelyfunkciók között külön engedélyezhető.</p>
 <?php if(isset($_GET['family'])):?><p class="success"><?=(int)$_GET['family']?> új oldaltípus-sablon készült.</p><?php endif;?>
 <a class="ui-btn ui-btn-secondary" href="/builder.php?site_id=<?=(int)$selected['id']?>&amp;template=home">Oldalsablonok szerkesztése ↗</a>
 <a class="ui-btn ui-btn-secondary" href="/pages.php?site_id=<?=(int)$selected['id']?>">Statikus oldalak ↗</a>
