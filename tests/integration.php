@@ -12,7 +12,7 @@ require dirname(__DIR__).'/app/article-sites.php';
 require dirname(__DIR__).'/app/site-access.php';
 $tests=0;
 function ok(bool $condition,string $message):void{global $tests;$tests++;if(!$condition)throw new RuntimeException($message);}
-foreach(['schema','editor','content','site-permissions','ads','ads-advanced','import','import-metrics','layouts','pages-readers'] as $schema){
+foreach(['schema','editor','content','site-permissions','ads','ads-advanced','import','import-media','import-metrics','layouts','pages-readers'] as $schema){
  $sql=file_get_contents(dirname(__DIR__).'/database/'.$schema.'.sql');
  foreach(array_filter(array_map('trim',explode(';',$sql))) as $statement)$pdo->exec($statement);
 }
@@ -299,4 +299,25 @@ $readerInsert->execute([$sites[2],'test-reader@example.invalid','Olvasó teszt',
 ok(password_verify('VeryStrongPassword123!',$readerHash),'Reader login stores a verifiable, non-plaintext password.');
 $pdo->prepare('UPDATE sites SET settings_json=? WHERE id=?')->execute([json_encode(['reader_accounts_enabled'=>true]),$sites[2]]);
 
+
+// Media import queue, provenance and article-specific image captions.
+require_once dirname(__DIR__).'/app/import-media.php';
+$pdo->prepare('INSERT INTO media_assets(site_id,original_name,storage_path,mime_type,size_bytes,alt_text) VALUES(?,?,?,?,?,?)')
+ ->execute([$sites[0],'source-image.webp','fixture.webp','image/webp',1024,'Kép alternatív szövege']);
+$importMediaId=(int)$pdo->lastInsertId();
+$fixtureImageUrl='https://example.org/media/fixture.webp';
+$pdo->prepare('INSERT INTO media_import_sources(media_id,site_id,source_url,source_url_hash,source_host,source_article_url,width_px,height_px,sha256) VALUES(?,?,?,?,?,?,?,?,?)')
+ ->execute([$importMediaId,$sites[0],$fixtureImageUrl,hash('sha256',$fixtureImageUrl),'example.org','https://example.org/a/123',800,600,str_repeat('a',64)]);
+$pdo->prepare('INSERT INTO article_media_uses(site_id,article_id,media_id,role,original_url,alt_text,caption,photo_credit,position_index) VALUES(?,?,?,?,?,?,?,?,?)')
+ ->execute([$sites[0],$publishedId,$importMediaId,'inline',$fixtureImageUrl,'Képleírás','Az esemény helyszíne','Fotós neve',1]);
+$q=$pdo->prepare('SELECT COUNT(*) FROM article_media_uses WHERE article_id=? AND caption LIKE ?');
+$q->execute([$publishedId,'%esemény%']);
+ok((int)$q->fetchColumn()===1,'Imported image captions must be linked to the exact article.');
+cms_import_media_enqueue($pdo,$sites[0],$publishedId);
+cms_import_media_enqueue($pdo,$sites[0],$publishedId);
+$q=$pdo->prepare('SELECT COUNT(*),MAX(next_offset) FROM media_import_queue WHERE site_id=? AND article_id=?');
+$q->execute([$sites[0],$publishedId]);$queueInfo=$q->fetch(PDO::FETCH_NUM);
+ok((int)$queueInfo[0]===1&&(int)$queueInfo[1]===0,'Media queue should be repeatable and resumable without duplicate jobs.');
+$q=$pdo->prepare('SELECT rights_status FROM media_import_sources WHERE media_id=?');$q->execute([$importMediaId]);
+ok($q->fetchColumn()==='unknown','Imported copyrighted images must default to rights unverified.');
 echo "PASS: $tests database integration assertions.\n";
