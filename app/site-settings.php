@@ -12,6 +12,7 @@ function cms_site_defaults():array {
   'site_description'=>'',
   'accent_color'=>'#325de6',
   'logo_url'=>'',
+  'source_template_id'=>'',
   'ad_slots_enabled'=>false
  ];
 }
@@ -30,5 +31,12 @@ function cms_validate_site_settings(array $input,array $existing=[]):array {
  $accent=strtolower(trim((string)($input['accent_color']??'#325de6')));
  if(!preg_match('/^#[0-9a-f]{6}$/D',$accent))throw new RuntimeException('A kiemelőszín formátuma érvénytelen.');
  $result['accent_color']=$accent;
+ // Imported source appearances are reusable templates, not copied into
+ // each webhely's settings. The reference remains until changed or cleared.
+ if(array_key_exists('source_template_id',$input)){
+  if(!is_string($input['source_template_id']))throw new RuntimeException('Érvénytelen arculati sablon.');
+  require_once __DIR__.'/site-design-templates.php';
+  $result['source_template_id']=cms_design_template_validate_selection(trim($input['source_template_id']));
+ }
  return $result;
 }
