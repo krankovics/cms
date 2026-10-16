@@ -83,6 +83,19 @@ try{
   assert.equal(response.status(),200,'Template family must be previewable: '+suffix);
   assert((await response.text()).includes(marker),'Missing expected native template block: '+suffix);
  }
+ const guestLogin=await admin.request.get(base+'/public.php?site=test-2&preview=1&login=1');
+ const guestLoginHtml=await guestLogin.text();
+ assert(guestLoginHtml.includes('pub-reader-form'),'Enabled reader login must show a native login and registration form.');
+ const csrfValue=guestLoginHtml.match(/name="csrf" value="([^"]+)"/)?.[1];
+ assert(csrfValue,'Reader form should carry a valid server-side CSRF token.');
+ const invalidCsrf=await admin.request.post(base+'/reader-auth.php',{form:{site:'test-2',action:'register',csrf:'bad-token'}},{maxRedirects:0});
+ assert.equal(invalidCsrf.status(),403,'Reader registration must reject forged CSRF tokens.');
+ const registered=await admin.request.post(base+'/reader-auth.php',{form:{site:'test-2',action:'register',csrf:csrfValue,display_name:'Tesztolvasó',email:'fresh-test@example.invalid',password:'AnExamplePassword2026!'},maxRedirects:0});
+ assert.equal(registered.status(),303,'Native reader registration must redirect after success.');
+ const readerHome=await (await admin.request.get(base+'/public.php?site=test-2&preview=1&login=1')).text();
+ assert(readerHome.includes('Be vagy jelentkezve'),'New reader should have a secure active session.');
+ const readerLogout=await admin.request.post(base+'/reader-auth.php',{form:{site:'test-2',action:'logout',csrf:csrfValue},maxRedirects:0});
+ assert.equal(readerLogout.status(),303,'Reader logout must terminate its session.');
  const draftPage=await admin.request.get(base+'/public.php?site=test-2&page=impresszum');
  assert.equal(draftPage.status(),404,'Draft static pages must remain unpublished.');
  // Full rich-editor WYSIWYG retention and requested layout semantics.
