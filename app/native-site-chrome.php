@@ -9,6 +9,9 @@ function cms_native_href(string $href,string $slug,bool $preview=false):string{
  if($href==='/')return $base;
  if(preg_match('~^/section/([a-z0-9_-]+)$~iD',$href,$m))return $base.'&section='.rawurlencode($m[1]);
  if(preg_match('~^/article/([a-z0-9_-]+)$~iD',$href,$m))return $base.'&article='.rawurlencode($m[1]);
+ if(preg_match('~^/tag/([a-z0-9_-]+)$~iD',$href,$m))return $base.'&tag='.rawurlencode($m[1]);
+ if(preg_match('~^/page/([a-z0-9_-]+)$~iD',$href,$m))return $base.'&page='.rawurlencode($m[1]);
+ if($href==='/bejelentkezes'||$href==='/login')return $base.'&login=1';
  if(preg_match('~^/(?!/)[a-zA-Z0-9/_?&=.%-]{1,500}$~D',$href))return $href;
  if(strlen($href)<=1000&&filter_var($href,FILTER_VALIDATE_URL)&&parse_url($href,PHP_URL_SCHEME)==='https')return $href;
  return $base;
