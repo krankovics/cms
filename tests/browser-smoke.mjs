@@ -150,7 +150,8 @@ try{
  await admin.locator('#preview-button').click();
  const popup=await popPromise;
  await popup.waitForLoadState('domcontentloaded');
- assert(await popup.locator('iframe[sandbox]').count()===1,'Preview must open in new tab with isolated iframe.');
+ assert(popup.url().includes('/source-preview.php?id='+previewId),'Editor popup must render on canonical same-origin preview page rather than an about:blank iframe.');
+ assert(await popup.locator('meta[name="viewport"]').count()===1,'New-tab preview must be mobile responsive.');
  assert((await popup.locator('h1').innerText()).includes('Szerkesztői gazdag tartalom próba'),'Preview must use unsaved article title.');
  assert(await popup.locator('.cms-source-header').count()===1&&await popup.locator('.cms-source-footer').count()===1,'Unsaved article preview includes publisher global site shell.');
  assert(await popup.locator('.cms-source-menu-toggle').count()===1,'Unsaved preview must use compact source menu drawer.');
