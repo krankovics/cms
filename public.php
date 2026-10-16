@@ -3,6 +3,7 @@ declare(strict_types=1);
 require __DIR__.'/app/bootstrap.php';
 require __DIR__.'/app/layouts.php';
 require_once __DIR__.'/app/rich-content.php';
+require_once __DIR__.'/app/site-design-templates.php';
 header('Content-Type: text/html; charset=utf-8');
 header('X-Frame-Options: SAMEORIGIN');
 header("Content-Security-Policy: default-src 'none'; style-src 'self' 'unsafe-inline'; img-src https: http: data:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://embed.spotify.com https://w.soundcloud.com https://www.facebook.com https://facebook.com https://www.instagram.com https://instagram.com https://www.tiktok.com https://player.simplecast.com https://embed.podcasts.apple.com https://www.podbean.com; media-src https: http:; frame-ancestors 'self'; base-uri 'none'; form-action 'none'");
@@ -13,6 +14,15 @@ if(!$siteSlug||strlen($siteSlug)>100){http_response_code(400);exit('Hiányzó we
 $q=$pdo->prepare('SELECT id,name,slug,domain,settings_json FROM sites WHERE slug=? LIMIT 1');$q->execute([$siteSlug]);$site=$q->fetch();
 if(!$site){http_response_code(404);exit('Nem található a webhely.');}
 $siteId=(int)$site['id'];$settings=cms_site_settings($site);
+$appearance=cms_design_template_for_site($site);
+$appearanceDesign=is_array($appearance['site_design']??null)?$appearance['site_design']:[];
+$appearanceHost=strtolower((string)($appearance['host']??''));
+$appearanceLogo=cms_rich_url((string)($appearanceDesign['logo_url']??''));
+if(in_array($appearanceHost,['magyarnemzet.hu','www.magyarnemzet.hu'],true))$appearanceLogo='/assets/source-logos/magyarnemzet.svg';
+$effectiveLogo=(string)$settings['logo_url']?:$appearanceLogo;
+$appearanceCss=(string)($appearance['css']??'');
+// Only allowlisted declarations collected by our importer are used here.
+if(preg_match('~[<>]|@import|url\\s*\\(~i',$appearanceCss))$appearanceCss='';
 $preview=($_GET['preview']??'')==='1';
 if($preview){
  require __DIR__.'/app/site-access.php';
@@ -90,10 +100,10 @@ $themeColor=preg_match('/^#[0-9a-f]{6}$/i',$settings['accent_color'])?$settings[
 $title=$article?($article['title'].' | '.$site['name']):$site['name'];
 ?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?=pub_h($title)?></title><meta name="robots" content="noindex,nofollow"><meta name="description" content="<?=pub_h($article['seo_description']??$settings['site_description'])?>">
-<link rel="stylesheet" href="/assets/public.css"><style>:root{--pub-accent:<?=pub_h($themeColor)?>}</style></head><body>
+<link rel="stylesheet" href="/assets/public.css"><?php if($appearance):?><link rel="stylesheet" href="/assets/site-appearance.css"><?php endif;?><style>:root{--pub-accent:<?=pub_h($themeColor)?>}</style><?php if($appearanceCss!==''):?><style id="assigned-appearance-css"><?=$appearanceCss?></style><?php endif;?></head><body class="<?=$appearance?'pub-source-themed':''?><?=in_array($appearanceHost,['magyarnemzet.hu','www.magyarnemzet.hu'],true)?' pub-source-mno':''?>">
 <?php if($preview):?><div class="pub-preview-bar">Szerkesztői előnézet · Nem nyilvános kiadás <a href="/builder.php?site_id=<?=$siteId?>&amp;template=<?=pub_h($kind)?>">Vissza az oldalépítőhöz</a></div><?php endif;?>
-<header class="pub-header"><div class="pub-header-inner"><a class="pub-brand" href="/public.php?site=<?=pub_h($siteSlug)?>">
-<?php if($settings['logo_url']):?><img src="<?=pub_h($settings['logo_url'])?>" alt="<?=pub_h($site['name'])?>"><?php else:?><?=pub_h($site['name'])?><?php endif;?></a>
+<header class="pub-header <?=$appearance?'cms-source-header':''?>"><div class="pub-header-inner"><a class="pub-brand" href="/public.php?site=<?=pub_h($siteSlug)?>">
+<?php if($effectiveLogo):?><img src="<?=pub_h($effectiveLogo)?>" alt="<?=pub_h($site['name'])?>"><?php else:?><?=pub_h($site['name'])?><?php endif;?></a>
 <nav aria-label="Főmenü"><?php foreach($menu as $entry):?><a href="<?=pub_h(pub_href($entry['url'],$siteSlug))?>"><?=pub_h($entry['label'])?></a><?php endforeach;?></nav></div></header>
 <main id="content" class="pub-main">
 <?php foreach($layout as $block):$type=$block['type']??'';$sectionTitle=trim((string)($block['title']??''));$count=max(1,min(30,(int)($block['limit']??10)));$columns=max(1,min(4,(int)($block['columns']??3)));?>
@@ -101,7 +111,7 @@ $title=$article?($article['title'].' | '.$site['name']):$site['name'];
 <?php elseif($type==='text'):?><section class="pub-section pub-text"><?php if($sectionTitle):?><h2><?=pub_h($sectionTitle)?></h2><?php endif;?><p><?=nl2br(pub_h((string)($block['text']??'')))?></p></section>
 <?php elseif($type==='image'&&!empty($block['image_url'])):?><section class="pub-section pub-image"><?php if($sectionTitle):?><h2><?=pub_h($sectionTitle)?></h2><?php endif;?><img src="<?=pub_h((string)$block['image_url'])?>" loading="lazy" alt="<?=pub_h($sectionTitle)?>"></section>
 <?php elseif($type==='article'):?>
-<section class="pub-article pub-section"><?php if($article):?><?php if(!empty($article['og_image_url'])):?><img class="pub-cover" loading="eager" src="<?=pub_h($article['og_image_url'])?>" alt=""><?php endif;?>
+<section class="pub-article pub-section <?=$appearance?'cms-source-article':''?>"><?php if($article):?><?php if(!empty($article['og_image_url'])):?><img class="pub-cover" loading="eager" src="<?=pub_h($article['og_image_url'])?>" alt=""><?php endif;?>
 <p class="pub-eyebrow"><?=pub_h($article['author_name']??'Szerkesztőség')?> · <?=pub_h($article['published_at']??'Piszkozat')?></p>
 <h1><?=pub_h($article['title'])?></h1><?php if(!empty($article['lead'])):?><p class="pub-lead"><?=pub_h($article['lead'])?></p><?php endif;?><?php pub_blocks((string)$article['content_json']);?>
 <?php else:?><h2>Cikkelőnézet</h2><p>Válassz egy cikket a nyitóoldalról az éles cikksablon megtekintéséhez.</p><?php endif;?></section>
@@ -115,4 +125,7 @@ $title=$article?($article['title'].' | '.$site['name']):$site['name'];
 <?php elseif($type==='ad'&&!empty($block['zone'])&&!empty($settings['ad_slots_enabled'])):?><section class="pub-section pub-ad"><p>Hirdetés</p><iframe title="Hirdetés" loading="lazy" referrerpolicy="no-referrer" src="/ad-slot.php?site_id=<?=$siteId?>&amp;zone=<?=rawurlencode($block['zone'])?><?=$sectionSlug?'&amp;section='.rawurlencode($sectionSlug):''?>"></iframe></section>
 <?php endif;?>
 <?php endforeach;?>
-</main><footer class="pub-footer"><p>© <?=date('Y')?> <?=pub_h($settings['publisher_name']?:$site['name'])?></p><p>comesy · Content. Media. System.</p></footer></body></html>
+</main><footer class="pub-footer <?=$appearance?'cms-source-footer':''?>"><p>© <?=date('Y')?> <?=pub_h($settings['publisher_name']?:$site['name'])?></p>
+<?php if($appearance&&is_array($appearanceDesign['footer_links']??null)):?><nav class="pub-template-footer-links" aria-label="Kiadói lábléclinkek">
+<?php foreach(array_slice($appearanceDesign['footer_links'],0,15) as $link):if(!is_array($link))continue;$href=cms_rich_url((string)($link['url']??''));if(!$href)continue;?><a target="_blank" rel="noopener noreferrer" href="<?=pub_h($href)?>"><?=pub_h(mb_substr((string)($link['label']??''),0,100))?></a><?php endforeach;?></nav><?php endif;?>
+<p>comesy · Content. Media. System.</p></footer></body></html>
