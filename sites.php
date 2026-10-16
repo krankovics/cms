@@ -4,6 +4,7 @@ require __DIR__.'/app/bootstrap.php';
 require __DIR__.'/app/site-settings.php';
 require __DIR__.'/app/site-design-templates.php';
 require __DIR__.'/app/site-import-assignment.php';
+require __DIR__.'/app/template-family.php';
 $u=require_user();
 if($u['role']!=='platform_admin'){http_response_code(403);exit('Nincs jogosultság.');}
 $error='';$saved=isset($_GET['saved']);$sites=[];$importCandidates=[];
@@ -14,6 +15,16 @@ try{
  if($_SERVER['REQUEST_METHOD']==='POST'){
   if(!valid_csrf())throw new RuntimeException('Érvénytelen munkamenet.');
   $id=max(0,(int)($_POST['id']??0));
+  if($id>0&&($_POST['action']??'')==='generate_family'){
+   $sq=$pdo->prepare('SELECT id,settings_json FROM sites WHERE id=? LIMIT 1');
+   $sq->execute([$id]);$existingSite=$sq->fetch();
+   if(!$existingSite)throw new RuntimeException('A webhely nem található.');
+   $existingSettings=cms_site_settings($existingSite);
+   $profile=cms_design_template_for_site($existingSite);
+   if(!$profile)throw new RuntimeException('Előbb rendelj arculati sablont a webhelyhez.');
+   $generated=cms_template_family_seed($pdo,$id,(int)$u['id'],$profile,!empty($existingSettings['reader_accounts_enabled']));
+   header('Location: /sites.php?edit='.$id.'&family='.count($generated));exit;
+  }
   if($id>0&&($_POST['action']??'')==='link_imported'){
    $siteQuery=$pdo->prepare('SELECT id,domain,slug FROM sites WHERE id=? LIMIT 1');
    $siteQuery->execute([$id]);$sourceSite=$siteQuery->fetch();
@@ -28,6 +39,7 @@ try{
   $current=null;
   if($id){$q=$pdo->prepare('SELECT settings_json FROM sites WHERE id=?');$q->execute([$id]);$current=$q->fetch();}
   $settings=cms_validate_site_settings($_POST,$current?cms_site_settings($current):[]);
+  $previousTemplate=$current?(string)(cms_site_settings($current)['source_template_id']??''):'';
   $settingsJson=json_encode($settings,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
   if($id){
    $q=$pdo->prepare('UPDATE sites SET name=?,domain=?,slug=?,settings_json=? WHERE id=?');
@@ -35,6 +47,11 @@ try{
    if(!$q->rowCount()){ $check=$pdo->prepare('SELECT id FROM sites WHERE id=?');$check->execute([$id]);if(!$check->fetchColumn())throw new RuntimeException('A webhely nem található.');}
   }else{
    $q=$pdo->prepare('INSERT INTO sites(name,domain,slug,settings_json) VALUES(?,?,?,?)');$q->execute([$name,$domain,$slug,$settingsJson]);$id=(int)$pdo->lastInsertId();
+  }
+  if(!empty($settings['source_template_id'])&&$settings['source_template_id']!==$previousTemplate){
+   $profile=cms_design_template_read((string)$settings['source_template_id']);
+   if(!$profile)throw new RuntimeException('A kiválasztott sablon már nem érhető el.');
+   cms_template_family_seed($pdo,$id,(int)$u['id'],$profile,!empty($settings['reader_accounts_enabled']));
   }
   $audit=$pdo->prepare('INSERT INTO audit_log(user_id,action,object_type,object_id,meta_json) VALUES(?,?,?,?,?)');
   $audit->execute([$u['id'],$current?'site.update':'site.create','site',$id,json_encode(['domain'=>$domain,'flags'=>array_intersect_key($settings,array_fill_keys(['builder_enabled','reader_accounts_enabled','comments_enabled','newsletter_enabled','ai_enabled','ad_slots_enabled'],true)),'source_template_id'=>$settings['source_template_id']??''],JSON_UNESCAPED_UNICODE)]);
@@ -83,6 +100,14 @@ if($selected){
 <?php if($selected&&($siteSettings['source_template_id']??'')!==''):?><p style="margin:0"><strong>Kiválasztva:</strong> <?=h($templateLabels[$siteSettings['source_template_id']]??'Nem elérhető sablon')?></p><?php endif;?>
 </div>
 </fieldset>
+<?php if($selected&&!empty($siteSettings['source_template_id'])):?>
+<section class="ui-admin-panel" style="margin:15px 0;padding:15px"><strong>Sabloncsomag · 6 oldaltípus</strong>
+<p class="ui-page-description">Címlap, rovat, címke, cikk, statikus oldal és olvasói belépés. A csomag automatikusan elkészül az arculat első hozzárendelésekor. Az újragenerálás csak a hiányzó sablonokat egészíti ki, a szerkesztett és publikált változatokat megőrzi.</p>
+<?php if(isset($_GET['family'])):?><p class="success"><?=(int)$_GET['family']?> új oldaltípus-sablon készült.</p><?php endif;?>
+<a class="ui-btn ui-btn-secondary" href="/builder.php?site_id=<?=(int)$selected['id']?>&amp;template=home">Oldalsablonok szerkesztése ↗</a>
+<a class="ui-btn ui-btn-secondary" href="/pages.php?site_id=<?=(int)$selected['id']?>">Statikus oldalak ↗</a>
+<form action="/sites.php" method="post" style="margin-top:12px"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="id" value="<?=(int)$selected['id']?>"><button class="ui-btn ui-btn-secondary" type="submit" name="action" value="generate_family">Hiányzó sablonok létrehozása</button></form>
+</section><?php endif;?>
 <?php if($selected):?><div style="margin:14px 0;padding:12px 14px;border:1px solid var(--ui-border,#dde4ed);border-radius:10px"><strong>Natív navigáció és funkciók</strong>
 <p class="ui-page-description" style="margin:6px 0 12px">A kiválasztott arculati sablon csak a megjelenést adja. A menüpontokat a comesy menüszerkesztőjéből, a keresési találatokat a webhely saját cikkeiből építjük fel. A profilgomb jelenleg szerkesztőségi belépés.</p>
 <?php if(!empty($siteSettings['builder_enabled'])):?><a class="ui-btn ui-btn-secondary" href="/builder.php?site_id=<?=(int)$selected['id']?>&amp;template=home">Menü szerkesztése ↗</a>
