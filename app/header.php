@@ -30,6 +30,7 @@ $navGroups=[
 $currentTitle='Áttekintés';
 foreach($navGroups as $group)foreach($group['links'] as $item)if($currentPage===$item['page'])$currentTitle=$item['text'];
 if($currentPage==='migrate.php')$currentTitle='Adatbázis-migráció';
+if($currentPage==='site-manage.php')$currentTitle='Webhelykezelő';
 ?>
 <script>document.body.classList.add('comesy-admin');</script>
 <link rel="stylesheet" href="/assets/admin-v2.css">
