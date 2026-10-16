@@ -143,7 +143,8 @@ $staffLabel=$staffUser?'Szerkesztőségi profil':'Szerkesztőségi bejelentkezé
 <?php else:?><h2>Cikkelőnézet</h2><p>Válassz egy cikket a nyitóoldalról az éles cikksablon megtekintéséhez.</p><?php endif;?></section>
 <?php elseif($type==='latest'):?>
 <section class="pub-section"><h2><?=pub_h($sectionTitle?:'Legfrissebb cikkek')?></h2>
-<div class="pub-articles" style="--pub-cols:<?=$columns?>"><?php foreach(pub_article_list($pdo,$siteId,$siteSlug,$count,$kind==='section'?$sectionSlug:'',$preview) as $item):?>
+<?php $listedArticles=pub_article_list($pdo,$siteId,$siteSlug,$count,$kind==='section'?$sectionSlug:'',$preview);?>
+<div class="pub-articles" style="--pub-cols:<?=$columns?>"><?php foreach($listedArticles as $item):?>
 <a class="pub-story" href="/public.php?site=<?=pub_h($siteSlug)?>&amp;article=<?=pub_h($item['slug'])?><?=$preview?'&amp;preview=1':''?>">
 <?php if(!empty($item['og_image_url'])):?><img src="<?=pub_h($item['og_image_url'])?>" alt="" loading="lazy"><?php endif;?>
 <span class="pub-story-body"><small><?=pub_h($item['published_at']??'')?></small><strong><?=pub_h($item['title'])?></strong><span><?=pub_h(mb_substr((string)$item['lead'],0,170))?></span></span></a>
