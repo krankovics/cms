@@ -96,6 +96,31 @@ try{
  if(previewBody.includes('class="cms-cover"'))assert(previewBody.indexOf('<h1>')<previewBody.indexOf('class="cms-cover"'),'Headline must precede featured cover image in source-page preview.');
  assert(previewBody.includes('cms-source-menu-toggle'),'The category menu must be collapsed instead of occupying the whole mobile screen.');
 
+ // Editor's "Előnézet új lapon" must share the canonical mobile source
+ // rendering without saving temporary content or opening about:blank.
+ const previewCsrf=await admin.locator('#editor-form input[name="csrf"]').inputValue();
+ const liveDraft=await admin.request.post(base+'/source-preview.php?id='+previewId,{form:{
+  csrf:previewCsrf,
+  preview_title:'Nem mentett előnézeti cím',
+  preview_lead:'Csak az előnézetben látható lead',
+  preview_image:'',
+  preview_content:JSON.stringify([{type:'richhtml',text:'<p>Friss előnézeti szöveg</p><script>alert(1)</script>'}])
+ }});
+ assert.equal(liveDraft.status(),200,'CSRF-protected live draft preview should be available to its editor.');
+ const liveBody=await liveDraft.text();
+ assert(liveBody.includes('Nem mentett előnézeti cím')&&liveBody.includes('Friss előnézeti szöveg'),'Preview POST should render the current unsaved editor content.');
+ assert(!liveBody.includes('alert(1)'),'Live draft preview must strip executable HTML.');
+ assert(liveBody.includes('cms-source-header')&&liveBody.includes('cms-source-footer')&&liveBody.includes('name="viewport"'),'Live preview should share the responsive publisher shell.');
+ const storedAgain=await (await admin.request.get(base+'/source-preview.php?id='+previewId)).text();
+ assert(!storedAgain.includes('Nem mentett előnézeti cím'),'Preview POST must not modify the persisted article.');
+ const openPreview=admin.waitForEvent('popup');
+ await admin.locator('#preview-button').click();
+ const previewTab=await openPreview;
+ await previewTab.waitForLoadState('domcontentloaded');
+ assert(previewTab.url().includes('/source-preview.php?id='+previewId),'New-tab editor preview should use canonical URL instead of about:blank.');
+ assert(await previewTab.locator('header.cms-source-header').count()===1,'New-tab preview should include the branded publisher header.');
+ await previewTab.close();
+
  assert(!previewBody.includes('<script>'),'Saved preview should not emit executable scripts.');
  assert((await admin.locator('#source-style-label').innerText()).includes('source-example.invalid'),'Editor should recognize the original source design profile.');
  const siteDesignContext=await browser.newContext({viewport:{width:1366,height:850}});
