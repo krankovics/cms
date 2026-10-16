@@ -169,7 +169,7 @@ $publicUrl='/public.php?site='.rawurlencode((string)$site['slug']).'&preview=1';
 <div class="cs-site-section-head"><div><h2 id="cs-section-title">Hirdetési és tartalmi analitika</h2><p>Hirdetéskérések, render, viewability, kattintások, webhelyforgalom és legolvasottabb cikkek.</p></div>
 <a class="ui-btn ui-btn-primary" href="/ad-analytics.php?site_id=<?=$siteId?>">Analitika megnyitása ↗</a></div>
 <p class="cs-site-helper">A forgalmi adatok a publikus oldalakból, cookie és személyes azonosító nélkül készülnek. A riportok zónákra, kreatívokra és időszakokra bonthatók.</p>
-<?php if($tab==='appearance'):?>
+<?php elseif($tab==='appearance'):?>
 <div class="cs-site-section-head"><div><h2 id="cs-section-title">Arculat és webhelyazonosság</h2><p>Az itt mentett arculatot a webhely minden oldaltípusának megjelenítése használja.</p></div>
 <?php if($canAppearance):?><a class="ui-btn ui-btn-secondary" href="/sites.php?edit=<?=$siteId?>">Összes webhelybeállítás ↗</a><?php endif;?></div>
 <?php if(!$canAppearance):?><p class="ui-notice">Az arculat szerkesztése platformadminisztrátori jogosultságot igényel.</p><?php endif;?>
