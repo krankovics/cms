@@ -99,6 +99,7 @@ $design=is_array($profile['site_design']??null)?$profile['site_design']:[];
 <header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Importált webhely</p><h1 class="ui-page-title">Forráswebhely arculata</h1>
 <p class="ui-page-description"><?=sd_h((string)($profile['host']??''))?> · <?=sd_h((string)$article['title'])?></p></div>
 <div class="ui-page-actions"><a class="ui-btn ui-btn-secondary" href="/editor.php?id=<?=$id?>">Vissza a cikkhez</a>
+<?php if($u['role']==='platform_admin'):?><a class="ui-btn ui-btn-secondary" href="/sites.php?edit=<?=$site?>">Sablon hozzárendelése webhelyhez</a><?php endif;?>
 <a class="ui-btn ui-btn-primary" href="/source-preview.php?id=<?=$id?>" target="_blank" rel="noopener">Oldalelőnézet ↗</a></div></header>
 <?php if($error):?><p class="error" role="alert"><?=sd_h($error)?></p><?php endif;?>
 <?php if(isset($_GET['saved'])):?><p class="success" role="status">A közös forráswebhely-arculat mentve. A következő import nem írja felül a kézi módosításokat.</p><?php endif;?>
