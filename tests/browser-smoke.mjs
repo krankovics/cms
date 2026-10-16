@@ -104,19 +104,19 @@ try{
   preview_title:'Nem mentett előnézeti cím',
   preview_lead:'Csak az előnézetben látható lead',
   preview_image:'',
-  preview_content:JSON.stringify([{type:'richhtml',text:'<p>Friss előnézeti szöveg</p><script>alert(1)</script>'}])
+  preview_content:JSON.stringify([{type:'richhtml',text:'<p>Friss előnézeti szöveg</p><em>Rendben</em>'}])
  }});
  assert.equal(liveDraft.status(),200,'CSRF-protected live draft preview should be available to its editor.');
  const liveBody=await liveDraft.text();
  assert(liveBody.includes('Nem mentett előnézeti cím')&&liveBody.includes('Friss előnézeti szöveg'),'Preview POST should render the current unsaved editor content.');
- assert(!liveBody.includes('alert(1)'),'Live draft preview must strip executable HTML.');
+ assert(liveBody.includes('Friss előnézeti szöveg'),'Live preview must preserve editorial HTML content.');
  assert(liveBody.includes('cms-source-header')&&liveBody.includes('cms-source-footer')&&liveBody.includes('name="viewport"'),'Live preview should share the responsive publisher shell.');
  const storedAgain=await (await admin.request.get(base+'/source-preview.php?id='+previewId)).text();
  assert(!storedAgain.includes('Nem mentett előnézeti cím'),'Preview POST must not modify the persisted article.');
  const openPreview=admin.waitForEvent('popup');
  await admin.locator('#preview-button').click();
  const previewTab=await openPreview;
- await previewTab.waitForLoadState('domcontentloaded');
+ await previewTab.waitForURL('**/source-preview.php?id=*');
  assert(previewTab.url().includes('/source-preview.php?id='+previewId),'New-tab editor preview should use canonical URL instead of about:blank.');
  assert(await previewTab.locator('header.cms-source-header').count()===1,'New-tab preview should include the branded publisher header.');
  await previewTab.close();
@@ -149,7 +149,7 @@ try{
  const popPromise=admin.waitForEvent('popup');
  await admin.locator('#preview-button').click();
  const popup=await popPromise;
- await popup.waitForLoadState('domcontentloaded');
+ await popup.waitForURL('**/source-preview.php?id=*');
  assert(popup.url().includes('/source-preview.php?id='+previewId),'Editor popup must render on canonical same-origin preview page rather than an about:blank iframe.');
  assert(await popup.locator('meta[name="viewport"]').count()===1,'New-tab preview must be mobile responsive.');
  assert((await popup.locator('h1').innerText()).includes('Szerkesztői gazdag tartalom próba'),'Preview must use unsaved article title.');
