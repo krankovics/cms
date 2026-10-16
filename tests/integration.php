@@ -221,4 +221,24 @@ catch(RuntimeException $e){ok(str_contains($e->getMessage(),'nem található'),'
 
 
 
+
+// The imported design is only presentation: navigation and search stay native.
+require_once dirname(__DIR__).'/app/native-site-chrome.php';
+$q=$pdo->prepare("INSERT INTO articles(site_id,author_id,title,slug,`lead`,content_json,status,published_at) VALUES(?,?,?,?,?,?,'published',UTC_TIMESTAMP())");
+$q->execute([$sites[0],$uid['editor'],'Natív kereshető cikk','nativ-kereses-publikus','Tesztszöveg találattal','[]']);
+$q->execute([$sites[1],$uid['editor'],'Natív másik webhely cikke','nativ-kereses-masik','Tesztszöveg találattal','[]']);
+$draft=$pdo->prepare("INSERT INTO articles(site_id,author_id,title,slug,`lead`,content_json,status) VALUES(?,?,?,?,?,?,'draft')");
+$draft->execute([$sites[0],$uid['editor'],'Natív piszkozat kereshető','nativ-kereses-piszkozat','Tesztszöveg találattal','[]']);
+$results=cms_native_search($pdo,$sites[0],'Natív',false);
+ok(count($results)===1&&$results[0]['slug']==='nativ-kereses-publikus','Public site search must never include drafts or other sites.');
+$previewResults=cms_native_search($pdo,$sites[0],'Natív',true);
+ok(count($previewResults)===2,'Editor preview search may include only its own site drafts.');
+ok(cms_native_search($pdo,$sites[0],'%',false)===[],'Percent wildcard must be escaped as literal text.');
+$pdo->prepare('INSERT INTO site_menu_items(site_id,label,url,position,active) VALUES(?,?,?,?,?)')->execute([$sites[0],'Belföld','/section/belfold',0,1]);
+$pdo->prepare('INSERT INTO site_menu_items(site_id,label,url,position,active) VALUES(?,?,?,?,?)')->execute([$sites[0],'Rejtett','/section/rejtett',1,0]);
+$menuNative=cms_native_site_menu($pdo,$sites[0]);
+ok(count($menuNative)===1&&$menuNative[0]['label']==='Belföld','The native menu must use only active items from the menu editor.');
+ok(str_contains(cms_native_href($menuNative[0]['url'],'test-0',true),'preview=1&section=belfold'),'Native navigation must preserve editor-preview access.');
+ok(cms_native_href('javascript:alert(1)','test-0')===cms_native_site_url('test-0'),'Unsafe imported navigation must never become an executable link.');
+
 echo "PASS: $tests database integration assertions.\n";
