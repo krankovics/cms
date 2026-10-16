@@ -40,7 +40,7 @@ try{
   $audit->execute([$u['id'],$current?'site.update':'site.create','site',$id,json_encode(['domain'=>$domain,'flags'=>array_intersect_key($settings,array_fill_keys(['builder_enabled','reader_accounts_enabled','comments_enabled','newsletter_enabled','ai_enabled','ad_slots_enabled'],true)),'source_template_id'=>$settings['source_template_id']??''],JSON_UNESCAPED_UNICODE)]);
   header('Location: /sites.php?saved=1');exit;
  }
- $sites=$pdo->query('SELECT s.id,s.name,s.domain,s.slug,s.settings_json,(SELECT COUNT(*) FROM articles a WHERE a.site_id=s.id) article_count FROM sites s ORDER BY s.name')->fetchAll();
+ $sites=$pdo->query('SELECT s.id,s.name,s.domain,s.slug,s.settings_json,(SELECT COUNT(*) FROM articles a WHERE a.site_id=s.id OR EXISTS (SELECT 1 FROM article_sites asite WHERE asite.article_id=a.id AND asite.site_id=s.id)) article_count FROM sites s ORDER BY s.name')->fetchAll();
 }catch(Throwable $e){error_log('sites: '.$e->getMessage());$error=$e instanceof PDOException?'Az adatbázis-művelet sikertelen. A domain és az azonosító egyedi kell legyen.':$e->getMessage();}
 $edit=max(0,(int)($_GET['edit']??0));$selected=null;foreach($sites as $s)if((int)$s['id']===$edit)$selected=$s;
 $siteSettings=cms_site_settings($selected??[]);
