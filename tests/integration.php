@@ -320,4 +320,7 @@ $q->execute([$sites[0],$orphanId]);$queueInfo=$q->fetch(PDO::FETCH_NUM);
 ok((int)$queueInfo[0]===1&&(int)$queueInfo[1]===0,'Media queue should be repeatable and resumable without duplicate jobs.');
 $q=$pdo->prepare('SELECT rights_status FROM media_import_sources WHERE media_id=?');$q->execute([$importMediaId]);
 ok($q->fetchColumn()==='unknown','Imported copyrighted images must default to rights unverified.');
+$pdo->prepare('DELETE FROM media_import_queue WHERE site_id=? AND article_id=?')->execute([$sites[0],$orphanId]);
+$pdo->prepare('DELETE FROM media_assets WHERE id=?')->execute([$importMediaId]); // Do not pollute browser upload tests with fixture-only media.
+
 echo "PASS: $tests database integration assertions.\n";
