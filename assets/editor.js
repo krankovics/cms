@@ -503,7 +503,10 @@ document.addEventListener('DOMContentLoaded',()=>{
    headStyle.textContent='body{margin:0;background:#f5f7fb;color:#1d2a3c;font-family:system-ui}main{max-width:900px;margin:24px auto;padding:26px;background:white;border:1px solid #e2e8f0;border-radius:12px}h1{font-size:clamp(22px,4vw,34px)}.lead{font-size:18px;color:#5d6777;line-height:1.6}iframe{width:100%;height:75vh;border:0}';
    d.head.append(headStyle);
    const main=d.createElement('main'),h=d.createElement('h1'),lead=d.createElement('p');
-   h.textContent=titleText;lead.textContent=leadText;lead.className='lead';main.append(h,lead);
+   h.textContent=titleText;lead.textContent=leadText;lead.className='lead';main.className='cms-source-article';main.append(h,lead);
+   const featuredUrl=safeSourceUrl(document.getElementById('og-image-url')?.value||'');
+   if(featuredUrl){const cover=d.createElement('img');cover.className='cms-cover';cover.src=featuredUrl;cover.alt='';cover.style.cssText='display:block;max-width:100%;height:auto;margin:20px 0';main.append(cover);}
+
    const frame=d.createElement('iframe');frame.title='A cikk biztonságos előnézete';
    frame.setAttribute('sandbox','');frame.setAttribute('referrerpolicy','no-referrer');
    frame.srcdoc='<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src &#39;none&#39;; img-src https: http: data:; style-src &#39;unsafe-inline&#39;; media-src https: http:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://embed.spotify.com https://www.facebook.com https://www.instagram.com https://w.soundcloud.com https://www.tiktok.com"><style>body{font:16px/1.7 system-ui;margin:10px;color:#1b2636}img,video{max-width:100%;height:auto}figure{margin:20px 0}figcaption{font-size:13px;color:#637083}table{border-collapse:collapse;display:block;overflow:auto;max-width:100%}td,th{border:1px solid #d3dce8;padding:9px}iframe{border:1px solid #d3dce8;max-width:100%;width:100%;min-height:260px}blockquote{border-left:3px solid #5067a2;padding-left:18px}mark{background:#fff1af}</style><style>'+sourceStyle.css+'</style><main class="cms-source-article">'+richSource.innerHTML+'</main>';
