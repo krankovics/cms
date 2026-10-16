@@ -147,6 +147,17 @@ function media_page_link(array $p,int $page):string{return '/media.php?'.http_bu
 document.addEventListener('DOMContentLoaded',()=>{
  document.querySelectorAll('[data-asset-name]').forEach(button=>button.addEventListener('click',()=>{
   const panel=document.getElementById('media-inspector');
+  // Legacy uploads keep the simple alt form; imported photos use the full one.
+  const quickAlt=panel.querySelector('[data-asset-alt-form]');
+  const detailMeta=panel.querySelector('[data-asset-meta-form]');
+  const writable=button.dataset.assetEditable==='1';
+  const imported=!!button.dataset.assetSource;
+  if(quickAlt){
+   quickAlt.hidden=!writable||imported;
+   quickAlt.querySelector('[name=asset_id]').value=button.dataset.assetId||'';
+   quickAlt.querySelector('[name=alt]').value=button.dataset.assetAlt||'';
+  }
+  if(detailMeta)detailMeta.hidden=!writable||!imported;
   document.querySelectorAll('.ui-asset').forEach(card=>card.classList.remove('is-selected'));
   button.closest('.ui-asset')?.classList.add('is-selected');
   panel.querySelector('.ui-inspector-empty').hidden=true;panel.querySelector('.ui-inspector-detail').hidden=false;
