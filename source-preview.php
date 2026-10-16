@@ -308,7 +308,7 @@ body{margin:0;background:#fff;color:#090e20;font:17px/1.65 system-ui,-apple-syst
 
 <?php if($css!==''):?><style id="source-design-style"><?=$css?></style><?php endif;?>
 <?php if($isMagyarNemzet):?><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap"><?php endif;?>
-<link rel="stylesheet" href="/assets/source-preview-enhanced.css?v=1">
+<link rel="stylesheet" href="/assets/source-preview-enhanced.css?v=2">
 </head><body class="<?=$isMagyarNemzet?'cms-preview-mno':'cms-preview-generic'?>">
 <div class="cms-source-banner" role="status" aria-label="Nem publikus előnézet">
  <strong>PISZKOZAT · NEM PUBLIKUS</strong>
