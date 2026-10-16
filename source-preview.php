@@ -6,11 +6,12 @@ require_once __DIR__.'/app/rich-content.php';
 require_once __DIR__.'/app/import-source-style.php';
 require_once __DIR__.'/app/source-preview-news.php';
 require_once __DIR__.'/app/site-design-templates.php';
+require_once __DIR__.'/app/native-site-chrome.php';
 header('Content-Type: text/html; charset=utf-8');
 header('Cache-Control: private, no-store');
 header('X-Robots-Tag: noindex, nofollow');
 header('X-Frame-Options: DENY');
-header("Content-Security-Policy: default-src 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' https: http: data:; font-src https://fonts.gstatic.com; media-src https: http:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://embed.spotify.com https://w.soundcloud.com https://www.facebook.com https://www.instagram.com https://www.tiktok.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+header("Content-Security-Policy: default-src 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' https: http: data:; font-src https://fonts.gstatic.com; media-src https: http:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://embed.spotify.com https://w.soundcloud.com https://www.facebook.com https://www.instagram.com https://www.tiktok.com; base-uri 'none'; form-action 'self'; frame-ancestors 'none'");
 $u=require_user();
 $id=max(0,(int)($_GET['id']??0));
 if($id===0){http_response_code(404);exit('A cikk nem található.');}
@@ -33,6 +34,14 @@ try{
 $q=$pdo->prepare('SELECT settings_json FROM sites WHERE id=? LIMIT 1');
 $q->execute([(int)$article['site_id']]);
 $assigned=cms_design_template_for_site($q->fetch()?:[]);
+$siteQuery=$pdo->prepare('SELECT slug FROM sites WHERE id=? LIMIT 1');
+$siteQuery->execute([(int)$article['site_id']]);
+$nativeSiteSlug=(string)($siteQuery->fetchColumn()?:'');
+$nativeBase=$nativeSiteSlug!==''?cms_native_site_url($nativeSiteSlug,true):'';
+$nativeMenu=$nativeSiteSlug!==''?cms_native_site_menu($pdo,(int)$article['site_id']):[];
+$nativeMenuLinks=[];
+foreach($nativeMenu as $entry)$nativeMenuLinks[]=['label'=>$entry['label'],'url'=>cms_native_href($entry['url'],$nativeSiteSlug,true)];
+
 if($assigned){
  $profile=$assigned;
  if($source==='')$source=(string)($assigned['source_url']??('https://'.$assigned['host'].'/'));
@@ -54,11 +63,17 @@ if($isMagyarNemzet){
  $logoUrl='/assets/source-logos/magyarnemzet.svg';
 }
 $topicLinks=is_array($design['topic_links']??null)?array_slice($design['topic_links'],0,6):[];
+// Assigned site appearance is only the skin; the content navigation always
+// comes from the site's own Menu editor rather than the imported publisher.
+if($assigned&&$nativeSiteSlug!==''){
+ $headerLinks=$nativeMenuLinks?:[['label'=>'Nyitóoldal','url'=>$nativeBase]];
+ $topicLinks=array_slice($headerLinks,0,6);
+}
 $sectionParts=explode('/',trim((string)parse_url($source,PHP_URL_PATH),'/'));
 $sectionSlug=strtolower((string)($sectionParts[0]??''));
 $sectionNames=['belfold'=>'Belföld','kulfold'=>'Külföld','gazdasag'=>'Gazdaság','sport'=>'Sport','kultura'=>'Kultúra','tudomany'=>'Tudomány','velemeny'=>'Vélemény','lugas'=>'Lugas'];
 $sectionName=$sectionNames[$sectionSlug]??($sectionSlug!==''?mb_convert_case(str_replace('-',' ',$sectionSlug),MB_CASE_TITLE,'UTF-8'):'');
-$rootUrl=$host!==''?'https://'.$host.'/':'';
+$rootUrl=$assigned&&$nativeBase!==''?$nativeBase:($host!==''?'https://'.$host.'/':'');
 $socialLinks=is_array($design['social_links']??null)?array_slice($design['social_links'],0,8):[];
 $socialTitle=(string)($design['social_title']??'');
 $footerActions=is_array($design['footer_actions']??null)?array_slice($design['footer_actions'],0,4):[];
@@ -318,7 +333,7 @@ body{margin:0;background:#fff;color:#090e20;font:17px/1.65 system-ui,-apple-syst
 
 <?php if($css!==''):?><style id="source-design-style"><?=$css?></style><?php endif;?>
 <?php if($isMagyarNemzet):?><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap"><?php endif;?>
-<link rel="stylesheet" href="/assets/source-preview-enhanced.css?v=2">
+<link rel="stylesheet" href="/assets/source-preview-enhanced.css?v=2"><link rel="stylesheet" href="/assets/native-chrome.css?v=1">
 </head><body class="<?=$isMagyarNemzet?'cms-preview-mno':'cms-preview-generic'?>">
 <div class="cms-source-banner" role="status" aria-label="Nem publikus előnézet">
  <strong>PISZKOZAT · NEM PUBLIKUS</strong>
@@ -326,19 +341,22 @@ body{margin:0;background:#fff;color:#090e20;font:17px/1.65 system-ui,-apple-syst
 </div>
 <?php if($design||$isMagyarNemzet):?>
 <header class="cms-source-header"><div class="cms-source-head-inner">
-<div class="cms-source-head-start" aria-hidden="true"><svg class="cms-source-icon" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="7.5"/><path d="m16.5 16.5 5 5"/></svg></div>
-<a class="cms-source-brand" href="<?=sp_h($rootUrl?:'#')?>" target="_blank" rel="noopener noreferrer">
+<div class="cms-source-head-start">
+<?php if($nativeBase!==''):?><details class="pub-native-search"><summary aria-label="Keresés a webhely tartalmaiban" title="Keresés"><svg class="cms-source-icon" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="7.5"/><path d="m16.5 16.5 5 5"/></svg></summary>
+<form method="get" action="/public.php" role="search"><input type="hidden" name="site" value="<?=sp_h($nativeSiteSlug)?>"><input type="hidden" name="preview" value="1"><label for="preview-native-query">Keresés a webhely cikkeiben</label><div class="pub-native-search-fields"><input id="preview-native-query" name="q" type="search" minlength="2" maxlength="100" required placeholder="Keresés a cikkek között…"><button type="submit">Keresés</button></div></form></details>
+<?php else:?><svg class="cms-source-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="7.5"/><path d="m16.5 16.5 5 5"/></svg><?php endif;?></div>
+<a class="cms-source-brand" href="<?=sp_h($rootUrl?:'#')?>" <?=$assigned?'':'target="_blank" rel="noopener noreferrer"'?>>
 <?php if($logoSrc!==''):?><img src="<?=sp_h($logoSrc)?>" alt="<?=sp_h($brandName)?>" width="160" height="44" decoding="async"><?php endif;?><span class="cms-source-brand-name"><?=sp_h($brandName)?></span>
 </a>
 <div class="cms-source-head-end">
-<svg class="cms-source-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 21v-3a8 8 0 0 1 16 0v3"/></svg>
+<a href="/profile.php" title="Szerkesztőségi profil" aria-label="Szerkesztőségi profil" class="cms-source-user-link"><svg class="cms-source-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 21v-3a8 8 0 0 1 16 0v3"/></svg></a>
 <details class="cms-source-menu-toggle"><summary aria-label="Menü megnyitása"><svg class="cms-source-icon" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></summary>
-<nav aria-label="A forrásoldal főmenüje"><?php foreach($headerLinks as $item):if(!is_array($item))continue;?>
-<a href="<?=sp_h((string)($item['url']??'#'))?>" target="_blank" rel="noopener noreferrer"><?=sp_h((string)($item['label']??''))?></a><?php endforeach;?></nav></details>
+<nav aria-label="<?=$assigned?'A comesy webhely főmenüje':'A forrásoldal főmenüje'?>"><?php foreach($headerLinks as $item):if(!is_array($item))continue;?>
+<a href="<?=sp_h((string)($item['url']??'#'))?>" <?=$assigned?'':'target="_blank" rel="noopener noreferrer"'?>><?=sp_h((string)($item['label']??''))?></a><?php endforeach;?></nav></details>
 </div></div>
 <?php if($topicLinks):?><nav class="cms-source-trends" aria-label="Kiemelt témák"><div class="cms-source-trends-inner">
 <?php foreach($topicLinks as $item):if(!is_array($item))continue;?>
-<a href="<?=sp_h((string)($item['url']??'#'))?>" target="_blank" rel="noopener noreferrer"><?=sp_h((string)($item['label']??''))?></a>
+<a href="<?=sp_h((string)($item['url']??'#'))?>" <?=$assigned?'':'target="_blank" rel="noopener noreferrer"'?>><?=sp_h((string)($item['label']??''))?></a>
 <?php endforeach;?></div></nav><?php endif;?>
 </header><?php endif;?>
 <div class="cms-source-content"><article class="cms-source-article">
