@@ -4,11 +4,12 @@ require __DIR__.'/app/bootstrap.php';
 require __DIR__.'/app/site-access.php';
 require_once __DIR__.'/app/rich-content.php';
 require_once __DIR__.'/app/import-source-style.php';
+require_once __DIR__.'/app/source-preview-news.php';
 header('Content-Type: text/html; charset=utf-8');
 header('Cache-Control: private, no-store');
 header('X-Robots-Tag: noindex, nofollow');
 header('X-Frame-Options: DENY');
-header("Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; img-src https: http: data:; font-src 'none'; media-src https: http:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://embed.spotify.com https://w.soundcloud.com https://www.facebook.com https://www.instagram.com https://www.tiktok.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+header("Content-Security-Policy: default-src 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' https: http: data:; font-src https://fonts.gstatic.com; media-src https: http:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://embed.spotify.com https://w.soundcloud.com https://www.facebook.com https://www.instagram.com https://www.tiktok.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
 $u=require_user();
 $id=max(0,(int)($_GET['id']??0));
 if($id===0){http_response_code(404);exit('A cikk nem található.');}
@@ -90,6 +91,22 @@ if($isMagyarNemzet){
 
 
 $logoSrc=$isMagyarNemzet?$logoUrl:cms_rich_url($logoUrl);
+$latestNews=$isMagyarNemzet?cms_preview_latest_news($host,$source):[];
+$legalLinks=$footerLinks;
+if($isMagyarNemzet){
+ $legalLinks=[
+  ['label'=>'Impresszum','url'=>'https://magyarnemzet.hu/impresszum'],
+  ['label'=>'Médiaajánlat','url'=>'https://mediaworks.hu/termekek/digitalis-tartalmak/magyar-nemzet-3454/'],
+  ['label'=>'Adatvédelmi tájékoztató','url'=>'https://magyarnemzet.hu/adatvedelem'],
+  ['label'=>'Felhasználási feltételek','url'=>'https://magyarnemzet.hu/felhasznalasi-feltetelek'],
+  ['label'=>'Általános szerződési feltételek','url'=>'https://magyarnemzet.hu/aszf'],
+  ['label'=>'Hirdetési ÁSZF','url'=>'https://magyarnemzet.hu/hirdetesi-aszf'],
+  ['label'=>'Moderálási szabályzat','url'=>'https://magyarnemzet.hu/moderalasi-szabalyzat']
+ ];
+}
+$publisherGroups=is_array($design['publisher_groups']??null)?$design['publisher_groups']:[];
+if(!$publisherGroups&&$regionals)$publisherGroups=[['label'=>'Regionális hírportálok','links'=>$regionals]];
+$publisherGroups=array_slice($publisherGroups,0,7);
 function sp_h(string $text):string{return htmlspecialchars($text,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
 function sp_content(string $json):string{
  $blocks=json_decode($json,true);if(!is_array($blocks))return '';
@@ -150,6 +167,18 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
  $og=$draftImage!==''?(cms_rich_url($draftImage)?:''):'';
 }
 
+$coverCaption='';
+if($og){
+ $captionBlocks=json_decode($contentJson,true);
+ if(is_array($captionBlocks))foreach($captionBlocks as $captionBlock){
+  if(!is_array($captionBlock))continue;
+  $candidate=(string)($captionBlock['text']??'');
+  if(preg_match('/Fotó:\\s*([^)<\\r\\n]{3,90})/u',$candidate,$credit)){
+   $coverCaption=mb_substr(trim(html_entity_decode(strip_tags('Fotó: '.$credit[1]),ENT_QUOTES|ENT_HTML5,'UTF-8')),0,120);
+   break;
+  }
+ }
+}
 ?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?=sp_h($title)?> · Piszkozat előnézet</title>
 <style>
@@ -265,7 +294,9 @@ body{margin:0;background:#fff;color:#090e20;font:17px/1.65 system-ui,-apple-syst
 </style>
 
 <?php if($css!==''):?><style id="source-design-style"><?=$css?></style><?php endif;?>
-</head><body>
+<?php if($isMagyarNemzet):?><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap"><?php endif;?>
+<link rel="stylesheet" href="/assets/source-preview-enhanced.css?v=1">
+</head><body class="<?=$isMagyarNemzet?'cms-preview-mno':'cms-preview-generic'?>">
 <div class="cms-source-banner" role="status" aria-label="Nem publikus előnézet">
  <strong>PISZKOZAT · NEM PUBLIKUS</strong>
  <span><?=sp_h($host)?></span>
@@ -287,13 +318,17 @@ body{margin:0;background:#fff;color:#090e20;font:17px/1.65 system-ui,-apple-syst
 <a href="<?=sp_h((string)($item['url']??'#'))?>" target="_blank" rel="noopener noreferrer"><?=sp_h((string)($item['label']??''))?></a>
 <?php endforeach;?></div></nav><?php endif;?>
 </header><?php endif;?>
-<article class="cms-source-article">
+<div class="cms-source-content"><article class="cms-source-article">
 <?php if($source!==''):?><nav class="cms-source-breadcrumb" aria-label="Morzsanavigáció"><a href="<?=sp_h($rootUrl)?>" target="_blank" rel="noopener noreferrer"><?=sp_h($brandName)?></a><?php if($sectionName!==''):?><span class="cms-source-separator" aria-hidden="true">›</span><span><?=sp_h($sectionName)?></span><?php endif;?></nav><?php endif;?>
 <h1><?=sp_h($title)?></h1>
 <?php if($lead!==''):?><p class="cms-source-lead"><?=nl2br(sp_h($lead))?></p><?php endif;?>
-<?php if($og&&cms_rich_url($og)):?><img class="cms-cover" src="<?=sp_h(cms_rich_url($og))?>" alt=""><?php endif;?>
+<?php if($og&&cms_rich_url($og)):?><figure class="cms-cover-figure"><img class="cms-cover" src="<?=sp_h(cms_rich_url($og))?>" alt=""><?php if($coverCaption!==''):?><figcaption><?=sp_h($coverCaption)?></figcaption><?php endif;?></figure><?php endif;?>
 <?=sp_content($contentJson)?>
 </article>
+<?php if($latestNews):?><aside class="cms-source-sidebar" aria-label="Friss hírek"><h2>Fontos híreink</h2>
+<?php foreach($latestNews as $item):if(!is_array($item))continue;$href=cms_rich_url((string)($item['url']??''));if($href==='')continue;$image=cms_rich_url((string)($item['image']??''));?>
+<div class="cms-source-sidebar-item"><div><span class="cms-side-label"><?=sp_h((string)($item['label']??'Friss hír'))?></span><a class="cms-side-story" href="<?=sp_h($href)?>" rel="noopener noreferrer" target="_blank"><?=sp_h((string)($item['title']??''))?></a></div><?php if($image):?><a href="<?=sp_h($href)?>" rel="noopener noreferrer" target="_blank" tabindex="-1" aria-hidden="true"><img src="<?=sp_h($image)?>" alt="" loading="lazy"></a><?php endif;?></div>
+<?php endforeach;?></aside><?php endif;?></div>
 <?php if($design||$isMagyarNemzet):?>
 <?php if($socialLinks||$footerActions):?>
 <section class="cms-source-footer-top"><div class="cms-source-footer-top-inner">
