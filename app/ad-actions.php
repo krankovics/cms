@@ -65,9 +65,22 @@ function ad_mutate(PDO $pdo,array $u,int $site,array $data):void{
    $name=mb_substr(trim((string)($data['name']??'')),0,190);
    $code=ad_slug((string)($data['code']??'')?:$name);
    $placement=(string)($data['placement']??'article');
-   if(mb_strlen($name)<2||!$code||strlen($code)>100||!in_array($placement,['home','section','article','sidebar','video','layer'],true))throw new RuntimeException('Érvénytelen hirdetési zóna.');
+   if(mb_strlen($name)<2||!$code||strlen($code)>100||!in_array($placement,['home','section','tag','article','sidebar','video','layer','footer','sticky','custom'],true))throw new RuntimeException('Érvénytelen hirdetési zóna.');
    if($id)$pdo->prepare('UPDATE ad_zones SET name=?,code=?,placement=? WHERE id=?')->execute([$name,$code,$placement,$id]);
    else{$pdo->prepare('INSERT INTO ad_zones(site_id,name,code,placement) VALUES(?,?,?,?)')->execute([$site,$name,$code,$placement]);$id=(int)$pdo->lastInsertId();}
+   $position=(string)($data['position_type']??'manual');
+   $device=(string)($data['device_target']??'all');
+   $types=(string)($data['page_types']??'home,section,tag,article');
+   $selector=trim((string)($data['css_selector']??''));
+   $value=(int)($data['position_value']??3);
+   $width=(int)($data['width']??300);$height=(int)($data['height']??250);
+   if(!in_array($position,['manual','header','footer','sidebar','paragraph','css','sticky'],true)||!in_array($device,['all','desktop','tablet','mobile'],true))throw new RuntimeException('Érvénytelen hirdetési pozíció vagy eszköz.');
+   if($value<0||$value>250||$width<1||$width>1920||$height<1||$height>1080)throw new RuntimeException('Érvénytelen pozíció vagy hirdetésméret.');
+   if(strlen($selector)>255||($position==='css'&&!preg_match('~^[.#a-zA-Z][a-zA-Z0-9_ .#>:+-]{0,254}$~D',$selector)))throw new RuntimeException('A CSS-szelektor nem megfelelő.');
+   $pages=array_unique(array_filter(array_map('trim',explode(',',$types))));
+   if(!$pages||array_diff($pages,['home','section','tag','article','page','login']))throw new RuntimeException('Érvénytelen oldaltípus-szűrő.');
+   $q=$pdo->prepare('INSERT INTO ad_zone_rules(zone_id,position_type,position_value,css_selector,device_target,page_types,width,height) VALUES(?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE position_type=VALUES(position_type),position_value=VALUES(position_value),css_selector=VALUES(css_selector),device_target=VALUES(device_target),page_types=VALUES(page_types),width=VALUES(width),height=VALUES(height)');
+   $q->execute([$id,$position,$value,$selector,$device,implode(',',$pages),$width,$height]);
   }elseif($entity==='campaign'){
    $name=mb_substr(trim((string)($data['name']??'')),0,190);
    $advertiser=max(0,(int)($data['advertiser_id']??0));
@@ -87,13 +100,26 @@ function ad_mutate(PDO $pdo,array $u,int $site,array $data):void{
    $campaign=max(0,(int)($data['campaign_id']??0));$zone=max(0,(int)($data['zone_id']??0));
    $q=$pdo->prepare('SELECT id FROM ad_campaigns WHERE id=? AND site_id=?');$q->execute([$campaign,$site]);if(!$q->fetchColumn())throw new RuntimeException('Érvénytelen kampány.');
    $q=$pdo->prepare('SELECT id FROM ad_zones WHERE id=? AND site_id=?');$q->execute([$zone,$site]);if(!$q->fetchColumn())throw new RuntimeException('Érvénytelen zóna.');
-   $image=ad_url((string)($data['image_url']??''));$dest=ad_url((string)($data['destination_url']??''));
+   $format=(string)($data['format']??'image');
+   if(!in_array($format,['image','code'],true))throw new RuntimeException('Érvénytelen kreatívformátum.');
+   $code=trim((string)($data['code_html']??''));
+   if($format==='code'){
+    if(strlen($code)<12||strlen($code)>65000)throw new RuntimeException('A hirdetési kód 12 és 65 000 bájt között lehet.');
+    if(preg_match('~<(?:iframe|script|div|ins|style|noscript|a|img)\\b~i',$code)!==1)throw new RuntimeException('HTML-hirdetési kódot adj meg.');
+    $image='';$dest='';$code=substr($code,0,65000);
+   }else{
+    $image=ad_url((string)($data['image_url']??''));
+    $dest=ad_url((string)($data['destination_url']??''));
+    $code='';
+   }
    $alt=mb_substr(trim((string)($data['alt_text']??'')),0,500);
-   if(mb_strlen($name)<2||$alt==='')throw new RuntimeException('A kreatív neve és alternatív szövege kötelező.');
+   if(mb_strlen($name)<2||($alt===''&&$format==='image'))throw new RuntimeException('Képes kreatívnál a név és az alternatív szöveg kötelező.');
    $enabled=isset($data['enabled'])?1:0;
    $args=[$campaign,$zone,$name,$image,$dest,$alt,$enabled];
    if($id)$pdo->prepare('UPDATE ad_creatives SET campaign_id=?,zone_id=?,name=?,image_url=?,destination_url=?,alt_text=?,enabled=? WHERE id=?')->execute([...$args,$id]);
    else{$pdo->prepare('INSERT INTO ad_creatives(campaign_id,zone_id,name,image_url,destination_url,alt_text,enabled) VALUES(?,?,?,?,?,?,?)')->execute($args);$id=(int)$pdo->lastInsertId();}
+   $q=$pdo->prepare('INSERT INTO ad_code_creatives(creative_id,format,code_html) VALUES(?,?,?) ON DUPLICATE KEY UPDATE format=VALUES(format),code_html=VALUES(code_html)');
+   $q->execute([$id,$format,$code]);
   }
   ad_record($pdo,(int)$u['id'],$action,$entity,$id,$site);
   $pdo->commit();
