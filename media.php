@@ -151,7 +151,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   panel.querySelector('.ui-inspector-empty').hidden=true;panel.querySelector('.ui-inspector-detail').hidden=false;
   const val=(name)=>button.dataset[name]||'';
   const img=panel.querySelector('[data-asset-detail-image]');img.src=val('assetUrl');img.alt=val('assetAlt');
-  for(const key of ['name','site','size','type','date','alt','host','source','sourceArticle','caption','credit','copyright','rights','resolution','uses'])panel.querySelector('[data-asset-detail-'+key+']').textContent=val('asset'+key.charAt(0).toUpperCase()+key.slice(1))||'Nincs megadva';
+  for(const key of ['name','site','size','type','date','alt','host','source','sourceArticle','caption','credit','copyright','rights','resolution','uses']){
+   const attr=key.replace(/[A-Z]/g,c=>'-'+c.toLowerCase());
+   const field=panel.querySelector('[data-asset-detail-'+attr+']');
+   if(field)field.textContent=val('asset'+key.charAt(0).toUpperCase()+key.slice(1))||'Nincs megadva';
+  }
   panel.querySelector('[data-asset-detail-copy]').dataset.copyUrl=val('assetUrl');
   const metaForm=panel.querySelector('[data-asset-meta-form]');
   if(metaForm){
