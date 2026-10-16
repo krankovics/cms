@@ -7,21 +7,24 @@ function cms_default_layout(string $kind):array{
    ['type'=>'hero','title'=>'A nap történetei','text'=>'Friss hírek, érdekes nézőpontok és fontos történetek egy helyen.','columns'=>1],
    ['type'=>'latest','title'=>'Legfrissebb cikkek','limit'=>10,'columns'=>3]
   ],
-  'section'=>[['type'=>'hero','title'=>'Rovat','columns'=>1],['type'=>'latest','title'=>'A rovat cikkei','limit'=>10,'columns'=>2]],
+  'section'=>[['type'=>'hero','title'=>'Rovat','columns'=>1],['type'=>'latest','title'=>'A rovat friss hírei','limit'=>12,'columns'=>2]],
+  'tag'=>[['type'=>'hero','title'=>'Címke','columns'=>1],['type'=>'latest','title'=>'Kapcsolódó cikkek','limit'=>20,'columns'=>1]],
+  'page'=>[['type'=>'page_body','title'=>'Statikus oldal tartalma','columns'=>1]],
+  'login'=>[['type'=>'reader_form','title'=>'Olvasói bejelentkezés','columns'=>1]],
   'article'=>[['type'=>'article','title'=>'','columns'=>1],['type'=>'latest','title'=>'További olvasnivaló','limit'=>4,'columns'=>2]],
   default=>throw new RuntimeException('Érvénytelen oldalsablon.')
  };
 }
 function cms_layout_validate(string $json,string $kind):string{
- if(!in_array($kind,['home','section','article'],true)||strlen($json)>100000)throw new RuntimeException('Érvénytelen oldalsablon.');
+ if(!in_array($kind,['home','section','tag','article','page','login'],true)||strlen($json)>100000)throw new RuntimeException('Érvénytelen oldalsablon.');
  $blocks=json_decode($json,true,64,JSON_THROW_ON_ERROR);
  if(!is_array($blocks)||!array_is_list($blocks)||count($blocks)>30||count($blocks)===0)throw new RuntimeException('A sablonnak 1–30 komponensből kell állnia.');
  $clean=[];
  foreach($blocks as $b){
   if(!is_array($b))throw new RuntimeException('Érvénytelen komponens.');
   $type=(string)($b['type']??'');
-  if(!in_array($type,['hero','latest','text','image','ad','article'],true))throw new RuntimeException('Ismeretlen oldalkomponens.');
-  if($type==='article'&&$kind!=='article')throw new RuntimeException('A cikkkomponens csak cikkoldalon használható.');
+  if(!in_array($type,['hero','latest','text','image','ad','article','page_body','reader_form'],true))throw new RuntimeException('Ismeretlen oldalkomponens.');
+  if(($type==='article'&&$kind!=='article')||($type==='page_body'&&$kind!=='page')||($type==='reader_form'&&$kind!=='login'))throw new RuntimeException('A cikkkomponens csak cikkoldalon használható.');
   $title=trim((string)($b['title']??''));$text=trim((string)($b['text']??''));
   if(mb_strlen($title)>190||mb_strlen($text)>3000)throw new RuntimeException('A komponens szövege túl hosszú.');
   $cols=(int)($b['columns']??1);$limit=(int)($b['limit']??10);
