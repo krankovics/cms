@@ -38,9 +38,9 @@ jobs:
           mkdir -p deploy/app/avatars deploy/database deploy/assets deploy/storage/media deploy/storage/import
           mkdir -p deploy/assets/source-logos
           cp assets/source-logos/magyarnemzet.svg assets/source-logos/magyarnemzet-footer.svg deploy/assets/source-logos/
-          cp app/source-preview-news.php app/bootstrap.php app/header.php app/site-access.php app/article-sites.php app/taxonomy-actions.php app/user-actions.php app/ad-actions.php app/import-engine.php app/rich-content.php app/import-source-style.php app/import-site-design.php app/import-jobs.php app/import-worker.php app/import-health.php app/site-settings.php app/site-design-templates.php app/layouts.php app/.htaccess deploy/app/
+          cp app/source-preview-news.php app/bootstrap.php app/header.php app/site-access.php app/article-sites.php app/taxonomy-actions.php app/user-actions.php app/ad-actions.php app/import-engine.php app/rich-content.php app/import-source-style.php app/import-site-design.php app/import-jobs.php app/import-worker.php app/import-health.php app/site-settings.php app/site-design-templates.php app/native-site-chrome.php app/layouts.php app/.htaccess deploy/app/
           cp app/avatars/.htaccess deploy/app/avatars/
-          cp assets/source-preview-enhanced.css assets/site-appearance.css assets/ui.css assets/admin-v2.css assets/admin-pages-v2.css assets/admin-secondary-v2.css assets/admin-compact.css assets/dashboard-v2.css assets/ui.js assets/admin-pages-v2.js assets/editor.js assets/login.css assets/setup.css assets/ads.css assets/imports.css assets/builder.css assets/builder.js assets/public.css assets/audit.css deploy/assets/
+          cp assets/source-preview-enhanced.css assets/site-appearance.css assets/native-chrome.css assets/ui.css assets/admin-v2.css assets/admin-pages-v2.css assets/admin-secondary-v2.css assets/admin-compact.css assets/dashboard-v2.css assets/ui.js assets/admin-pages-v2.js assets/editor.js assets/login.css assets/setup.css assets/ads.css assets/imports.css assets/builder.css assets/builder.js assets/public.css assets/audit.css deploy/assets/
           cp database/schema.sql database/editor.sql database/content.sql database/site-permissions.sql database/ads.sql database/import.sql database/import-metrics.sql database/layouts.sql deploy/database/
           printf 'Require all denied\nDeny from all\n' > deploy/database/.htaccess
           php -l deploy/index.php
@@ -80,6 +80,7 @@ jobs:
           php -l deploy/publish-worker.php
           php -l deploy/app/layouts.php
           php -l deploy/app/site-design-templates.php
+          php -l deploy/app/native-site-chrome.php
           php -l deploy/app/site-settings.php
           php -l deploy/app/import-engine.php
           php -l deploy/app/rich-content.php
