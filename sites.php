@@ -3,9 +3,10 @@ declare(strict_types=1);
 require __DIR__.'/app/bootstrap.php';
 require __DIR__.'/app/site-settings.php';
 require __DIR__.'/app/site-design-templates.php';
+require __DIR__.'/app/site-import-assignment.php';
 $u=require_user();
 if($u['role']!=='platform_admin'){http_response_code(403);exit('Nincs jogosultság.');}
-$error='';$saved=isset($_GET['saved']);$sites=[];
+$error='';$saved=isset($_GET['saved']);$sites=[];$importCandidates=[];
 $appearanceTemplates=cms_design_templates_list();
 $templateLabels=array_column($appearanceTemplates,'title','id');
 try{
