@@ -8,7 +8,7 @@ header('X-Content-Type-Options: nosniff');
 if($_SERVER['REQUEST_METHOD']!=='POST'){http_response_code(405);exit;}
 if((string)($_SERVER['HTTP_SEC_FETCH_SITE']??'same-origin')==='cross-site'){http_response_code(403);exit;}
 $origin=(string)($_SERVER['HTTP_ORIGIN']??'');
-if($origin!==''&&strtolower((string)parse_url($origin,PHP_URL_HOST))!==strtolower((string)($_SERVER['HTTP_HOST']??''))){http_response_code(403);exit;}
+if($origin!==''&&strtolower((string)parse_url($origin,PHP_URL_HOST))!==strtolower((string)parse_url('http://'.(string)($_SERVER['HTTP_HOST']??''),PHP_URL_HOST))){http_response_code(403);exit;}
 $raw=(string)file_get_contents('php://input');
 if(strlen($raw)>850){http_response_code(413);exit;}
 $event=json_decode($raw,true);
