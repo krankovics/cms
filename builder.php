@@ -3,6 +3,7 @@ declare(strict_types=1);
 require __DIR__.'/app/bootstrap.php';
 require __DIR__.'/app/site-access.php';
 require __DIR__.'/app/layouts.php';
+require_once __DIR__.'/app/template-family.php';
 $u=require_user();
 if(!in_array($u['role'],['platform_admin','site_admin','editor'],true)){http_response_code(403);exit('Nincs oldalépítő-hozzáférés.');}
 $pdo=db();$allowed=allowed_primary_sites($pdo,$u);
@@ -33,6 +34,9 @@ $sites=$pdo->query('SELECT id,name,slug,settings_json FROM sites ORDER BY name')
 $sites=array_values(array_filter($sites,fn($s)=>in_array((int)$s['id'],$allowed,true)));
 $selected=null;foreach($sites as $s)if((int)$s['id']===$site)$selected=$s;
 $flags=cms_site_settings($selected??[]);
+$sourceAppearance=$selected?cms_design_template_for_site($selected):null;
+$sourceExamples=$sourceAppearance?cms_template_family_sources($sourceAppearance):[];
+$referenceUrl=(string)($sourceExamples[$kind]??'');
 $schemaReady=true;$record=null;$revisions=[];$menu=[];$layout=cms_default_layout($kind);
 try{
  $q=$pdo->prepare('SELECT * FROM site_templates WHERE site_id=? AND template_key=?');$q->execute([$site,$kind]);$record=$q->fetch();
@@ -64,7 +68,7 @@ if($kind==='login')$previewArgs['login']='1';
 $previewUrl='/public.php?'.http_build_query($previewArgs);
 ?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Oldalépítő | comesy</title><link rel="stylesheet" href="/assets/ui.css"><link rel="stylesheet" href="/assets/builder.css"><script src="/assets/ui.js" defer></script><script src="/assets/builder.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
 <main class="ui-page ui-builder-page" id="main-content">
-<header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Vizuális megjelenés</p><h1 class="ui-page-title">Oldalépítő</h1><p class="ui-page-description">Szerkeszthető komponensek, reszponzív előnézet, külön mentés és publikálás.</p></div><div class="ui-page-actions"><a class="ui-btn ui-btn-secondary" href="<?=h($previewUrl)?>" target="_blank" rel="noopener">Előnézet ↗</a></div></header>
+<header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Vizuális megjelenés</p><h1 class="ui-page-title">Oldalépítő</h1><p class="ui-page-description">Szerkeszthető komponensek, reszponzív előnézet, külön mentés és publikálás.</p></div><div class="ui-page-actions"><?php if($referenceUrl):?><a class="ui-btn ui-btn-secondary" href="<?=h($referenceUrl)?>" target="_blank" rel="noopener noreferrer">Eredeti <?=$kind==='tag'?'címke':($kind==='section'?'rovat':($kind==='home'?'címlap':($kind==='page'?'oldal':($kind==='login'?'belépés':'cikk'))))?> ↗</a><?php endif;?><a class="ui-btn ui-btn-secondary" href="<?=h($previewUrl)?>" target="_blank" rel="noopener">Előnézet ↗</a></div></header>
 <?php if($error):?><p class="ui-notice error" role="alert"><?=h($error)?></p><?php endif;?>
 <?php if(isset($_GET['saved'])):?><p class="ui-notice success" role="status"><?=h($_GET['saved']==='publish'?'A sablon új verziója publikálva.':($_GET['saved']==='menu'?'A navigáció mentve.':'A sablon változásait elmentettük.'))?></p><?php endif;?>
 <?php if($readOnly):?><p class="ui-notice" role="status">Ezen a webhelyen az oldalépítő ki van kapcsolva. A korábban publikált frontend változatlanul működik. <?php if($u['role']==='platform_admin'):?><a href="/sites.php?edit=<?=$site?>">Funkció bekapcsolása a webhelybeállításoknál</a><?php endif;?></p><?php endif;?>
