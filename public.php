@@ -144,7 +144,9 @@ $staffLabel=$staffUser?'Szerkesztőségi profil':'Szerkesztőségi bejelentkezé
 <?php elseif($type==='latest'):?>
 <section class="pub-section"><h2><?=pub_h($sectionTitle?:'Legfrissebb cikkek')?></h2>
 <?php $listedArticles=pub_article_list($pdo,$siteId,$siteSlug,$count,$kind==='section'?$sectionSlug:'',$preview);?>
-<?php if(!$listedArticles):?><div class="pub-no-articles"><p><?=$preview?'Még nincs ehhez a webhelyhez rendelt cikk.':'Még nincsenek publikált cikkek ezen a webhelyen.'?></p></div><?php endif;?>
+<?php if(!$listedArticles):?><div class="pub-no-articles"><p><?=$preview?'Még nincs ehhez a webhelyhez rendelt cikk.':'Még nincsenek publikált cikkek ezen a webhelyen.'?></p>
+<?php if($preview):?><p>A piszkozatok is megjelennek, ha ehhez a webhelyhez vannak rendelve.</p><a href="/sites.php?edit=<?=$siteId?>">Korábbi importált cikkek hozzárendelése ↗</a><?php endif;?>
+</div><?php endif;?>
 <div class="pub-articles" style="--pub-cols:<?=$columns?>"><?php foreach($listedArticles as $item):?>
 <a class="pub-story" href="/public.php?site=<?=pub_h($siteSlug)?>&amp;article=<?=pub_h($item['slug'])?><?=$preview?'&amp;preview=1':''?>">
 <?php if(!empty($item['og_image_url'])):?><img src="<?=pub_h($item['og_image_url'])?>" alt="" loading="lazy"><?php endif;?>
