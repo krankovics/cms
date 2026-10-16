@@ -19,7 +19,7 @@ try{
   }
   if(($_POST['action']??'')==='retry_failed'){
    if(!in_array($site,$primary,true))throw new RuntimeException('Nincs jogosultság a webhelyhez.');
-   $pdo->prepare("UPDATE media_import_queue SET status='pending',attempts=0,next_offset=0,found_count=0,imported_count=0,failed_count=0,last_error='',available_at=NOW() WHERE site_id=? AND status='failed'")->execute([$site]);
+   $pdo->prepare("UPDATE media_import_queue SET status='pending',attempts=0,next_offset=0,found_count=0,imported_count=0,failed_count=0,last_error='',available_at=NOW() WHERE site_id=? AND (status='failed' OR (status='done' AND failed_count>0))")->execute([$site]);
    header('Location: /media.php?view_site='.$site.'&saved=retried');exit;
   }
   if(($_POST['action']??'')==='update_meta'){
