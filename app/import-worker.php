@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/import-engine.php';
 require_once __DIR__.'/source-taxonomy.php';
+require_once __DIR__.'/import-media.php';
 function imp_requeue_orphaned(PDO $pdo):void{
  $pdo->exec("UPDATE import_items i JOIN import_jobs j ON j.id=i.job_id SET i.status='pending',i.available_at=NOW(),i.claimed_at=NULL WHERE i.status='processing' AND i.claimed_at<DATE_SUB(NOW(),INTERVAL 20 MINUTE) AND j.status IN ('running','queued')");
 }
@@ -159,6 +160,11 @@ function imp_process(PDO $pdo,array $task):array{
  if(!str_contains($contentType,'html'))throw new RuntimeException('A forrás nem HTML-cikk.');
  $data=imp_extract($result['body'],$result['url']);
  $saved=imp_save_article($pdo,$task,$data,$result['body']);
+ // Always queue media separately. Image outages must never roll back the article.
+ if((int)($saved['article_id']??0)>0){
+  try{cms_import_media_enqueue($pdo,(int)$task['site_id'],(int)$saved['article_id']);}
+  catch(Throwable $e){error_log('comesy media queue: '.$e->getMessage());}
+ }
  if($saved['status']!=='skipped'){
   try{cms_source_style_collect((int)$task['site_id'],$result['body'],$result['url']);}
   catch(Throwable $e){error_log('comesy source design snapshot: '.$e->getMessage());}
@@ -227,7 +233,11 @@ function imp_quality_flags(array $article):array{
 function imp_work_once(PDO $pdo):bool{
  imp_requeue_orphaned($pdo);
  $task=imp_claim($pdo);
- if(!$task)return false;
+ if(!$task){
+  // Share the established CLI cron, locking and heartbeat with image backfill.
+  try{return cms_import_media_work_once($pdo);}
+  catch(Throwable $e){error_log('comesy media worker: '.$e->getMessage());return false;}
+ }
  $started=microtime(true);
  try{
   $metrics=imp_process($pdo,$task);
