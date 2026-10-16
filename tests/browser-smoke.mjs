@@ -136,6 +136,8 @@ try{
  ]);
  const updatedPreview=await admin.request.get(base+'/source-preview.php?id='+previewId);
  assert((await updatedPreview.text()).includes('Kézzel jóváhagyott kiadó'),'Approved publisher shell must persist on the saved draft.');
+ await siteDesignEditor.goto(base+'/sites.php?edit=1');
+ assert((await siteDesignEditor.locator('#source-template-id option').count())>=3,'Collected appearance templates must be selectable in Webhelyek.');
  await siteDesignContext.close();
 
 
