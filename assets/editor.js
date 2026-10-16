@@ -26,7 +26,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(sourceStyle.css){const designCss=doc.createElement('style');designCss.textContent=sourceStyle.css;doc.head.append(designCss);}
   const nav=(items,where)=>{
    const links=(Array.isArray(items)?items:[]).slice(0,14);
-   if(!links.length)return;
    const el=doc.createElement('nav');el.className=where==='header'?'cms-source-menu':'';
    el.setAttribute('aria-label',where==='header'?'A forrás főmenüje':'A forrás láblécmenüje');
    for(const item of links){
