@@ -91,6 +91,18 @@ $assetRefs=cms_rich_references($rich);
 ensure($assetRefs['images']===['https://example.org/photos/report.jpg'],'Inline source images must be included in media provenance.');
 ensure(in_array('https://www.youtube.com/embed/abcdefghij',$assetRefs['links'],true),'Embedded video references must be recorded.');
 ensure(in_array('https://example.org/reszlet',$assetRefs['links'],true),'Inline editorial source links must be recorded.');
+require_once dirname(__DIR__).'/app/import-media.php';
+$mediaCandidates=cms_import_media_candidates($media['blocks'],'https://example.org/cover.jpg','https://example.org/articles/story');
+ensure(count($mediaCandidates)===2,'Cover and rich-body images should be imported independently.');
+ensure($mediaCandidates[0]['role']==='cover'&&$mediaCandidates[1]['role']==='inline','Cover and inline image relationships must remain distinct.');
+ensure($mediaCandidates[1]['alt']==='Képleírás','The HTML alt attribute must survive as searchable media metadata.');
+ensure($mediaCandidates[1]['caption']==='Fotó: Szerkesőség' || $mediaCandidates[1]['caption']==='Fotó: Szerkesztőség','Figure captions must survive rich article import.');
+ensure($mediaCandidates[1]['credit']==='Szerkesztőség','Photo credit must be extracted from caption.');
+$dupeCandidates=cms_import_media_candidates([['type'=>'richhtml','text'=>$rich],['type'=>'richhtml','text'=>$rich]]);
+ensure(count($dupeCandidates)===1,'Identical article images must not be duplicated within the same placement.');
+$badCandidates=cms_import_media_candidates([['type'=>'image','text'=>'http://127.0.0.1/private.png'],['type'=>'image','text'=>'javascript:alert(1)']]);
+ensure($badCandidates===[],'Private network and script URLs must be discarded from image candidates.');
+
 $embedFixture='<iframe src="https://open.spotify.com/embed/episode/7QRXyU8DtYP8Fd1Xo3A0Yz"></iframe><iframe src="https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Fwatch"></iframe>';
 $safeEmbeds=cms_rich_sanitize_html($embedFixture);
 ensure(substr_count($safeEmbeds,'<iframe')===2,'Approved podcast/social embeds should be preserved.');
