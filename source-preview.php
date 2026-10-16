@@ -5,6 +5,7 @@ require __DIR__.'/app/site-access.php';
 require_once __DIR__.'/app/rich-content.php';
 require_once __DIR__.'/app/import-source-style.php';
 require_once __DIR__.'/app/source-preview-news.php';
+require_once __DIR__.'/app/site-design-templates.php';
 header('Content-Type: text/html; charset=utf-8');
 header('Cache-Control: private, no-store');
 header('X-Robots-Tag: noindex, nofollow');
@@ -27,13 +28,22 @@ try{
  $q->execute([$id,$article['site_id']]);$source=(string)($q->fetchColumn()?:'');
  if($source!=='')$profile=cms_source_style_read((int)$article['site_id'],$source);
 }catch(PDOException $e){error_log('source preview map: '.$e->getMessage());}
+// Site assignment takes priority over the source of any individual article.
+// Unassigned sites retain the original import-specific behaviour.
+$q=$pdo->prepare('SELECT settings_json FROM sites WHERE id=? LIMIT 1');
+$q->execute([(int)$article['site_id']]);
+$assigned=cms_design_template_for_site($q->fetch()?:[]);
+if($assigned){
+ $profile=$assigned;
+ if($source==='')$source=(string)($assigned['source_url']??('https://'.$assigned['host'].'/'));
+}
 $css=(string)($profile['css']??'');
 $design=is_array($profile['site_design']??null)?$profile['site_design']:[];
 $logoUrl=(string)($design['logo_url']??'');
 $headerLinks=is_array($design['header_links']??null)?array_slice($design['header_links'],0,14):[];
 $footerLinks=is_array($design['footer_links']??null)?array_slice($design['footer_links'],0,10):[];
 $brandName=(string)($design['name']??($profile['host']??''));
-$host=strtolower((string)parse_url($source,PHP_URL_HOST));
+$host=$assigned?strtolower((string)$assigned['host']):strtolower((string)parse_url($source,PHP_URL_HOST));
 $isMagyarNemzet=in_array($host,['magyarnemzet.hu','www.magyarnemzet.hu'],true);
 if($isMagyarNemzet){
  // Correct older automatic profiles that picked the article title as site name
@@ -48,7 +58,7 @@ $sectionParts=explode('/',trim((string)parse_url($source,PHP_URL_PATH),'/'));
 $sectionSlug=strtolower((string)($sectionParts[0]??''));
 $sectionNames=['belfold'=>'Belföld','kulfold'=>'Külföld','gazdasag'=>'Gazdaság','sport'=>'Sport','kultura'=>'Kultúra','tudomany'=>'Tudomány','velemeny'=>'Vélemény','lugas'=>'Lugas'];
 $sectionName=$sectionNames[$sectionSlug]??($sectionSlug!==''?mb_convert_case(str_replace('-',' ',$sectionSlug),MB_CASE_TITLE,'UTF-8'):'');
-$rootUrl=$host!==''?(parse_url($source,PHP_URL_SCHEME).'://'.$host.'/'):'';
+$rootUrl=$host!==''?'https://'.$host.'/':'';
 $socialLinks=is_array($design['social_links']??null)?array_slice($design['social_links'],0,8):[];
 $socialTitle=(string)($design['social_title']??'');
 $footerActions=is_array($design['footer_actions']??null)?array_slice($design['footer_actions'],0,4):[];
