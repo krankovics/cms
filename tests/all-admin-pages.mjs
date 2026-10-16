@@ -2,7 +2,7 @@ import {chromium} from 'playwright-core';
 import assert from 'node:assert/strict';
 const browser=await chromium.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
 const base='http://127.0.0.1:8765';
-const routes=['/','/articles.php','/editor.php','/taxonomy.php','/taxonomy.php?type=tag','/media.php','/sites.php','/users.php','/site-permissions.php','/profile.php','/settings.php','/migrate.php','/ads.php','/imports.php','/builder.php','/audit.php','/import-report.php?site_id=1&job_id=1'];
+const routes=['/','/articles.php','/editor.php','/taxonomy.php','/taxonomy.php?type=tag','/media.php','/sites.php','/site-manage.php?site_id=1&tab=menu','/site-manage.php?site_id=1&tab=appearance','/users.php','/site-permissions.php','/profile.php','/settings.php','/migrate.php','/ads.php','/imports.php','/builder.php','/audit.php','/import-report.php?site_id=1&job_id=1'];
 try{
  const page=await browser.newPage({viewport:{width:390,height:844}});
  await page.goto(base+'/login.php');
