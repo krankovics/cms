@@ -38,8 +38,9 @@ if($isMagyarNemzet){
  // Correct older automatic profiles that picked the article title as site name
  // or used the square favicon in place of the horizontal wordmark.
  if(empty($profile['site_design_reviewed'])||$brandName===''||str_contains(mb_strtolower($brandName),'imf-hitel'))$brandName='Magyar Nemzet';
- if(empty($profile['site_design_reviewed'])||$logoUrl===''||preg_match('~(?:favicon|icon|logo-mno-slightblue)~i',$logoUrl))
-  $logoUrl='https://magyarnemzet.hu/assets/images/logo-mno-dark.svg';
+ // Serve the verified publisher wordmark from our own domain. Some browsers
+ // reject externally embedded source SVGs even when the remote URL responds.
+ $logoUrl='/assets/source-logos/magyarnemzet.svg';
 }
 $topicLinks=is_array($design['topic_links']??null)?array_slice($design['topic_links'],0,6):[];
 $sectionParts=explode('/',trim((string)parse_url($source,PHP_URL_PATH),'/'));
@@ -88,6 +89,7 @@ if($isMagyarNemzet){
 }
 
 
+$logoSrc=$isMagyarNemzet?$logoUrl:cms_rich_url($logoUrl);
 function sp_h(string $text):string{return htmlspecialchars($text,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
 function sp_content(string $json):string{
  $blocks=json_decode($json,true);if(!is_array($blocks))return '';
@@ -248,7 +250,7 @@ body{margin:0;background:#fff;color:#090e20;font:17px/1.65 system-ui,-apple-syst
 <header class="cms-source-header"><div class="cms-source-head-inner">
 <div class="cms-source-head-start" aria-hidden="true"><svg class="cms-source-icon" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="7.5"/><path d="m16.5 16.5 5 5"/></svg></div>
 <a class="cms-source-brand" href="<?=sp_h($rootUrl?:'#')?>" target="_blank" rel="noopener noreferrer">
-<?php if($logoUrl!==''&&cms_rich_url($logoUrl)):?><img src="<?=sp_h(cms_rich_url($logoUrl))?>" alt="<?=sp_h($brandName)?>"><?php endif;?><span class="cms-source-brand-name"><?=sp_h($brandName)?></span>
+<?php if($logoSrc!==''):?><img src="<?=sp_h($logoSrc)?>" alt="<?=sp_h($brandName)?>" width="160" height="44" decoding="async"><?php endif;?><span class="cms-source-brand-name"><?=sp_h($brandName)?></span>
 </a>
 <div class="cms-source-head-end">
 <svg class="cms-source-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="4"/><path d="M4 21v-3a8 8 0 0 1 16 0v3"/></svg>
@@ -286,7 +288,7 @@ body{margin:0;background:#fff;color:#090e20;font:17px/1.65 system-ui,-apple-syst
 <footer class="cms-source-footer" data-variant="publisher">
 <?php if($isMagyarNemzet):?><div class="cms-source-footer-legal">
 <p><?=sp_h('A Magyar Nemzet kiadója a Mediaworks Hungary Zrt. © Minden jog fenntartva')?></p>
-<p>© <?=date('Y')?> <img src="https://magyarnemzet.hu/assets/images/logo-mno-slightblue.svg" alt="Magyar Nemzet"></p>
+<p>© <?=date('Y')?> <img src="/assets/source-logos/magyarnemzet-footer.svg" alt="Magyar Nemzet"></p>
 </div>
 <?php else:?><div class="cms-source-footer-legal">
 <?php if(!empty($design['copyright'])):?><p><?=sp_h((string)$design['copyright'])?></p>
