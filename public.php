@@ -36,8 +36,25 @@ $searchMode=$searchQuery!=='';
 $searchResults=$searchMode?cms_native_search($pdo,$siteId,$searchQuery,$preview):[];
 $articleSlug=$searchMode?'':trim((string)($_GET['article']??''));
 $sectionSlug=trim((string)($_GET['section']??''));
-$kind=$articleSlug!==''?'article':($sectionSlug!==''?'section':'home');
-if($preview&&isset($_GET['template'])&&in_array($_GET['template'],['home','section','article'],true))$kind=$_GET['template'];
+$tagSlug=trim((string)($_GET['tag']??''));
+$pageSlug=trim((string)($_GET['page']??''));
+$readerLogin=($_GET['login']??'')==='1';
+foreach([$sectionSlug,$tagSlug,$pageSlug] as $requestedSlug)if($requestedSlug!==''&&!preg_match('/^[a-z0-9][a-z0-9-]{0,188}$/D',$requestedSlug)){http_response_code(400);exit('Érvénytelen oldalazonosító.');}
+$kind=$articleSlug!==''?'article':($pageSlug!==''?'page':($readerLogin?'login':($tagSlug!==''?'tag':($sectionSlug!==''?'section':'home'))));
+$termSlug=$kind==='tag'?$tagSlug:$sectionSlug;
+$termType=$kind==='tag'?'tag':'category';
+$term=null;$staticPage=null;
+if(in_array($kind,['section','tag'],true)&&$termSlug!==''){
+ $t=$pdo->prepare('SELECT t.id,t.name,t.slug,m.description FROM taxonomy_terms t LEFT JOIN taxonomy_term_meta m ON m.term_id=t.id WHERE t.type=? AND t.slug=? AND t.site_id IN (0,?) ORDER BY t.site_id DESC LIMIT 1');
+ $t->execute([$termType,$termSlug,$siteId]);$term=$t->fetch();
+ if(!$term){http_response_code(404);exit('A rovat vagy címke nem található.');}
+}
+if($kind==='page'&&$pageSlug!==''){
+ $t=$pdo->prepare('SELECT title,body_html,status FROM site_pages WHERE site_id=? AND slug=? LIMIT 1');
+ $t->execute([$siteId,$pageSlug]);$staticPage=$t->fetch();
+ if(!$staticPage||(!$preview&&$staticPage['status']!=='published')){http_response_code(404);exit('A statikus oldal nem érhető el.');}
+}
+if($preview&&isset($_GET['template'])&&in_array($_GET['template'],['home','section','tag','article','page','login'],true))$kind=$_GET['template'];
 $article=null;
 $articleScope='(a.site_id=? OR EXISTS(SELECT 1 FROM article_sites x WHERE x.article_id=a.id AND x.site_id=?))';
 $publication=$preview?'':" AND a.status='published' AND (a.published_at IS NULL OR a.published_at<=NOW())";
@@ -67,12 +84,12 @@ function pub_href(string $url,string $slug):string{
  if(preg_match('~^/article/([a-z0-9_-]+)$~i',$url,$m))return $base.'&article='.rawurlencode($m[1]);
  return $url;
 }
-function pub_article_list(PDO $pdo,int $siteId,string $slug,int $limit,string $section,bool $preview):array{
+function pub_article_list(PDO $pdo,int $siteId,string $slug,int $limit,string $section,bool $preview,string $termType='category'):array{
  $scope='(a.site_id=? OR EXISTS(SELECT 1 FROM article_sites link WHERE link.article_id=a.id AND link.site_id=?))';
  $filter=$preview?'':" AND a.status='published' AND (a.published_at IS NULL OR a.published_at<=NOW())";
- if($section!=='')$filter.=" AND EXISTS(SELECT 1 FROM article_terms at JOIN taxonomy_terms tt ON tt.id=at.term_id WHERE at.article_id=a.id AND tt.type='category' AND tt.slug=? AND tt.site_id IN (0,?))";
+ if($section!=='')$filter.=" AND EXISTS(SELECT 1 FROM article_terms at JOIN taxonomy_terms tt ON tt.id=at.term_id WHERE at.article_id=a.id AND tt.type=? AND tt.slug=? AND tt.site_id IN (0,?))";
  $sql='SELECT a.id,a.title,a.slug,a.`lead`,a.status,a.published_at,a.updated_at,m.og_image_url FROM articles a LEFT JOIN article_meta m ON m.article_id=a.id WHERE '.$scope.$filter.' ORDER BY COALESCE(a.published_at,a.updated_at) DESC,a.id DESC LIMIT '.max(1,min(30,$limit));
- $q=$pdo->prepare($sql);$q->execute($section!==''?[$siteId,$siteId,$section,$siteId]:[$siteId,$siteId]);return $q->fetchAll();
+ $q=$pdo->prepare($sql);$q->execute($section!==''?[$siteId,$siteId,$termType,$section,$siteId]:[$siteId,$siteId]);return $q->fetchAll();
 }
 function pub_blocks(string $json):void{
  $blocks=json_decode($json,true);
@@ -105,7 +122,7 @@ function pub_blocks(string $json):void{
  }
 }
 $themeColor=preg_match('/^#[0-9a-f]{6}$/i',$settings['accent_color'])?$settings['accent_color']:'#325de6';
-$title=$searchMode?('Keresés: '.$searchQuery.' | '.$site['name']):($article?($article['title'].' | '.$site['name']):$site['name']);
+$title=$searchMode?('Keresés: '.$searchQuery.' | '.$site['name']):($article?($article['title'].' | '.$site['name']):(($staticPage['title']??$term['name']??($readerLogin?'Bejelentkezés':$site['name'])).' | '.$site['name']));
 $staffUser=user();
 $staffHref=$staffUser?'/profile.php':'/login.php';
 $staffLabel=$staffUser?'Szerkesztőségi profil':'Szerkesztőségi bejelentkezés';
@@ -133,7 +150,7 @@ $staffLabel=$staffUser?'Szerkesztőségi profil':'Szerkesztőségi bejelentkezé
 <?php else:?><p>Nem található a keresésnek megfelelő cikk. Próbálj másik kifejezést!</p><?php endif;?></section>
 <?php else:?>
 <?php foreach($layout as $block):$type=$block['type']??'';$sectionTitle=trim((string)($block['title']??''));$count=max(1,min(30,(int)($block['limit']??10)));$columns=max(1,min(4,(int)($block['columns']??3)));?>
-<?php if($type==='hero'):?><section class="pub-hero"><div class="pub-hero-inner"><p class="pub-eyebrow"><?=pub_h($site['name'])?></p><h1><?=pub_h($article['title']??($sectionSlug?:($sectionTitle?:$site['name'])))?></h1><?php if(!empty($block['text'])):?><p><?=pub_h($block['text'])?></p><?php endif;?></div></section>
+<?php if($type==='hero'):?><section class="pub-hero"><div class="pub-hero-inner"><p class="pub-eyebrow"><?=pub_h($site['name'])?></p><h1><?=pub_h($article['title']??($staticPage['title']??$term['name']??$sectionTitle?:$site['name']))?></h1><?php if(!empty($block['text'])):?><p><?=pub_h($block['text'])?></p><?php endif;?></div></section>
 <?php elseif($type==='text'):?><section class="pub-section pub-text"><?php if($sectionTitle):?><h2><?=pub_h($sectionTitle)?></h2><?php endif;?><p><?=nl2br(pub_h((string)($block['text']??'')))?></p></section>
 <?php elseif($type==='image'&&!empty($block['image_url'])):?><section class="pub-section pub-image"><?php if($sectionTitle):?><h2><?=pub_h($sectionTitle)?></h2><?php endif;?><img src="<?=pub_h((string)$block['image_url'])?>" loading="lazy" alt="<?=pub_h($sectionTitle)?>"></section>
 <?php elseif($type==='article'):?>
@@ -143,7 +160,7 @@ $staffLabel=$staffUser?'Szerkesztőségi profil':'Szerkesztőségi bejelentkezé
 <?php else:?><h2>Cikkelőnézet</h2><p>Válassz egy cikket a nyitóoldalról az éles cikksablon megtekintéséhez.</p><?php endif;?></section>
 <?php elseif($type==='latest'):?>
 <section class="pub-section"><h2><?=pub_h($sectionTitle?:'Legfrissebb cikkek')?></h2>
-<?php $listedArticles=pub_article_list($pdo,$siteId,$siteSlug,$count,$kind==='section'?$sectionSlug:'',$preview);?>
+<?php $listedArticles=pub_article_list($pdo,$siteId,$siteSlug,$count,in_array($kind,['section','tag'],true)?$termSlug:'',$preview,$termType);?>
 <?php if(!$listedArticles):?><div class="pub-no-articles"><p><?=$preview?'Még nincs ehhez a webhelyhez rendelt cikk.':'Még nincsenek publikált cikkek ezen a webhelyen.'?></p>
 <?php if($preview):?><p>A piszkozatok is megjelennek, ha ehhez a webhelyhez vannak rendelve.</p><a href="/sites.php?edit=<?=$siteId?>">Korábbi importált cikkek hozzárendelése ↗</a><?php endif;?>
 </div><?php endif;?>
@@ -152,6 +169,20 @@ $staffLabel=$staffUser?'Szerkesztőségi profil':'Szerkesztőségi bejelentkezé
 <?php if(!empty($item['og_image_url'])):?><img src="<?=pub_h($item['og_image_url'])?>" alt="" loading="lazy"><?php endif;?>
 <span class="pub-story-body"><small><?=pub_h($item['published_at']??'')?></small><strong><?=pub_h($item['title'])?></strong><span><?=pub_h(mb_substr((string)$item['lead'],0,170))?></span></span></a>
 <?php endforeach;?></div></section>
+<?php elseif($type==='page_body'):?><section class="pub-section pub-static-page">
+<h1><?=pub_h((string)($staticPage['title']??'Statikus oldal'))?></h1>
+<?php if($staticPage):?><div class="pub-rich-content"><?=cms_rich_sanitize_html((string)$staticPage['body_html'])?></div><?php elseif($preview):?><p>Az Oldalak adminban hozhatsz létre és szerkeszthetsz statikus oldalakat.</p><?php endif;?></section>
+<?php elseif($type==='reader_form'):?><section class="pub-section pub-reader-login">
+<h1>Bejelentkezés</h1>
+<?php if(empty($settings['reader_accounts_enabled'])):?><p>Az olvasói fiókok még nincsenek engedélyezve ezen a webhelyen.</p>
+<?php elseif(!empty($_SESSION['reader_site_id'])&&(int)$_SESSION['reader_site_id']===$siteId):?><p>Be vagy jelentkezve: <?=pub_h((string)($_SESSION['reader_name']??'Olvasó'))?>.</p>
+<form action="/reader-auth.php" method="post"><input type="hidden" name="csrf" value="<?=pub_h(csrf())?>"><input type="hidden" name="site" value="<?=pub_h($siteSlug)?>"><input type="hidden" name="action" value="logout"><button type="submit">Kijelentkezés</button></form>
+<?php else:?><p>A regisztráció és a belépés a <?=pub_h($site['name'])?> saját olvasói rendszerében működik.</p>
+<?php if(isset($_GET['auth_error'])):?><p role="alert" class="pub-auth-error">Nem sikerült a művelet. Ellenőrizd az adatokat, vagy próbáld újra később.</p><?php endif;?>
+<form method="post" action="/reader-auth.php" class="pub-reader-form"><input type="hidden" name="csrf" value="<?=pub_h(csrf())?>"><input type="hidden" name="site" value="<?=pub_h($siteSlug)?>"><input type="hidden" name="action" value="login">
+<label>E-mail-cím<input name="email" type="email" autocomplete="username" maxlength="190" required></label><label>Jelszó<input name="password" type="password" autocomplete="current-password" required></label><button type="submit">Bejelentkezés</button></form>
+<details><summary>Új olvasói fiók létrehozása</summary><form method="post" action="/reader-auth.php" class="pub-reader-form"><input type="hidden" name="csrf" value="<?=pub_h(csrf())?>"><input type="hidden" name="site" value="<?=pub_h($siteSlug)?>"><input type="hidden" name="action" value="register"><label>Név<input name="display_name" maxlength="190" required></label><label>E-mail-cím<input name="email" type="email" autocomplete="email" required></label><label>Jelszó (minimum 12 karakter)<input name="password" type="password" autocomplete="new-password" minlength="12" required></label><button type="submit">Regisztráció</button></form></details>
+<?php endif;?></section>
 <?php elseif($type==='ad'&&!empty($block['zone'])&&!empty($settings['ad_slots_enabled'])):?><section class="pub-section pub-ad"><p>Hirdetés</p><iframe title="Hirdetés" loading="lazy" referrerpolicy="no-referrer" src="/ad-slot.php?site_id=<?=$siteId?>&amp;zone=<?=rawurlencode($block['zone'])?><?=$sectionSlug?'&amp;section='.rawurlencode($sectionSlug):''?>"></iframe></section>
 <?php endif;?>
 <?php endforeach;?>
