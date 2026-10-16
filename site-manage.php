@@ -7,6 +7,8 @@ require __DIR__.'/app/site-design-templates.php';
 require __DIR__.'/app/layouts.php';
 require __DIR__.'/app/template-family.php';
 require __DIR__.'/app/native-site-chrome.php';
+require_once __DIR__.'/app/import-engine.php';
+require_once __DIR__.'/app/import-source-style.php';
 $u=require_user();
 if(!in_array($u['role'],['platform_admin','site_admin','editor'],true)){http_response_code(403);exit('Nincs jogosultság a webhelykezelőhöz.');}
 $pdo=db();
@@ -27,6 +29,45 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
  try{
   if(!valid_csrf())throw new RuntimeException('A munkamenet lejárt. Frissítsd az oldalt.');
   $action=(string)($_POST['action']??'');
+  if($action==='import_source_style'){
+   if(!$canAppearance)throw new RuntimeException('Forrásarculatot csak platformadminisztrátor importálhat.');
+   $raw=trim((string)($_POST['source_url']??''));
+   $url=imp_validate_url($raw);
+   $homeScheme=(string)parse_url($url,PHP_URL_SCHEME);
+   $homeHost=(string)parse_url($url,PHP_URL_HOST);
+   $homeUrl=$homeScheme.'://'.$homeHost.'/';
+   $autoAssign=($_POST['assign_to_site']??'')==='1';
+   if($autoAssign){
+    // Check the migration before downloading a remote page or changing a site.
+    foreach(['site_templates','site_template_revisions','site_pages','site_menu_items','taxonomy_terms'] as $table){
+     $check=$pdo->query('SHOW TABLES LIKE '.$pdo->quote($table));
+     if(!$check->fetchColumn())throw new RuntimeException('Előbb futtasd az adatbázis-migrációt, utána aktiváld a sablont.');
+    }
+   }
+   $response=imp_fetch($url,3145728);
+   $contentType=strtolower((string)($response['headers']['content-type']??'text/html'));
+   if(!str_contains($contentType,'html'))throw new RuntimeException('A megadott URL nem HTML-oldal.');
+   $homepageHtml=null;
+   if(rtrim((string)parse_url($url,PHP_URL_PATH),'/')===''){
+    $homepageHtml=(string)$response['body'];
+   }else{
+    $home=imp_fetch($homeUrl,3145728);
+    if(str_contains(strtolower((string)($home['headers']['content-type']??'text/html')),'html'))$homepageHtml=(string)$home['body'];
+   }
+   $newProfile=cms_source_style_collect($siteId,(string)$response['body'],$url,true,$homepageHtml);
+   if(!$newProfile)throw new RuntimeException('Nem sikerült forrásarculatot előállítani.');
+   $templateId=cms_design_template_id($siteId,(string)$newProfile['host']);
+   if(!cms_design_template_read($templateId))throw new RuntimeException('A sablon mentése nem sikerült.');
+   if($autoAssign){
+    // Seed only missing page layouts; never overwrite manually edited ones.
+    cms_template_family_seed($pdo,$siteId,(int)$u['id'],$newProfile,!empty($settings['reader_accounts_enabled']));
+    $settings['source_template_id']=$templateId;
+    $pdo->prepare('UPDATE sites SET settings_json=? WHERE id=?')->execute([json_encode($settings,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),$siteId]);
+   }
+   $pdo->prepare('INSERT INTO audit_log(user_id,action,object_type,object_id,meta_json) VALUES(?,?,?,?,?)')
+      ->execute([$u['id'],'site.source_style_import','site',$siteId,json_encode(['source_url'=>$url,'template_id'=>$templateId,'assigned'=>$autoAssign],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR)]);
+   header('Location: '.$base.'&tab=appearance&imported='.($autoAssign?'assigned':'saved'),true,303);exit;
+  }
   if($action==='save_menu'){
    if(!$menuEditable)throw new RuntimeException('A menüszerkesztő használatához engedélyezd a webhely oldalépítőjét.');
    $items=json_decode((string)($_POST['menu_json']??'[]'),true,32,JSON_THROW_ON_ERROR);
@@ -111,6 +152,7 @@ $publicUrl='/public.php?site='.rawurlencode((string)$site['slug']).'&preview=1';
 <nav class="cs-site-tabs" aria-label="Webhelykezelési területek">
 <?php foreach($tabs as $key=>$label):?><a href="<?=h($base.'&tab='.$key)?>" <?=$tab===$key?'aria-current="page" class="is-active"':''?>><?=h($label)?></a><?php endforeach;?></nav>
 <?php if(isset($_GET['saved'])):?><p class="ui-notice success" role="status">A módosításokat mentettük.</p><?php endif;?>
+<?php if(isset($_GET['imported'])):?><p class="ui-notice success" role="status"><?=($_GET['imported']??'')==='assigned'?'A forrásarculatot sikeresen importáltuk és hozzárendeltük a webhelyhez.':'A forrásarculatot importáltuk, a listából bármelyik webhelyhez hozzárendelhető.'?></p><?php endif;?>
 <?php if($error):?><p class="ui-notice error" role="alert"><?=h($error)?></p><?php endif;?>
 <?php if($dataError):?><p class="ui-notice error" role="alert"><?=h($dataError)?> <a href="/migrate.php">Adatbázis-migráció ↗</a></p><?php endif;?>
 <section class="ui-panel cs-site-content" aria-labelledby="cs-section-title">
@@ -118,6 +160,18 @@ $publicUrl='/public.php?site='.rawurlencode((string)$site['slug']).'&preview=1';
 <div class="cs-site-section-head"><div><h2 id="cs-section-title">Arculat és webhelyazonosság</h2><p>Az itt mentett arculatot a webhely minden oldaltípusának megjelenítése használja.</p></div>
 <?php if($canAppearance):?><a class="ui-btn ui-btn-secondary" href="/sites.php?edit=<?=$siteId?>">Összes webhelybeállítás ↗</a><?php endif;?></div>
 <?php if(!$canAppearance):?><p class="ui-notice">Az arculat szerkesztése platformadminisztrátori jogosultságot igényel.</p><?php endif;?>
+<?php if($canAppearance):?><section class="cs-site-import" aria-labelledby="cs-source-style-heading">
+<h3 id="cs-source-style-heading">Stílus importálása webcímről</h3>
+<p>Másold be a forráswebhely nyitóoldalának vagy egy mintaoldalának URL-jét. A comesy a logót, betűstílusokat, színeket, fejléc- és láblécstruktúrát menti el újrahasználható arculatként, külső szkriptek nélkül.</p>
+<form action="<?=h($base.'&tab=appearance')?>" method="post" class="cs-site-import-form">
+<input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="site_id" value="<?=$siteId?>">
+<input type="hidden" name="action" value="import_source_style">
+<label class="ui-field" for="cs-source-import-url">Forráswebhely URL-je
+<input type="url" id="cs-source-import-url" name="source_url" placeholder="https://magyarnemzet.hu/" autocomplete="url" maxlength="1000" required></label>
+<label class="cs-site-import-toggle"><input type="checkbox" name="assign_to_site" value="1" checked> Az importált sablon automatikus hozzárendelése ehhez a webhelyhez</label>
+<button type="submit" class="ui-btn ui-btn-primary">Arculat importálása</button>
+</form>
+</section><?php endif;?>
 <form method="post" class="cs-site-form"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="site_id" value="<?=$siteId?>"><input type="hidden" name="action" value="save_appearance">
 <label class="ui-field">Arculati sablon<select name="source_template_id" <?=$canAppearance?'':'disabled'?>><option value="">Webhely alapmegjelenése (nincs importált sablon)</option>
 <?php foreach($templateOptions as $option):?><option value="<?=h($option['id'])?>" <?=($settings['source_template_id']??'')===$option['id']?'selected':''?>><?=h($option['title'].' · '.$option['host'])?></option><?php endforeach;?>
