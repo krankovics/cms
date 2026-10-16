@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require __DIR__.'/app/bootstrap.php';
 require __DIR__.'/app/ad-actions.php';
-$u=require_user();$error='';$message='';$sites=[];$allowed=[];$advertisers=[];$zones=[];$campaigns=[];$creatives=[];
+$u=require_user();$error='';$message='';$hasAdvanced=false;$sites=[];$allowed=[];$advertisers=[];$zones=[];$campaigns=[];$creatives=[];
 $site=(int)($_REQUEST['site_id']??0);
 $kind=(string)($_GET['kind']??'campaign');if(!in_array($kind,['campaign','zone','advertiser','creative'],true))$kind='campaign';
 $editId=max(0,(int)($_GET['edit']??0));
@@ -16,9 +16,16 @@ try {
   header('Location: /ads.php?'.http_build_query(['site_id'=>$site,'kind'=>(string)($_POST['entity']??'campaign'),'saved'=>1]));exit;
  }
  $q=$pdo->prepare('SELECT * FROM ad_advertisers WHERE site_id=? ORDER BY name');$q->execute([$site]);$advertisers=$q->fetchAll();
- $q=$pdo->prepare('SELECT z.*,r.position_type,r.position_value,r.css_selector,r.device_target,r.page_types,r.width,r.height FROM ad_zones z LEFT JOIN ad_zone_rules r ON r.zone_id=z.id WHERE z.site_id=? ORDER BY z.name');$q->execute([$site]);$zones=$q->fetchAll();
+ $hasAdvanced=(bool)$pdo->query("SHOW TABLES LIKE 'ad_zone_rules'")->fetchColumn()&&(bool)$pdo->query("SHOW TABLES LIKE 'ad_code_creatives'")->fetchColumn();
+ $zonesSql=$hasAdvanced
+  ?'SELECT z.*,r.position_type,r.position_value,r.css_selector,r.device_target,r.page_types,r.width,r.height FROM ad_zones z LEFT JOIN ad_zone_rules r ON r.zone_id=z.id WHERE z.site_id=? ORDER BY z.name'
+  :'SELECT * FROM ad_zones WHERE site_id=? ORDER BY name';
+ $q=$pdo->prepare($zonesSql);$q->execute([$site]);$zones=$q->fetchAll();
  $q=$pdo->prepare('SELECT c.*,a.name advertiser_name FROM ad_campaigns c JOIN ad_advertisers a ON a.id=c.advertiser_id WHERE c.site_id=? ORDER BY c.updated_at DESC');$q->execute([$site]);$campaigns=$q->fetchAll();
- $q=$pdo->prepare('SELECT cr.*,c.name campaign_name,z.name zone_name,cc.format,cc.code_html FROM ad_creatives cr LEFT JOIN ad_code_creatives cc ON cc.creative_id=cr.id JOIN ad_campaigns c ON c.id=cr.campaign_id JOIN ad_zones z ON z.id=cr.zone_id WHERE c.site_id=? ORDER BY cr.id DESC');$q->execute([$site]);$creatives=$q->fetchAll();
+ $creativesSql=$hasAdvanced
+  ?'SELECT cr.*,c.name campaign_name,z.name zone_name,cc.format,cc.code_html FROM ad_creatives cr LEFT JOIN ad_code_creatives cc ON cc.creative_id=cr.id JOIN ad_campaigns c ON c.id=cr.campaign_id JOIN ad_zones z ON z.id=cr.zone_id WHERE c.site_id=? ORDER BY cr.id DESC'
+  :"SELECT cr.*,c.name campaign_name,z.name zone_name,'image' format,'' code_html FROM ad_creatives cr JOIN ad_campaigns c ON c.id=cr.campaign_id JOIN ad_zones z ON z.id=cr.zone_id WHERE c.site_id=? ORDER BY cr.id DESC";
+ $q=$pdo->prepare($creativesSql);$q->execute([$site]);$creatives=$q->fetchAll();
  $edit=null;$collection=['advertiser'=>$advertisers,'zone'=>$zones,'campaign'=>$campaigns,'creative'=>$creatives][$kind];
  foreach($collection as $row)if((int)$row['id']===$editId)$edit=$row;
  if($editId&&!$edit)throw new RuntimeException('Nem található a szerkesztendő elem.');
@@ -33,6 +40,7 @@ $types=['campaign'=>'Kampányok','zone'=>'Zónák','advertiser'=>'Hirdetők','cr
 <main class="ui-page ui-ads-page" id="main-content">
 <header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Monetizáció</p><h1 class="ui-page-title">Hirdetésadmin</h1><p class="ui-page-description">Hirdetők, kampányok, site- és rovatfüggő zónák, kreatívok és kiszolgálási adatok.</p></div><div class="ui-page-actions"><a class="ui-btn ui-btn-secondary" href="/ad-analytics.php?site_id=<?=$site?>">Hirdetési és tartalmi analitika ↗</a><a class="ui-btn ui-btn-secondary" href="/site-manage.php?site_id=<?=$site?>&amp;tab=ads">Webhely monetizációja ↗</a></div></header>
 <?php if($error):?><p class="ui-notice error" role="alert"><?=h($error)?></p><?php endif;?>
+<?php if(!$hasAdvanced):?><p class="ui-notice" role="status">Az új hirdetési pozíciókhoz, kódos kreatívokhoz és analitikához egyszer futtasd az <a href="/migrate.php">adatbázis-migrációt</a>. A korábbi hirdetéseket továbbra is megtekintheted.</p><?php endif;?>
 <?php if(isset($_GET['saved'])):?><p class="ui-notice success" role="status">A hirdetéskezelési változást mentettük.</p><?php endif;?>
 <div class="ui-ads-navigation">
 <form method="get" class="ui-filterbar ui-ads-site-filter" aria-label="Hirdetéskezelési webhely"><input type="hidden" name="kind" value="<?=h($kind)?>"><label class="ui-field">Webhely <select name="site_id" onchange="this.form.submit()"><?php foreach($sites as $s):if(!in_array((int)$s['id'],$allowed,true))continue;?><option value="<?=(int)$s['id']?>" <?=$site===(int)$s['id']?'selected':''?>><?=h($s['name'])?></option><?php endforeach;?></select></label></form>
