@@ -47,3 +47,10 @@ body.comesy-admin .ui-check input{height:19px;width:19px;accent-color:var(--ui-p
  body.comesy-admin .ui-ads-site-filter select{width:100%}
  body.comesy-admin .ui-ads-navigation>.ui-tabbar{margin:0 -4px;max-width:calc(100% + 8px)}
 }
+body.comesy-admin .ui-ads-rules{display:grid;gap:13px;padding:14px;border:1px solid var(--ui-border);border-radius:10px;background:var(--ui-surface-subtle)}
+body.comesy-admin .ui-ads-size{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+body.comesy-admin .ui-ads-form [data-ad-format]{display:grid;gap:13px}
+body.comesy-admin .ui-ads-form [data-ad-format][hidden]{display:none}
+body.comesy-admin .ui-ads-form textarea{display:block;width:100%;min-height:170px;max-width:100%;font:13px/1.5 ui-monospace,SFMono-Regular,monospace;padding:12px;border:1px solid var(--ui-border);background:var(--ui-surface-subtle);color:var(--ui-text);border-radius:9px;resize:vertical}
+body.comesy-admin .ui-ads-hint{font-size:12px;line-height:1.5;color:var(--ui-text-secondary);margin:0}
+@media(max-width:600px){body.comesy-admin .ui-ads-size{grid-template-columns:1fr}}
