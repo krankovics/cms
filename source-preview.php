@@ -126,6 +126,30 @@ function sp_content(string $json):string{
 }
 $title=(string)$article['title'];$lead=(string)$article['lead'];
 $og=(string)($article['og_image_url']??'');
+$contentJson=(string)$article['content_json'];
+// The editor can POST a temporary in-memory draft. It is never saved,
+// scheduled or published, and can only be viewed by an authorized editor.
+if($_SERVER['REQUEST_METHOD']==='POST'){
+ if(!valid_csrf()){http_response_code(403);exit('Lejárt munkamenet vagy érvénytelen előnézeti kérés.');}
+ $draftTitle=$_POST['preview_title']??null;
+ $draftLead=$_POST['preview_lead']??null;
+ $draftContent=$_POST['preview_content']??null;
+ $draftImage=$_POST['preview_image']??null;
+ if(!is_string($draftTitle)||!is_string($draftLead)||!is_string($draftContent)||!is_string($draftImage)
+    ||mb_strlen($draftTitle)>500||mb_strlen($draftLead)>10000||strlen($draftContent)>850000||strlen($draftImage)>1800){
+  http_response_code(400);exit('Érvénytelen vagy túl hosszú előnézeti tartalom.');
+ }
+ $draftBlocks=json_decode($draftContent,true);
+ if(!is_array($draftBlocks)||count($draftBlocks)>250){http_response_code(400);exit('Érvénytelen előnézeti blokkok.');}
+ foreach($draftBlocks as $block){
+  if(!is_array($block)||!in_array($block['type']??'', ['richhtml','richtext','paragraph','heading','quote','list','image','embed'],true)
+     ||!is_string($block['text']??null)||strlen($block['text'])>800000){http_response_code(400);exit('Érvénytelen előnézeti blokk.');}
+ }
+ $title=trim($draftTitle);$lead=trim($draftLead);
+ $contentJson=$draftContent;
+ $og=$draftImage!==''?(cms_rich_url($draftImage)?:''):'';
+}
+
 ?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?=sp_h($title)?> · Piszkozat előnézet</title>
 <style>
@@ -268,7 +292,7 @@ body{margin:0;background:#fff;color:#090e20;font:17px/1.65 system-ui,-apple-syst
 <h1><?=sp_h($title)?></h1>
 <?php if($lead!==''):?><p class="cms-source-lead"><?=nl2br(sp_h($lead))?></p><?php endif;?>
 <?php if($og&&cms_rich_url($og)):?><img class="cms-cover" src="<?=sp_h(cms_rich_url($og))?>" alt=""><?php endif;?>
-<?=sp_content((string)$article['content_json'])?>
+<?=sp_content($contentJson)?>
 </article>
 <?php if($design||$isMagyarNemzet):?>
 <?php if($socialLinks||$footerActions):?>
