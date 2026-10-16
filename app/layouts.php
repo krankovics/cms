@@ -27,13 +27,13 @@ function cms_layout_validate(string $json,string $kind):string{
   if(($type==='article'&&$kind!=='article')||($type==='page_body'&&$kind!=='page')||($type==='reader_form'&&$kind!=='login'))throw new RuntimeException('A cikkkomponens csak cikkoldalon használható.');
   $title=trim((string)($b['title']??''));$text=trim((string)($b['text']??''));
   if(mb_strlen($title)>190||mb_strlen($text)>3000)throw new RuntimeException('A komponens szövege túl hosszú.');
-  $cols=(int)($b['columns']??1);$limit=(int)($b['limit']??10);
-  if($cols<1||$cols>4||$limit<1||$limit>30)throw new RuntimeException('Érvénytelen komponensbeállítás.');
+  $cols=(int)($b['columns']??1);$limit=(int)($b['limit']??10);$offset=(int)($b['offset']??0);
+  if($cols<1||$cols>4||$limit<1||$limit>30||$offset<0||$offset>150)throw new RuntimeException('Érvénytelen komponensbeállítás.');
   $zone=preg_replace('/[^a-z0-9_-]/','',mb_strtolower(trim((string)($b['zone']??''))));
   if(strlen($zone)>100)throw new RuntimeException('Érvénytelen hirdetési zónakód.');
   $url=trim((string)($b['image_url']??''));
   if(strlen($url)>1000||($url!==''&&(!filter_var($url,FILTER_VALIDATE_URL)||!in_array(parse_url($url,PHP_URL_SCHEME),['https','http'],true))))throw new RuntimeException('Érvénytelen képhivatkozás.');
-  $clean[]=['type'=>$type,'title'=>$title,'text'=>$text,'columns'=>$cols,'limit'=>$limit,'zone'=>$zone,'image_url'=>$url];
+  $clean[]=['type'=>$type,'title'=>$title,'text'=>$text,'columns'=>$cols,'limit'=>$limit,'offset'=>$offset,'zone'=>$zone,'image_url'=>$url];
  }
  return json_encode($clean,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
 }
