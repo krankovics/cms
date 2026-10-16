@@ -16,8 +16,8 @@ try{
  $where='m.site_id IN ('.implode(',',array_map('intval',$ids)).')';
  $params=[];
  if($search!==''){
-  $where.=' AND (m.original_name LIKE ? OR m.alt_text LIKE ? OR s.name LIKE ?)';
-  $like='%'.$search.'%';$params=[$like,$like,$like];
+  $where.=" AND (m.original_name LIKE ? OR m.alt_text LIKE ? OR s.name LIKE ? OR EXISTS(SELECT 1 FROM media_import_sources mi WHERE mi.media_id=m.id AND (mi.source_host LIKE ? OR mi.source_url LIKE ? OR mi.photographer LIKE ? OR mi.copyright_holder LIKE ?)) OR EXISTS(SELECT 1 FROM article_media_uses am JOIN articles a ON a.id=am.article_id WHERE am.media_id=m.id AND (am.caption LIKE ? OR am.photo_credit LIKE ? OR am.alt_text LIKE ? OR a.title LIKE ?)))";
+  $like='%'.addcslashes($search,'\\%_').'%';$params=array_fill(0,11,$like);
  }
  $count=$pdo->prepare('SELECT COUNT(*) FROM media_assets m JOIN sites s ON s.id=m.site_id WHERE '.$where);
  $count->execute($params);$total=(int)$count->fetchColumn();
