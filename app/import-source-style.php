@@ -150,7 +150,7 @@ function cms_source_style_write(int $site,string $url,array $profile):void{
 function cms_source_style_collect(int $site,string $html,string $url,bool $force=false,?string $homepageHtml=null):?array{
  $path=cms_source_style_path($site,$url);
  $previous=cms_source_style_read($site,$url);
- if(!$force&&$previous&&(int)($previous['version']??0)>=2&&isset($previous['site_design'])&&time()-(int)($previous['saved_at']??0)<604800)return $previous;
+ if(!$force&&$previous&&(int)($previous['version']??0)>=3&&isset($previous['site_design'])&&time()-(int)($previous['saved_at']??0)<604800)return $previous;
  $css=cms_source_style_inline($html);$count=0;
  foreach(cms_source_style_links($html,$url) as $href){
   try{
@@ -179,7 +179,7 @@ function cms_source_style_collect(int $site,string $html,string $url,bool $force
  }
   if(!empty($previous['site_design_reviewed'])&&is_array($previous['site_design']??null))$design=$previous['site_design'];
  $profile=['host'=>strtolower((string)parse_url($url,PHP_URL_HOST)),'site_id'=>$site,
-  'source_url'=>$url,'saved_at'=>time(),'css'=>$css,'css_files'=>$count,'site_design'=>$design,'site_design_reviewed'=>(bool)($previous['site_design_reviewed']??false),'site_design_reviewed_at'=>$previous['site_design_reviewed_at']??null,'version'=>2];
+  'source_url'=>$url,'saved_at'=>time(),'css'=>$css,'css_files'=>$count,'site_design'=>$design,'site_design_reviewed'=>(bool)($previous['site_design_reviewed']??false),'site_design_reviewed_at'=>$previous['site_design_reviewed_at']??null,'version'=>3];
  cms_source_style_write($site,$url,$profile);
  return $profile;
 }
