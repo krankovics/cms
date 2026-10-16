@@ -54,7 +54,10 @@ try{
  error_log('frontend layout fallback: '.$e->getMessage());
 }
 $layout=$template?json_decode((string)($preview?$template['draft_json']:$template['published_json']),true):null;
-if(!is_array($layout))$layout=cms_default_layout($kind);
+if(!is_array($layout)||!$layout)$layout=cms_default_layout($kind);
+if($kind==='home'&&$appearance&&!array_filter($layout,static fn($b)=>is_array($b)&&($b['type']??'')==='latest')){
+ $layout[]=['type'=>'latest','title'=>'Legfrissebb cikkek','limit'=>18,'columns'=>3];
+}
 if(!$menu)$menu=[['label'=>'Nyitóoldal','url'=>'/']];
 function pub_h(string $value):string{return htmlspecialchars($value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
 function pub_href(string $url,string $slug):string{
