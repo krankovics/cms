@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS media_import_queue (
  article_id BIGINT UNSIGNED NOT NULL,
  status ENUM('pending','processing','done','failed') NOT NULL DEFAULT 'pending',
  attempts SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+ next_offset SMALLINT UNSIGNED NOT NULL DEFAULT 0,
  found_count INT UNSIGNED NOT NULL DEFAULT 0,
  imported_count INT UNSIGNED NOT NULL DEFAULT 0,
  failed_count INT UNSIGNED NOT NULL DEFAULT 0,
