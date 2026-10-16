@@ -93,6 +93,7 @@ function media_page_link(array $p,int $page):string{return '/media.php?'.http_bu
 <label class="ui-field">Webhely <select name="view_site"><option value="0">Összes elérhető</option><?php foreach($sites as $s):if(!in_array((int)$s['id'],$allowed,true))continue;?><option value="<?=(int)$s['id']?>" <?=($viewSite??0)===(int)$s['id']?'selected':''?>><?=h($s['name'])?></option><?php endforeach;?></select></label>
 <button type="submit" class="ui-btn ui-btn-primary">Szűrés</button><?php if($search!==''||($viewSite??0)):?><a href="/media.php" class="ui-btn ui-btn-ghost">Alaphelyzet</a><?php endif;?>
 </form>
+<style>.ui-media-page .ui-panel button{max-width:100%;white-space:normal;overflow-wrap:anywhere}.ui-media-page .ui-inspector-detail dd{overflow-wrap:anywhere}.ui-media-page .ui-media-alt-form textarea{max-width:100%;min-width:0;width:100%}</style>
 <?php if($canUpload&&!$hasMediaImport):?><p class="ui-notice">Az új képimport az <a href="/migrate.php">adatbázis-migráció</a> után aktiválódik. A korábbi médiatár továbbra is használható.</p><?php endif;?>
 <?php if($canUpload&&$hasMediaImport):?><section class="ui-panel" style="margin:12px 0;padding:14px"><strong>Korábbi importok képeinek feldolgozása</strong>
 <p class="ui-page-description">A képek a meglévő import workerrel, a háttérben töltődnek le. A forrás és a képaláírás megmarad, az ismétlődő képek deduplikálódnak. A képek felhasználási joga alapból ellenőrizetlen.</p>
@@ -159,7 +160,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   panel.querySelector('[data-asset-detail-copy]').dataset.copyUrl=val('assetUrl');
   const metaForm=panel.querySelector('[data-asset-meta-form]');
   if(metaForm){
-   metaForm.hidden=val('assetEditable')!=='1';
+   metaForm.hidden=val('assetEditable')!=='1'||!val('assetSource');
    metaForm.querySelector('[name=asset_id]').value=val('assetId');
    metaForm.querySelector('[name=use_id]').value=val('assetUseId');
    for(const key of ['alt','caption','credit','copyright'])metaForm.querySelector('[name='+key+']').value=val('asset'+key.charAt(0).toUpperCase()+key.slice(1));
@@ -167,7 +168,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   }
   const altForm=panel.querySelector('[data-asset-alt-form]');
   if(altForm){
-   altForm.hidden=val('assetEditable')!=='1';
+   altForm.hidden=val('assetEditable')!=='1'||!!val('assetSource');
    altForm.querySelector('[name=asset_id]').value=val('assetId');
    altForm.querySelector('[name=alt]').value=val('assetAlt');
   }
