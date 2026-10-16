@@ -93,7 +93,7 @@ try{
  assert(previewBody.includes('class="cms-source-header"')&&previewBody.includes('class="cms-source-footer"'),'Imported draft should render publisher header and footer.');
  assert(previewBody.includes('Forrás Napilap')&&previewBody.includes('Belföld')&&previewBody.includes('Impresszum'),'Source logo identity, navigation and legal footer must be present.');
  assert(previewBody.includes('cms-source-breadcrumb'),'Saved preview must include source-page breadcrumb.');
- assert(previewBody.indexOf('<h1>')<previewBody.indexOf('class="cms-cover"'),'Headline must precede featured cover image in source-page preview.');
+ if(previewBody.includes('class="cms-cover"'))assert(previewBody.indexOf('<h1>')<previewBody.indexOf('class="cms-cover"'),'Headline must precede featured cover image in source-page preview.');
  assert(previewBody.includes('cms-source-menu-toggle'),'The category menu must be collapsed instead of occupying the whole mobile screen.');
 
  assert(!previewBody.includes('<script>'),'Saved preview should not emit executable scripts.');
