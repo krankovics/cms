@@ -343,7 +343,10 @@ body{margin:0;background:#fff;color:#090e20;font:17px/1.65 system-ui,-apple-syst
 <?php if($footerActions):?><nav class="cms-source-footer-actions" aria-label="Hírlevél és előfizetés">
 <?php foreach($footerActions as $item):if(!is_array($item))continue;$href=cms_rich_url((string)($item['url']??''));if(!$href)continue;?>
 <a href="<?=sp_h($href)?>" target="_blank" rel="noopener noreferrer"><?=sp_h((string)($item['label']??''))?></a>
-<?php endforeach;?></nav><?php endif;?></div></section><?php endif;?>
+<?php endforeach;?></nav><?php endif;?></div><?php if($legalLinks):?><nav class="cms-source-footer-links" aria-label="Impresszum és jogi információk">
+<?php foreach($legalLinks as $item):if(!is_array($item))continue;$href=cms_rich_url((string)($item['url']??''));if(!$href)continue;?>
+<a href="<?=sp_h($href)?>" target="_blank" rel="noopener noreferrer"><?=sp_h((string)($item['label']??''))?></a>
+<?php endforeach;?><?php if($isMagyarNemzet):?><span>Süti beállítások</span><?php endif;?></nav><?php endif;?></section><?php endif;?>
 <footer class="cms-source-footer" data-variant="publisher">
 <?php if($isMagyarNemzet):?><div class="cms-source-footer-legal">
 <p><?=sp_h('A Magyar Nemzet kiadója a Mediaworks Hungary Zrt. © Minden jog fenntartva')?></p>
@@ -358,13 +361,28 @@ body{margin:0;background:#fff;color:#090e20;font:17px/1.65 system-ui,-apple-syst
 <a href="<?=sp_h($href)?>" target="_blank" rel="noopener noreferrer"><?=sp_h((string)($item['label']??''))?></a>
 <?php endforeach;?></nav></div><?php endif;?>
 </footer>
-<?php if($publisherLogo||$publisherText||$regionals):?><section class="cms-source-footer-network" aria-label="Kiadói portfólió"><div class="cms-source-footer-network-inner">
-<?php if($publisherLogo&&cms_rich_url($publisherLogo)):?><img src="<?=sp_h(cms_rich_url($publisherLogo))?>" alt="A kiadó logója"><?php endif;?>
+<?php if($publisherLogo||$publisherText||$publisherGroups):?><section class="cms-source-footer-network" aria-label="Kiadói portfólió"><div class="cms-source-footer-network-inner">
+<div class="cms-source-publisher-intro">
+<?php if($publisherLogo&&cms_rich_url($publisherLogo)):?><img src="<?=sp_h(cms_rich_url($publisherLogo))?>" alt="Mediaworks"><?php endif;?>
 <?php if($publisherText):?><p><?=sp_h($publisherText)?></p><?php endif;?>
-<?php if($regionals):?><details class="cms-source-regional" open><summary>Regionális hírportálok</summary><nav>
-<?php foreach($regionals as $item):if(!is_array($item))continue;$href=cms_rich_url((string)($item['url']??''));if(!$href)continue;?>
+</div>
+<?php if($publisherGroups):?><div class="cms-source-publisher-directory">
+<div class="cms-source-publisher-tabs" aria-label="Kiadói portfólió kategóriái">
+<?php foreach($publisherGroups as $i=>$group):if(!is_array($group)||empty($group['links']))continue;?>
+<input type="radio" id="cms-publisher-tab-<?=$i?>" name="cms-publisher-tab" <?=$i===0?'checked':''?>>
+<label class="cms-publisher-tab-label" for="cms-publisher-tab-<?=$i?>"><?=sp_h((string)($group['label']??''))?></label>
+<?php endforeach;?>
+<?php if($isMagyarNemzet&&count($publisherGroups)===1):foreach(['Közélet','Gazdaság','Magazin','Bulvár','Szolgáltatás','Rádió'] as $title):?>
+<span class="cms-publisher-tab-label" title="A kategória hivatkozásai jelenleg nem érhetők el" style="cursor:default;opacity:.65"><?=sp_h($title)?></span>
+<?php endforeach;endif;?>
+</div><div class="cms-source-publisher-panels">
+<?php foreach($publisherGroups as $i=>$group):if(!is_array($group)||empty($group['links']))continue;?>
+<nav class="cms-source-publisher-panel" data-group="<?=$i?>" aria-label="<?=sp_h((string)($group['label']??''))?>">
+<?php foreach(array_slice($group['links'],0,32) as $item):if(!is_array($item))continue;$href=cms_rich_url((string)($item['url']??''));if(!$href)continue;?>
 <a href="<?=sp_h($href)?>" target="_blank" rel="noopener noreferrer"><?=sp_h((string)($item['label']??''))?></a>
-<?php endforeach;?></nav></details><?php endif;?>
+<?php endforeach;?></nav>
+<?php endforeach;?></div>
+</div><?php endif;?>
 </div></section><?php endif;?>
 <?php endif;?>
 </body></html>
