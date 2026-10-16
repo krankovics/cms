@@ -89,5 +89,20 @@ if($selected){
 <?php else:?><p class="ui-page-description">A menüszerkesztő használatához kapcsold be a Vizuális oldalépítőt.</p><?php endif;?>
 <a class="ui-btn ui-btn-secondary" href="/public.php?site=<?=rawurlencode((string)$selected['slug'])?>&amp;preview=1" target="_blank" rel="noopener">Webhely előnézete ↗</a></div><?php endif;?>
 <div class="ui-admin-actions"><button class="ui-btn ui-btn-primary" type="submit">Mentés</button><?php if($selected):?><a class="ui-btn ui-btn-secondary" href="/sites.php">Mégse</a><?php endif;?></div></form>
+<?php if($selected):?>
+<section class="ui-site-import-links" style="margin:17px 0;padding:15px;border:1px solid var(--ui-border,#dce3ea);border-radius:10px">
+<h3 style="margin:0 0 8px">Importált cikkek hozzárendelése</h3>
+<p class="ui-page-description">A nyitóoldal az ehhez a webhelyhez rendelt cikkeket mutatja. Ha a <?=h($selected['domain'])?> forrásból korábban másik webhelyre importáltál, azokat itt hozzákapcsolhatod, az eredeti webhelyről való eltávolítás nélkül.</p>
+<?php if(isset($_GET['linked'])):?><p class="success"><?=(int)$_GET['linked']?> korábban importált cikket rendeltünk ehhez a webhelyhez.</p><?php endif;?>
+<?php if($importCandidateError):?><p class="error"><?=h($importCandidateError)?></p>
+<?php elseif($importCandidates):?><p><strong><?=count($importCandidates)?> hozzákapcsolható cikk</strong> a forrásdomainről.</p>
+<form method="post" action="/sites.php" onsubmit="return confirm('Hozzárendeled a forrásdomainhez tartozó korábbi importált cikkeket ehhez a webhelyhez?');">
+<input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="id" value="<?=(int)$selected['id']?>">
+<input type="hidden" name="action" value="link_imported">
+<button type="submit" class="ui-btn ui-btn-secondary">Korábbi cikkek hozzárendelése (<?=count($importCandidates)?>)</button>
+</form>
+<?php else:?><p class="ui-page-description">Nem található más webhelyen olyan korábbi importált cikk, amelynek forrásdomainje pontosan ehhez a webhelyhez tartozik. Új cikket az Importálás menüben vehetsz fel, ezt a webhelyet választva.</p><?php endif;?>
+<a class="ui-btn ui-btn-secondary" href="/articles.php?site_id=<?=(int)$selected['id']?>">Webhely cikkeinek listája ↗</a>
+</section><?php endif;?>
 <p>Az egyes webhelyek szerkesztési jogosultságait a <a href="/site-permissions.php">Hozzáféréseknél</a> tudod beállítani.</p>
 </aside></div><button class="ui-pane-dim" data-ui-pane-dim type="button" aria-label="Panel bezárása"></button></main></body></html>
