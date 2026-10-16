@@ -44,3 +44,15 @@ body.comesy-admin .cs-site-manager .ui-panel{min-width:0}
 .cs-site-menu-actions{display:flex;flex-wrap:wrap;gap:11px;margin-top:18px}
 @media(max-width:1100px){.cs-site-card-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cs-site-menu-row{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr)}.cs-site-menu-controls{justify-content:flex-end}}
 @media(max-width:700px){.cs-site-tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;padding-bottom:10px}.cs-site-tabs a{padding:10px 13px}.cs-site-card-grid{grid-template-columns:1fr}.cs-site-card p{min-height:auto}.cs-site-content{padding:16px}.cs-site-form-pair{grid-template-columns:1fr}.cs-site-item{align-items:stretch;flex-direction:column}.cs-site-actions{flex-shrink:1}.cs-site-menu-row{grid-template-columns:1fr}.cs-site-menu-controls{justify-content:flex-start}.cs-site-menu-row .cs-site-menu-active{min-height:34px}}
+
+/* Safe source-URL style importer, shared with the webhely appearance settings. */
+.cs-site-import{max-width:850px;border:1px solid var(--ui-border,#dbe3eb);border-radius:12px;background:var(--ui-surface-subtle,#f8fafc);padding:18px 20px;margin:0 0 24px}
+.cs-site-import h3{font-size:16px;font-weight:760;line-height:1.3;color:var(--ui-text,#14203b);margin:0 0 8px}
+.cs-site-import>p{font-size:13px;line-height:1.65;color:var(--ui-text-secondary,#59687b);margin:0 0 14px}
+.cs-site-import-form{display:grid;gap:13px}
+.cs-site-import-form .ui-field{display:grid;gap:7px;font-size:12px;font-weight:700;color:var(--ui-text,#14203b)}
+.cs-site-import-form input[type=url]{width:100%;min-width:0;min-height:46px;padding:10px 12px;font-size:16px;border:1px solid var(--ui-border,#dbe3eb);border-radius:9px;background:var(--ui-surface,#fff);color:var(--ui-text,#14203b)}
+.cs-site-import-toggle{display:flex;align-items:center;gap:10px;color:var(--ui-text,#14203b);font-size:13px;line-height:1.45;cursor:pointer}
+.cs-site-import-toggle input{width:19px;height:19px;flex:none}
+.cs-site-import-form .ui-btn{justify-self:start}
+@media(max-width:700px){.cs-site-import{padding:15px}.cs-site-import-form .ui-btn{width:100%;justify-content:center}}
