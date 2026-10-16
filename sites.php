@@ -70,6 +70,11 @@ $siteSettings=cms_site_settings($selected??[]);
 <?php if($selected&&($siteSettings['source_template_id']??'')!==''):?><p style="margin:0"><strong>Kiválasztva:</strong> <?=h($templateLabels[$siteSettings['source_template_id']]??'Nem elérhető sablon')?></p><?php endif;?>
 </div>
 </fieldset>
+<?php if($selected):?><div style="margin:14px 0;padding:12px 14px;border:1px solid var(--ui-border,#dde4ed);border-radius:10px"><strong>Natív navigáció és funkciók</strong>
+<p class="ui-page-description" style="margin:6px 0 12px">A kiválasztott arculati sablon csak a megjelenést adja. A menüpontokat a comesy menüszerkesztőjéből, a keresési találatokat a webhely saját cikkeiből építjük fel. A profilgomb jelenleg szerkesztőségi belépés.</p>
+<?php if(!empty($siteSettings['builder_enabled'])):?><a class="ui-btn ui-btn-secondary" href="/builder.php?site_id=<?=(int)$selected['id']?>&amp;template=home">Menü szerkesztése ↗</a>
+<?php else:?><p class="ui-page-description">A menüszerkesztő használatához kapcsold be a Vizuális oldalépítőt.</p><?php endif;?>
+<a class="ui-btn ui-btn-secondary" href="/public.php?site=<?=rawurlencode((string)$selected['slug'])?>&amp;preview=1" target="_blank" rel="noopener">Webhely előnézete ↗</a></div><?php endif;?>
 <div class="ui-admin-actions"><button class="ui-btn ui-btn-primary" type="submit">Mentés</button><?php if($selected):?><a class="ui-btn ui-btn-secondary" href="/sites.php">Mégse</a><?php endif;?></div></form>
 <p>Az egyes webhelyek szerkesztési jogosultságait a <a href="/site-permissions.php">Hozzáféréseknél</a> tudod beállítani.</p>
 </aside></div><button class="ui-pane-dim" data-ui-pane-dim type="button" aria-label="Panel bezárása"></button></main></body></html>
