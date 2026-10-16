@@ -7,7 +7,7 @@ $canWrite=in_array($u['role'],['platform_admin','site_admin','editor','author'],
 $navGroups=[
  ['title'=>'Munkaterület','links'=>[
   ['href'=>'/','page'=>'index.php','text'=>'Áttekintés','icon'=>'home'],
-  ...($canWrite?[['href'=>'/articles.php','page'=>'articles.php','text'=>'Cikkek','icon'=>'file'],['href'=>'/editor.php','page'=>'editor.php','text'=>'Új cikk','icon'=>'plus'],['href'=>'/taxonomy.php','page'=>'taxonomy.php','text'=>'Kategóriák és címkék','icon'=>'tag'],['href'=>'/media.php','page'=>'media.php','text'=>'Médiatár','icon'=>'image'],['href'=>'/pages.php','page'=>'pages.php','text'=>'Oldalak','icon'=>'file']]:[])
+  ...($canWrite?[['href'=>'/articles.php','page'=>'articles.php','text'=>'Cikkek','icon'=>'file'],['href'=>'/editor.php','page'=>'editor.php','text'=>'Új cikk','icon'=>'plus'],['href'=>'/taxonomy.php','page'=>'taxonomy.php','text'=>'Kategóriák és címkék','icon'=>'tag'],['href'=>'/media.php','page'=>'media.php','text'=>'Médiatár','icon'=>'image'],...(in_array($u['role'],['platform_admin','site_admin','editor'],true)?[['href'=>'/pages.php','page'=>'pages.php','text'=>'Oldalak','icon'=>'file']]:[])]:[])
  ]],
  ...((in_array($u['role'],['platform_admin','site_admin','editor'],true))?[['title'=>'Kiadói platform','links'=>[
   ['href'=>'/imports.php','page'=>'imports.php','text'=>'Importközpont','icon'=>'import'],
