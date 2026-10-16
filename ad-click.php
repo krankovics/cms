@@ -12,9 +12,14 @@ try{
  if(!$url||!filter_var($url,FILTER_VALIDATE_URL)||!in_array(strtolower((string)parse_url($url,PHP_URL_SCHEME)),['http','https'],true)){http_response_code(404);exit;}
  // A served token makes repeat clicks idempotent for campaign reporting.
  if(preg_match('/^[a-f0-9]{32}$/D',$token)){
-  $update=$db->prepare('UPDATE ad_serves SET clicked_at=UTC_TIMESTAMP() WHERE token=? AND creative_id=? AND clicked_at IS NULL AND created_at>=UTC_TIMESTAMP()-INTERVAL 1 DAY');
-  $update->execute([$token,$id]);
-  if($update->rowCount()>0)$db->prepare('UPDATE ad_creatives SET clicks=clicks+1 WHERE id=?')->execute([$id]);
+  try{
+   $update=$db->prepare('UPDATE ad_serves SET clicked_at=UTC_TIMESTAMP() WHERE token=? AND creative_id=? AND clicked_at IS NULL AND created_at>=UTC_TIMESTAMP()-INTERVAL 1 DAY');
+   $update->execute([$token,$id]);
+   if($update->rowCount()>0)$db->prepare('UPDATE ad_creatives SET clicks=clicks+1 WHERE id=?')->execute([$id]);
+  }catch(PDOException $e){
+   // A legacy clickable image should continue working before new metrics tables exist.
+   $db->prepare('UPDATE ad_creatives SET clicks=clicks+1 WHERE id=?')->execute([$id]);
+  }
  }else{
   // Legacy links are still supported and counted in the existing counter.
   $db->prepare('UPDATE ad_creatives SET clicks=clicks+1 WHERE id=?')->execute([$id]);
