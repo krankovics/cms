@@ -279,4 +279,6 @@ $readerHash=password_hash('VeryStrongPassword123!',PASSWORD_DEFAULT);
 $readerInsert=$pdo->prepare('INSERT INTO site_readers(site_id,email,display_name,password_hash) VALUES(?,?,?,?)');
 $readerInsert->execute([$sites[2],'test-reader@example.invalid','Olvasó teszt',$readerHash]);
 ok(password_verify('VeryStrongPassword123!',$readerHash),'Reader login stores a verifiable, non-plaintext password.');
+$pdo->prepare('UPDATE sites SET settings_json=? WHERE id=?')->execute([json_encode(['reader_accounts_enabled'=>true]),$sites[2]]);
+
 echo "PASS: $tests database integration assertions.\n";
