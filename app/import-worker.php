@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/import-engine.php';
+require_once __DIR__.'/source-taxonomy.php';
 function imp_requeue_orphaned(PDO $pdo):void{
  $pdo->exec("UPDATE import_items i JOIN import_jobs j ON j.id=i.job_id SET i.status='pending',i.available_at=NOW(),i.claimed_at=NULL WHERE i.status='processing' AND i.claimed_at<DATE_SUB(NOW(),INTERVAL 20 MINUTE) AND j.status IN ('running','queued')");
 }
@@ -80,6 +81,7 @@ function imp_save_article(PDO $pdo,array $task,array $data,string $html):array{
     $q=$pdo->prepare("INSERT INTO article_meta(article_id,seo_description,canonical_url,og_image_url) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE seo_description=VALUES(seo_description),canonical_url=VALUES(canonical_url),og_image_url=IF(VALUES(og_image_url)<>'',VALUES(og_image_url),og_image_url)");
     $q->execute([$articleId,mb_substr($data['lead'],0,500),$source,(string)($data['og_image_url']??'')]);
     $q=$pdo->prepare('INSERT IGNORE INTO article_sites(article_id,site_id) VALUES(?,?)');$q->execute([$articleId,$site]);
+    cms_import_native_terms($pdo,$site,$articleId,$source,$html);
     $q=$pdo->prepare('SELECT COALESCE(MAX(revision_number),0)+1 FROM article_revisions WHERE article_id=?');$q->execute([$articleId]);$rev=(int)$q->fetchColumn();
     $q=$pdo->prepare("INSERT INTO article_revisions(article_id,editor_id,revision_number,title,`lead`,content_json,status) VALUES(?,?,?,?,?,?,'draft')");
     $q->execute([$articleId,$actor,$rev,$data['title'],$data['lead'],$json]);
