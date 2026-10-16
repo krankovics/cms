@@ -43,7 +43,7 @@ try{
 <body><?php require __DIR__.'/app/header.php';?>
 <main class="ui-page" id="main-content">
 <header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Tartalomkezelés</p><h1 class="ui-page-title">Kategóriák és címkék</h1><p class="ui-page-description">Besorolások, hierarchia és közös fogalmak kezelése.</p></div>
-<?php if($canManage):?><div class="ui-page-actions"><button type="button" class="ui-btn ui-btn-primary ui-compact-action" data-panel-open="taxonomy-editor" aria-controls="taxonomy-editor" aria-expanded="false"><svg class="ui-icon" aria-hidden="true"><use href="#cs-plus"></use></svg>Új <?=$type==='tag'?'címke':'kategória'?></button></div><?php endif;?></header>
+<?php if($canManage):?><div class="ui-page-actions"><a class="ui-btn ui-btn-secondary" href="/site-manage.php?site_id=<?=$site?>&amp;tab=<?=$type==='tag'?'tags':'sections'?>">← Webhelykezelő</a><button type="button" class="ui-btn ui-btn-primary ui-compact-action" data-panel-open="taxonomy-editor" aria-controls="taxonomy-editor" aria-expanded="false"><svg class="ui-icon" aria-hidden="true"><use href="#cs-plus"></use></svg>Új <?=$type==='tag'?'címke':'kategória'?></button></div><?php endif;?></header>
 <nav class="ui-tabbar" aria-label="Fogalomtár típusa"><a <?=$type==='category'?'class="is-active" aria-current="page"':''?> href="?type=category&amp;site_id=<?=$site?>">Kategóriák</a><a <?=$type==='tag'?'class="is-active" aria-current="page"':''?> href="?type=tag&amp;site_id=<?=$site?>">Címkék</a></nav>
 <?php if(isset($_GET['saved'])):?><p class="ui-notice success" role="status">A módosítások mentése sikeres.</p><?php endif;?>
 <?php if($error):?><p class="ui-notice error" role="alert"><?=h($error)?></p><?php endif;?>
