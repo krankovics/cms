@@ -18,7 +18,7 @@ const field=(name,value,kind='text')=>{
  const input=kind==='textarea'?document.createElement('textarea'):document.createElement('input');
  if(kind!=='textarea')input.type=kind;
  input.value=esc(value);
- if(kind==='number'){input.min='1';input.max=name==='columns'?'4':name==='offset'?'150':'30';}
+ if(kind==='number'){input.min=name==='offset'?'0':'1';input.max=name==='columns'?'4':name==='offset'?'150':'30';}
  input.maxLength=name==='text'?3000:name==='title'?190:1000;
  input.disabled=readOnly;
  input.addEventListener('input',()=>{
