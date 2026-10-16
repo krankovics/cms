@@ -17,8 +17,8 @@ function cms_template_family_definitions(array $profile):array{
   'login'=>cms_default_layout('login')
  ];
  return [
-  'home'=>[['type'=>'latest','title'=>'Vezető hírek','limit'=>5,'columns'=>2],['type'=>'latest','title'=>'Friss híreink','limit'=>15,'columns'=>3],['type'=>'latest','title'=>'Még több olvasnivaló','limit'=>12,'columns'=>4]],
-  'section'=>[['type'=>'hero','title'=>'Belföld','columns'=>1],['type'=>'latest','title'=>'Friss hírek','limit'=>10,'columns'=>2],['type'=>'latest','title'=>'A rovat további cikkei','limit'=>18,'columns'=>1]],
+  'home'=>[['type'=>'latest','title'=>'Vezető hírek','limit'=>5,'columns'=>2],['type'=>'latest','title'=>'Friss híreink','limit'=>15,'offset'=>5,'columns'=>3],['type'=>'latest','title'=>'Még több olvasnivaló','limit'=>12,'offset'=>20,'columns'=>4]],
+  'section'=>[['type'=>'hero','title'=>'Belföld','columns'=>1],['type'=>'latest','title'=>'Friss hírek','limit'=>10,'columns'=>2],['type'=>'latest','title'=>'A rovat további cikkei','limit'=>18,'offset'=>10,'columns'=>1]],
   'tag'=>[['type'=>'hero','title'=>'Magyar Péter','columns'=>1],['type'=>'latest','title'=>'Kapcsolódó hírek','limit'=>18,'columns'=>1]],
   'article'=>[['type'=>'article','title'=>'','columns'=>1],['type'=>'latest','title'=>'Kapcsolódó cikkek','limit'=>5,'columns'=>2]],
   'page'=>[['type'=>'page_body','title'=>'Statikus oldal','columns'=>1]],
