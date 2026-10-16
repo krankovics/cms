@@ -34,15 +34,58 @@ $footerLinks=is_array($design['footer_links']??null)?array_slice($design['footer
 $brandName=(string)($design['name']??($profile['host']??''));
 $host=strtolower((string)parse_url($source,PHP_URL_HOST));
 $isMagyarNemzet=in_array($host,['magyarnemzet.hu','www.magyarnemzet.hu'],true);
-if($isMagyarNemzet&&$brandName==='')$brandName='Magyar Nemzet';
-if($isMagyarNemzet&&empty($profile['site_design_reviewed'])&&($logoUrl===''||preg_match('~(?:favicon|icon|logo-mno-slightblue)~i',$logoUrl)))
- $logoUrl='https://magyarnemzet.hu/assets/images/logo-mno-dark.svg';
+if($isMagyarNemzet){
+ // Correct older automatic profiles that picked the article title as site name
+ // or used the square favicon in place of the horizontal wordmark.
+ if(empty($profile['site_design_reviewed'])||$brandName===''||str_contains(mb_strtolower($brandName),'imf-hitel'))$brandName='Magyar Nemzet';
+ if(empty($profile['site_design_reviewed'])||$logoUrl===''||preg_match('~(?:favicon|icon|logo-mno-slightblue)~i',$logoUrl))
+  $logoUrl='https://magyarnemzet.hu/assets/images/logo-mno-dark.svg';
+}
 $topicLinks=is_array($design['topic_links']??null)?array_slice($design['topic_links'],0,6):[];
 $sectionParts=explode('/',trim((string)parse_url($source,PHP_URL_PATH),'/'));
 $sectionSlug=strtolower((string)($sectionParts[0]??''));
 $sectionNames=['belfold'=>'Belföld','kulfold'=>'Külföld','gazdasag'=>'Gazdaság','sport'=>'Sport','kultura'=>'Kultúra','tudomany'=>'Tudomány','velemeny'=>'Vélemény','lugas'=>'Lugas'];
 $sectionName=$sectionNames[$sectionSlug]??($sectionSlug!==''?mb_convert_case(str_replace('-',' ',$sectionSlug),MB_CASE_TITLE,'UTF-8'):'');
 $rootUrl=$host!==''?(parse_url($source,PHP_URL_SCHEME).'://'.$host.'/'):'';
+$socialLinks=is_array($design['social_links']??null)?array_slice($design['social_links'],0,8):[];
+$socialTitle=(string)($design['social_title']??'');
+$footerActions=is_array($design['footer_actions']??null)?array_slice($design['footer_actions'],0,4):[];
+$publisherLogo=(string)($design['publisher_logo_url']??'');
+$publisherText=(string)($design['publisher_text']??'');
+$regionals=is_array($design['regional_links']??null)?array_slice($design['regional_links'],0,32):[];
+if($isMagyarNemzet){
+ if(!$topicLinks)$topicLinks=[
+  ['label'=>'Orbán Viktor','url'=>'https://magyarnemzet.hu/cimke/orban-viktor-12'],
+  ['label'=>'Magyar Péter','url'=>'https://magyarnemzet.hu/cimke/magyar-peter'],
+  ['label'=>'Tisza-kormány','url'=>'https://magyarnemzet.hu/cimke/tisza-kormany']];
+ if(!$headerLinks)$headerLinks=[
+  ['label'=>'Belföld','url'=>'https://magyarnemzet.hu/rovat/belfold'],
+  ['label'=>'Külföld','url'=>'https://magyarnemzet.hu/rovat/kulfold'],
+  ['label'=>'Gazdaság','url'=>'https://magyarnemzet.hu/rovat/gazdasag'],
+  ['label'=>'Vélemény','url'=>'https://magyarnemzet.hu/rovat/velemeny'],
+  ['label'=>'Kultúra','url'=>'https://magyarnemzet.hu/rovat/kultura'],
+  ['label'=>'Sport','url'=>'https://magyarnemzet.hu/rovat/sport']];
+ if(!$socialLinks)$socialLinks=[
+  ['label'=>'Facebook','url'=>'https://www.facebook.com/magyarnemzet.hu'],
+  ['label'=>'Instagram','url'=>'https://www.instagram.com/magyarnemzet.hu/?hl=en'],
+  ['label'=>'X','url'=>'https://twitter.com/MagyarNemzetOn'],
+  ['label'=>'Videa','url'=>'https://videa.hu/csatornak/magyar-nemzet-404'],
+  ['label'=>'YouTube','url'=>'https://www.youtube.com/@magyarnemzet_hivatalos'],
+  ['label'=>'RSS','url'=>'https://magyarnemzet.hu/publicapi/hu/rss/magyar_nemzet/articles']];
+ if(!$footerActions)$footerActions=[
+  ['label'=>'Feliratkozom a hírlevélre','url'=>'https://magyarnemzet.hu/hirlevel/feliratkozas'],
+  ['label'=>'Előfizetek az újságra','url'=>'https://lapcentrum.hu/napilapok/12-magyar-nemzet.html']];
+ if($socialTitle==='')$socialTitle='Kövesse a Magyar Nemzet híreit a közösségi médiában és csatornáinkon:';
+ if($publisherLogo==='')$publisherLogo='https://magyarnemzet.hu/assets/images/mw/mwf_logo_mediaworks.png';
+ if($publisherText==='')$publisherText='Portfóliónk minőségi tartalmat jelent minden olvasó számára. Egyedülálló elérést, országos lefedettséget és változatos megjelenési lehetőséget biztosít. Folyamatosan keressük az új irányokat és fejlődési lehetőségeket. Ez jövőnk záloga.';
+ if(!$regionals)$regionals=[
+  ['label'=>'Bács-Kiskun - baon.hu','url'=>'https://www.baon.hu'],
+  ['label'=>'Baranya - bama.hu','url'=>'https://www.bama.hu'],
+  ['label'=>'Békés - beol.hu','url'=>'https://www.beol.hu'],
+  ['label'=>'Borsod-Abaúj-Zemplén - boon.hu','url'=>'https://www.boon.hu'],
+  ['label'=>'Csongrád - delmagyar.hu','url'=>'https://www.delmagyar.hu'],
+  ['label'=>'Dunaújváros - duol.hu','url'=>'https://www.duol.hu']];
+}
 
 
 function sp_h(string $text):string{return htmlspecialchars($text,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
@@ -94,6 +137,7 @@ body{margin:0;background:#fff;color:#090e20;font:17px/1.65 system-ui,-apple-syst
 .cms-source-brand img{display:block;width:auto;height:auto;max-height:62px;max-width:min(340px,53vw);object-fit:contain}
 .cms-source-brand .cms-source-brand-name{display:block}
 .cms-source-brand:has(img) .cms-source-brand-name{display:none}
+.cms-source-brand img{min-width:100px;min-height:30px}
 .cms-source-head-start{grid-column:1;grid-row:1;display:flex;align-items:center;justify-content:flex-start}
 .cms-source-head-end{grid-column:3;grid-row:1;display:flex;justify-content:flex-end;align-items:center;gap:18px}
 .cms-source-icon{width:25px;height:25px;flex:none;stroke:#071022;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
@@ -143,6 +187,55 @@ body{margin:0;background:#fff;color:#090e20;font:17px/1.65 system-ui,-apple-syst
  .cms-source-footer{margin-top:0}
  .cms-source-banner{font-size:9px;padding:6px 10px;bottom:10px;right:8px;opacity:.88}
 }
+
+/* Source-chrome components are isolated from article-content CSS. */
+.cms-source-social{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:14px;margin:14px auto}
+.cms-source-social a{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:#fff;color:#071122;text-decoration:none;font:bold 21px/1 system-ui;min-width:38px}
+.cms-source-social a span{font-size:17px}
+.cms-source-footer-top{background:#64758e;color:#fff;padding:26px 22px;display:grid;gap:18px}
+.cms-source-footer-top-inner{max-width:920px;width:100%;margin:auto}
+.cms-source-social-box{border:1px solid #adb8c8;border-radius:2px;text-align:center;padding:17px 15px 14px}
+.cms-source-social-box h2{font:750 17px/1.32 system-ui;margin:0}
+.cms-source-footer-actions{display:grid;gap:16px;margin-top:18px}
+.cms-source-footer-actions a{display:flex;align-items:center;justify-content:center;text-align:center;text-decoration:none;border:1px solid #fff;border-radius:3px;min-height:43px;padding:8px 16px;font:500 16px/1.4 system-ui;color:#fff;background:transparent}
+.cms-source-footer-actions a:nth-child(even){color:#0b1224;background:#f6f8fb}
+.cms-source-footer-actions a:before{content:"✉";font-size:17px;margin-right:10px}
+.cms-source-footer-actions a:nth-child(even):before{content:"▣"}
+.cms-source-footer-legal{background:#344259;color:#fff;text-align:center;padding:23px 20px}
+.cms-source-footer-legal p{font:14px/1.5 system-ui;margin:0 auto 10px;max-width:780px}
+.cms-source-footer-legal img{max-width:155px;max-height:45px;vertical-align:middle;margin-left:8px}
+.cms-source-footer-network{background:#000;color:#fff;padding:50px 22px 60px;font:14px/1.55 system-ui}
+.cms-source-footer-network-inner{max-width:1000px;margin:auto}
+.cms-source-footer-network img{display:block;max-width:185px;max-height:90px;object-fit:contain;margin:0 0 26px}
+.cms-source-footer-network p{color:#a1a1a1;margin:0 0 32px;max-width:650px;font:14px/1.5 system-ui}
+.cms-source-regional summary{display:flex;justify-content:center;align-items:center;gap:14px;font:500 19px/1.5 system-ui;list-style:none;cursor:pointer;margin:15px auto}
+.cms-source-regional summary::-webkit-details-marker{display:none}
+.cms-source-regional summary:after{content:"⌄";font-size:30px;line-height:.75}
+.cms-source-regional nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 26px}
+.cms-source-regional nav a{color:#fff;text-decoration:none;font:14px/1.5 system-ui;overflow-wrap:anywhere}
+.cms-source-footer:not(.cms-source-footer--publisher){margin-top:30px}
+.cms-source-footer--publisher{margin-top:0;padding:0;background:transparent}
+.cms-source-banner{position:static;max-width:none;border-radius:0;box-shadow:none;padding:5px 10px;justify-content:center;font-size:10px;background:#172440;color:#fff;opacity:1}
+.cms-source-banner span{display:inline;opacity:.7}
+.cms-source-breadcrumb{min-width:0;overflow:hidden}
+.cms-source-breadcrumb a,.cms-source-breadcrumb span{min-width:0}
+.cms-source-breadcrumb a{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:720px){
+ .cms-source-head-inner{padding:12px 16px;grid-template-columns:38px minmax(0,1fr) 72px;min-height:77px}
+ .cms-source-brand img{max-width:160px;max-height:44px}
+ .cms-source-head-end{gap:11px}
+ .cms-source-trends-inner{gap:25px;padding:9px 14px}
+ .cms-source-breadcrumb{padding-top:22px;margin:0 0 30px;gap:8px}
+ .cms-source-article{padding:0 17px 38px}
+ .cms-source-article h1{font-size:clamp(28px,7.1vw,36px)}
+ .cms-source-footer-top{padding:26px 25px}
+ .cms-source-social{gap:13px}
+ .cms-source-social a{width:35px;height:35px;min-width:35px}
+ .cms-source-footer-legal{padding:22px 20px}
+ .cms-source-footer-network{padding:50px 22px}
+ .cms-source-footer-network img{max-width:170px}
+ .cms-source-regional nav{grid-template-columns:1fr;gap:10px}
+}
 </style>
 
 <?php if($css!==''):?><style id="source-design-style"><?=$css?></style><?php endif;?>
@@ -175,12 +268,42 @@ body{margin:0;background:#fff;color:#090e20;font:17px/1.65 system-ui,-apple-syst
 <?php if($og&&cms_rich_url($og)):?><img class="cms-cover" src="<?=sp_h(cms_rich_url($og))?>" alt=""><?php endif;?>
 <?=sp_content((string)$article['content_json'])?>
 </article>
-<?php if($design):?><footer class="cms-source-footer"><div class="cms-source-footer-inner">
-<?php if($footerLinks):?><nav aria-label="A forrásoldal láblécmenüje">
-<?php foreach($footerLinks as $item):if(!is_array($item))continue;?>
-<a href="<?=sp_h((string)($item['url']??'#'))?>" target="_blank" rel="noopener noreferrer"><?=sp_h((string)($item['label']??''))?></a>
-<?php endforeach;?></nav><?php endif;?>
+<?php if($design||$isMagyarNemzet):?>
+<?php if($socialLinks||$footerActions):?>
+<section class="cms-source-footer-top"><div class="cms-source-footer-top-inner">
+<?php if($socialLinks):?><div class="cms-source-social-box">
+<h2><?=sp_h($socialTitle)?></h2>
+<nav class="cms-source-social" aria-label="A forrásoldal közösségi csatornái">
+<?php foreach($socialLinks as $item):if(!is_array($item))continue;
+ $label=(string)($item['label']??'');$href=cms_rich_url((string)($item['url']??''));if(!$href)continue;
+ $symbol=['facebook'=>'f','instagram'=>'◎','x'=>'𝕏','twitter'=>'𝕏','videa'=>'V','youtube'=>'▶','rss'=>'◔','tiktok'=>'♪','linkedin'=>'in'][$label!==''?mb_strtolower($label):'']??'↗';?>
+<a href="<?=sp_h($href)?>" title="<?=sp_h($label)?>" aria-label="<?=sp_h($label)?>" target="_blank" rel="noopener noreferrer"><span><?=sp_h($symbol)?></span></a>
+<?php endforeach;?></nav></div><?php endif;?>
+<?php if($footerActions):?><nav class="cms-source-footer-actions" aria-label="Hírlevél és előfizetés">
+<?php foreach($footerActions as $item):if(!is_array($item))continue;$href=cms_rich_url((string)($item['url']??''));if(!$href)continue;?>
+<a href="<?=sp_h($href)?>" target="_blank" rel="noopener noreferrer"><?=sp_h((string)($item['label']??''))?></a>
+<?php endforeach;?></nav><?php endif;?></div></section><?php endif;?>
+<footer class="cms-source-footer cms-source-footer--publisher">
+<?php if($isMagyarNemzet):?><div class="cms-source-footer-legal">
+<p><?=sp_h('A Magyar Nemzet kiadója a Mediaworks Hungary Zrt. © Minden jog fenntartva')?></p>
+<p>© <?=date('Y')?> <img src="https://magyarnemzet.hu/assets/images/logo-mno-slightblue.svg" alt="Magyar Nemzet"></p>
+</div>
+<?php else:?><div class="cms-source-footer-legal">
 <?php if(!empty($design['copyright'])):?><p><?=sp_h((string)$design['copyright'])?></p>
 <?php elseif(!empty($design['footer_text'])):?><p><?=sp_h((string)$design['footer_text'])?></p><?php endif;?>
-</div></footer><?php endif;?>
+</div><?php endif;?>
+<?php if($footerLinks&&!$isMagyarNemzet):?><div class="cms-source-footer-inner"><nav aria-label="A forrásoldal láblécmenüje">
+<?php foreach($footerLinks as $item):if(!is_array($item))continue;$href=cms_rich_url((string)($item['url']??''));if(!$href)continue;?>
+<a href="<?=sp_h($href)?>" target="_blank" rel="noopener noreferrer"><?=sp_h((string)($item['label']??''))?></a>
+<?php endforeach;?></nav></div><?php endif;?>
+</footer>
+<?php if($publisherLogo||$publisherText||$regionals):?><section class="cms-source-footer-network" aria-label="Kiadói portfólió"><div class="cms-source-footer-network-inner">
+<?php if($publisherLogo&&cms_rich_url($publisherLogo)):?><img src="<?=sp_h(cms_rich_url($publisherLogo))?>" alt="A kiadó logója"><?php endif;?>
+<?php if($publisherText):?><p><?=sp_h($publisherText)?></p><?php endif;?>
+<?php if($regionals):?><details class="cms-source-regional" open><summary>Regionális hírportálok</summary><nav>
+<?php foreach($regionals as $item):if(!is_array($item))continue;$href=cms_rich_url((string)($item['url']??''));if(!$href)continue;?>
+<a href="<?=sp_h($href)?>" target="_blank" rel="noopener noreferrer"><?=sp_h((string)($item['label']??''))?></a>
+<?php endforeach;?></nav></details><?php endif;?>
+</div></section><?php endif;?>
+<?php endif;?>
 </body></html>
