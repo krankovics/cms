@@ -86,7 +86,20 @@ if($isMagyarNemzet){
   ['label'=>'Békés - beol.hu','url'=>'https://www.beol.hu'],
   ['label'=>'Borsod-Abaúj-Zemplén - boon.hu','url'=>'https://www.boon.hu'],
   ['label'=>'Csongrád - delmagyar.hu','url'=>'https://www.delmagyar.hu'],
-  ['label'=>'Dunaújváros - duol.hu','url'=>'https://www.duol.hu']];
+  ['label'=>'Dunaújváros - duol.hu','url'=>'https://www.duol.hu'],
+  ['label'=>'Fejér - feol.hu','url'=>'https://www.feol.hu'],
+  ['label'=>'Győr-Moson-Sopron - kisalfold.hu','url'=>'https://www.kisalfold.hu'],
+  ['label'=>'Hajdú-Bihar - haon.hu','url'=>'https://www.haon.hu'],
+  ['label'=>'Heves - heol.hu','url'=>'https://www.heol.hu'],
+  ['label'=>'Jász-Nagykun-Szolnok - szoljon.hu','url'=>'https://www.szoljon.hu'],
+  ['label'=>'Komárom-Esztergom - kemma.hu','url'=>'https://www.kemma.hu'],
+  ['label'=>'Nógrád - nool.hu','url'=>'https://www.nool.hu'],
+  ['label'=>'Somogy - sonline.hu','url'=>'https://www.sonline.hu'],
+  ['label'=>'Szabolcs-Szatmár-Bereg - szon.hu','url'=>'https://www.szon.hu'],
+  ['label'=>'Tolna - teol.hu','url'=>'https://www.teol.hu'],
+  ['label'=>'Vas - vaol.hu','url'=>'https://www.vaol.hu'],
+  ['label'=>'Veszprém - veol.hu','url'=>'https://www.veol.hu'],
+  ['label'=>'Zala - zaol.hu','url'=>'https://www.zaol.hu']];
 }
 
 
