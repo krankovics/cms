@@ -88,7 +88,7 @@ try{
  assert(guestLoginHtml.includes('pub-reader-form'),'Enabled reader login must show a native login and registration form.');
  const csrfValue=guestLoginHtml.match(/name="csrf" value="([^"]+)"/)?.[1];
  assert(csrfValue,'Reader form should carry a valid server-side CSRF token.');
- const invalidCsrf=await admin.request.post(base+'/reader-auth.php',{form:{site:'test-2',action:'register',csrf:'bad-token'}},{maxRedirects:0});
+ const invalidCsrf=await admin.request.post(base+'/reader-auth.php',{form:{site:'test-2',action:'register',csrf:'bad-token'},maxRedirects:0});
  assert.equal(invalidCsrf.status(),403,'Reader registration must reject forged CSRF tokens.');
  const registered=await admin.request.post(base+'/reader-auth.php',{form:{site:'test-2',action:'register',csrf:csrfValue,display_name:'Tesztolvasó',email:'fresh-test@example.invalid',password:'AnExamplePassword2026!'},maxRedirects:0});
  assert.equal(registered.status(),303,'Native reader registration must redirect after success.');
