@@ -84,11 +84,11 @@ function pub_href(string $url,string $slug):string{
  if(preg_match('~^/article/([a-z0-9_-]+)$~i',$url,$m))return $base.'&article='.rawurlencode($m[1]);
  return $url;
 }
-function pub_article_list(PDO $pdo,int $siteId,string $slug,int $limit,string $section,bool $preview,string $termType='category'):array{
+function pub_article_list(PDO $pdo,int $siteId,string $slug,int $limit,string $section,bool $preview,string $termType='category',int $offset=0):array{
  $scope='(a.site_id=? OR EXISTS(SELECT 1 FROM article_sites link WHERE link.article_id=a.id AND link.site_id=?))';
  $filter=$preview?'':" AND a.status='published' AND (a.published_at IS NULL OR a.published_at<=NOW())";
  if($section!=='')$filter.=" AND EXISTS(SELECT 1 FROM article_terms at JOIN taxonomy_terms tt ON tt.id=at.term_id WHERE at.article_id=a.id AND tt.type=? AND tt.slug=? AND tt.site_id IN (0,?))";
- $sql='SELECT a.id,a.title,a.slug,a.`lead`,a.status,a.published_at,a.updated_at,m.og_image_url FROM articles a LEFT JOIN article_meta m ON m.article_id=a.id WHERE '.$scope.$filter.' ORDER BY COALESCE(a.published_at,a.updated_at) DESC,a.id DESC LIMIT '.max(1,min(30,$limit));
+ $sql='SELECT a.id,a.title,a.slug,a.`lead`,a.status,a.published_at,a.updated_at,m.og_image_url FROM articles a LEFT JOIN article_meta m ON m.article_id=a.id WHERE '.$scope.$filter.' ORDER BY COALESCE(a.published_at,a.updated_at) DESC,a.id DESC LIMIT '.max(1,min(30,$limit)).' OFFSET '.max(0,min(150,$offset));
  $q=$pdo->prepare($sql);$q->execute($section!==''?[$siteId,$siteId,$termType,$section,$siteId]:[$siteId,$siteId]);return $q->fetchAll();
 }
 function pub_blocks(string $json):void{
@@ -124,11 +124,11 @@ function pub_blocks(string $json):void{
 $themeColor=preg_match('/^#[0-9a-f]{6}$/i',$settings['accent_color'])?$settings['accent_color']:'#325de6';
 $title=$searchMode?('Keresés: '.$searchQuery.' | '.$site['name']):($article?($article['title'].' | '.$site['name']):(($staticPage['title']??$term['name']??($readerLogin?'Bejelentkezés':$site['name'])).' | '.$site['name']));
 $staffUser=user();
-$staffHref=$staffUser?'/profile.php':'/login.php';
-$staffLabel=$staffUser?'Szerkesztőségi profil':'Szerkesztőségi bejelentkezés';
+$staffHref=!empty($settings['reader_accounts_enabled'])?cms_native_site_url($siteSlug,$preview).'&login=1':($preview&&$staffUser?'/profile.php':'');
+$staffLabel=!empty($settings['reader_accounts_enabled'])?'Olvasói fiók':'Szerkesztőségi profil';
 ?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?=pub_h($title)?></title><meta name="robots" content="noindex,nofollow"><meta name="description" content="<?=pub_h($article['seo_description']??$settings['site_description'])?>">
-<link rel="stylesheet" href="/assets/public.css"><link rel="stylesheet" href="/assets/native-chrome.css?v=1"><?php if(in_array($appearanceHost,['magyarnemzet.hu','www.magyarnemzet.hu'],true)):?><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;800&display=swap"><?php endif;?><?php if($appearance):?><link rel="stylesheet" href="/assets/site-appearance.css"><?php endif;?><style>:root{--pub-accent:<?=pub_h($themeColor)?>}</style><?php if($appearanceCss!==''):?><style id="assigned-appearance-css"><?=$appearanceCss?></style><?php endif;?></head><body class="<?=$appearance?'pub-source-themed':''?><?=in_array($appearanceHost,['magyarnemzet.hu','www.magyarnemzet.hu'],true)?' pub-source-mno':''?>">
+<link rel="stylesheet" href="/assets/public.css"><link rel="stylesheet" href="/assets/native-chrome.css?v=1"><?php if(in_array($appearanceHost,['magyarnemzet.hu','www.magyarnemzet.hu'],true)):?><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;800&display=swap"><?php endif;?><?php if($appearance):?><link rel="stylesheet" href="/assets/site-appearance.css"><?php endif;?><style>:root{--pub-accent:<?=pub_h($themeColor)?>}</style><?php if($appearanceCss!==''):?><style id="assigned-appearance-css"><?=$appearanceCss?></style><?php endif;?></head><body class="<?=$appearance?'pub-source-themed':''?><?=in_array($appearanceHost,['magyarnemzet.hu','www.magyarnemzet.hu'],true)?' pub-source-mno':''?> pub-kind-<?=pub_h($kind)?>">
 <?php if($preview):?><div class="pub-preview-bar">Szerkesztői előnézet · Nem nyilvános kiadás <a href="/builder.php?site_id=<?=$siteId?>&amp;template=<?=pub_h($kind)?>">Vissza az oldalépítőhöz</a></div><?php endif;?>
 <header class="pub-header <?=$appearance?'cms-source-header':''?>">
 <div class="pub-header-inner <?=$appearance?'pub-native-header':''?>">
@@ -136,7 +136,7 @@ $staffLabel=$staffUser?'Szerkesztőségi profil':'Szerkesztőségi bejelentkezé
 <form action="/public.php" method="get" role="search"><input type="hidden" name="site" value="<?=pub_h($siteSlug)?>"><?php if($preview):?><input type="hidden" name="preview" value="1"><?php endif;?><label for="pub-native-query">Keresés a <?=pub_h($site['name'])?> cikkeiben</label><div class="pub-native-search-fields"><input id="pub-native-query" type="search" name="q" required minlength="2" maxlength="100" value="<?=pub_h($searchQuery)?>" placeholder="Keresés a cikkek között…"><button type="submit">Keresés</button></div></form></details>
 <a class="pub-brand" href="<?=pub_h(cms_native_site_url($siteSlug,$preview))?>"><?php if($effectiveLogo):?><img src="<?=pub_h($effectiveLogo)?>" alt="<?=pub_h($site['name'])?>"><?php else:?><?=pub_h($site['name'])?><?php endif;?></a>
 <div class="pub-native-tools">
-<a class="pub-native-account" href="<?=pub_h($staffHref)?>" title="<?=pub_h($staffLabel)?>" aria-label="<?=pub_h($staffLabel)?>"><svg aria-hidden="true" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M4 21v-3a8 8 0 0 1 16 0v3"/></svg></a>
+<?php if($staffHref!==''):?><a class="pub-native-account" href="<?=pub_h($staffHref)?>" title="<?=pub_h($staffLabel)?>" aria-label="<?=pub_h($staffLabel)?>"><svg aria-hidden="true" width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M4 21v-3a8 8 0 0 1 16 0v3"/></svg></a><?php endif;?>
 <details class="pub-native-menu"><summary title="Menü" aria-label="Menü megnyitása"><svg aria-hidden="true" width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg></summary>
 <nav aria-label="Webhely főmenüje"><?php foreach($menu as $entry):?><a href="<?=pub_h(cms_native_href($entry['url'],$siteSlug,$preview))?>"><?=pub_h($entry['label'])?></a><?php endforeach;?></nav></details>
 </div></div>
@@ -149,7 +149,7 @@ $staffLabel=$staffUser?'Szerkesztőségi profil':'Szerkesztőségi bejelentkezé
 <?php if($searchResults):?><div class="pub-search-result-list"><?php foreach($searchResults as $result):?><a class="pub-search-result" href="<?=pub_h(cms_native_site_url($siteSlug,$preview).'&article='.rawurlencode($result['slug']))?>"><?php if(!empty($result['og_image_url'])):?><img src="<?=pub_h($result['og_image_url'])?>" loading="lazy" alt=""><?php endif;?><span><strong><?=pub_h($result['title'])?></strong><small><?=pub_h(mb_substr((string)($result['lead']??''),0,220))?></small></span></a><?php endforeach;?></div>
 <?php else:?><p>Nem található a keresésnek megfelelő cikk. Próbálj másik kifejezést!</p><?php endif;?></section>
 <?php else:?>
-<?php foreach($layout as $block):$type=$block['type']??'';$sectionTitle=trim((string)($block['title']??''));$count=max(1,min(30,(int)($block['limit']??10)));$columns=max(1,min(4,(int)($block['columns']??3)));?>
+<?php foreach($layout as $block):$type=$block['type']??'';$sectionTitle=trim((string)($block['title']??''));$count=max(1,min(30,(int)($block['limit']??10)));$columns=max(1,min(4,(int)($block['columns']??3)));$offset=max(0,min(150,(int)($block['offset']??0)));?>
 <?php if($type==='hero'):?><section class="pub-hero"><div class="pub-hero-inner"><p class="pub-eyebrow"><?=pub_h($site['name'])?></p><h1><?=pub_h($article['title']??($staticPage['title']??$term['name']??$sectionTitle?:$site['name']))?></h1><?php if(!empty($block['text'])):?><p><?=pub_h($block['text'])?></p><?php endif;?></div></section>
 <?php elseif($type==='text'):?><section class="pub-section pub-text"><?php if($sectionTitle):?><h2><?=pub_h($sectionTitle)?></h2><?php endif;?><p><?=nl2br(pub_h((string)($block['text']??'')))?></p></section>
 <?php elseif($type==='image'&&!empty($block['image_url'])):?><section class="pub-section pub-image"><?php if($sectionTitle):?><h2><?=pub_h($sectionTitle)?></h2><?php endif;?><img src="<?=pub_h((string)$block['image_url'])?>" loading="lazy" alt="<?=pub_h($sectionTitle)?>"></section>
@@ -160,7 +160,7 @@ $staffLabel=$staffUser?'Szerkesztőségi profil':'Szerkesztőségi bejelentkezé
 <?php else:?><h2>Cikkelőnézet</h2><p>Válassz egy cikket a nyitóoldalról az éles cikksablon megtekintéséhez.</p><?php endif;?></section>
 <?php elseif($type==='latest'):?>
 <section class="pub-section"><h2><?=pub_h($sectionTitle?:'Legfrissebb cikkek')?></h2>
-<?php $listedArticles=pub_article_list($pdo,$siteId,$siteSlug,$count,in_array($kind,['section','tag'],true)?$termSlug:'',$preview,$termType);?>
+<?php $listedArticles=pub_article_list($pdo,$siteId,$siteSlug,$count,in_array($kind,['section','tag'],true)?$termSlug:'',$preview,$termType,$offset);?>
 <?php if(!$listedArticles):?><div class="pub-no-articles"><p><?=$preview?'Még nincs ehhez a webhelyhez rendelt cikk.':'Még nincsenek publikált cikkek ezen a webhelyen.'?></p>
 <?php if($preview):?><p>A piszkozatok is megjelennek, ha ehhez a webhelyhez vannak rendelve.</p><a href="/sites.php?edit=<?=$siteId?>">Korábbi importált cikkek hozzárendelése ↗</a><?php endif;?>
 </div><?php endif;?>
