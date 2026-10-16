@@ -35,7 +35,9 @@ function cms_source_design_menu(DOMXPath $xpath,DOMElement $node,string $source)
 }
 function cms_source_design_extract(string $html,string $source):array{
  $fallback=['name'=>strtolower((string)parse_url($source,PHP_URL_HOST)),'logo_url'=>'',
-  'header_links'=>[],'topic_links'=>[],'footer_links'=>[],'footer_text'=>'','copyright'=>''];
+  'header_links'=>[],'topic_links'=>[],'footer_links'=>[],'footer_text'=>'','copyright'=>'',
+  'social_title'=>'','social_links'=>[],'footer_actions'=>[],
+  'publisher_logo_url'=>'','publisher_text'=>'','regional_links'=>[]];
  if(strlen($html)>3500000||!class_exists(DOMDocument::class))return $fallback;
  $doc=new DOMDocument('1.0','UTF-8');$prior=libxml_use_internal_errors(true);
  $doc->loadHTML('<?xml encoding="utf-8"?>'.$html,LIBXML_NONET|LIBXML_NOERROR|LIBXML_NOWARNING);
@@ -43,9 +45,17 @@ function cms_source_design_extract(string $html,string $source):array{
  $xpath=new DOMXPath($doc);
  // Explicit publisher identity beats arbitrary visible logo text.
  $name=cms_source_design_text((string)$xpath->evaluate('string(//meta[translate(@property,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz")="og:site_name"]/@content)'),100);
+ if($name==='')$name=cms_source_design_text((string)$xpath->evaluate('string(//header//img[contains(translate(@class,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"logo")]/@alt)'),100);
  if($name==='')$name=cms_source_design_text((string)$xpath->evaluate('string(//header//*[contains(translate(@class,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"logo")][1]/@aria-label)'),100);
- if($name==='')$name=cms_source_design_text((string)$xpath->evaluate('string(//title)'),100);
- if($name!=='')$fallback['name']=preg_replace('/\s+[|–—-]\s+.+$/u','',$name);
+ $name=preg_replace('/\s+(?:logo|logó)(?:\s+.*)?$/iu','',$name);
+ // Article <title> often starts with the ARTICLE TITLE, not the publisher.
+ // Never use it as the site identity in navigation or a wordmark.
+ if($name===''){
+  $hostName=(string)parse_url($source,PHP_URL_HOST);
+  $name=ucfirst(preg_replace('/^www\./i','',$hostName));
+ }
+ if(in_array(strtolower((string)parse_url($source,PHP_URL_HOST)),['magyarnemzet.hu','www.magyarnemzet.hu'],true))$name='Magyar Nemzet';
+ if($name!=='')$fallback['name']=$name;
  // Logo: header and site-logo elements only, never the article's OG cover.
  $logos=$xpath->query('//header//img | //a[contains(translate(@class,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"logo")]//img | //img[contains(translate(@class,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"site-logo")]');
  foreach($logos as $img){
@@ -133,11 +143,62 @@ function cms_source_design_extract(string $html,string $source):array{
    if($plain!=='')$fallback['footer_text']=$plain;
   }
  }
+
+ // A publisher footer is more than a flat list of legal links. Collect
+ // social channels, prominent actions and the separate publisher network.
+ // Only text and HTTP(S) URLs are persisted; source scripts are never replayed.
+ $social=[];$actions=[];
+ foreach($footers as $footerNode){
+  if(!$footerNode instanceof DOMElement)continue;
+  foreach($xpath->query('.//a[@href]',$footerNode) as $a){
+   if(!$a instanceof DOMElement)continue;
+   $href=cms_source_design_url($a->getAttribute('href'),$source);
+   if($href==='')continue;
+   $label=cms_source_design_text($a->getAttribute('title')?:($a->getAttribute('aria-label')?:$a->textContent),100);
+   if(preg_match('/^(?:facebook|instagram|twitter|x|youtube|videa|rss|tiktok|linkedin|pinterest)$/iu',$label)){
+    $social[mb_strtolower($label)]=['label'=>$label==='Twitter'?'X':$label,'url'=>$href];
+   }elseif(preg_match('/(?:feliratkoz|előfizet|subscribe|newsletter|subscription)/iu',$label)&&count($actions)<4){
+    $actions[mb_strtolower($label)]=['label'=>$label,'url'=>$href];
+   }
+  }
+  if(count($social)>=8)break;
+ }
+ $fallback['social_links']=array_slice(array_values($social),0,8);
+ $fallback['footer_actions']=array_slice(array_values($actions),0,4);
+ $socialHeading=(string)$xpath->evaluate('string(//footer//*[self::h2 or self::h3 or self::h4][contains(translate(., "ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"közösségi")][1])');
+ $fallback['social_title']=cms_source_design_text($socialHeading,170);
+ if($fallback['social_title']===''&&$social)$fallback['social_title']='Kövess minket a közösségi médiában';
+ $regional=[];$publisherText='';$publisherLogo='';
+ foreach($xpath->query('//*[contains(translate(@class,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"mwf-portfolio-link")][self::a][@href]') as $a){
+  if(!$a instanceof DOMElement)continue;
+  $link=cms_source_design_url($a->getAttribute('href'),$source);
+  $label=cms_source_design_text($a->textContent,90);
+  if($link!==''&&$label!=='')$regional[$link]=['label'=>$label,'url'=>$link];
+  if(count($regional)>=32)break;
+ }
+ foreach($xpath->query('//img[contains(translate(@src,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"mwf_logo_mediaworks") or contains(translate(@alt,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"mediaworks")]') as $img){
+  if(!$img instanceof DOMElement)continue;
+  $publisherLogo=cms_source_design_url($img->getAttribute('src')?:$img->getAttribute('data-src'),$source);
+  if($publisherLogo!=='')break;
+ }
+ foreach($xpath->query('//*[contains(translate(@class,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"mwf-portfolio-description") or contains(translate(@class,"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"),"mwf-portfolio-text")]') as $node){
+  $publisherText=cms_source_design_text($node->textContent,650);
+  if($publisherText!=='')break;
+ }
+ if($publisherText===''){
+  foreach($xpath->query('//p[contains(., "Portfóliónk") or contains(., "portfolio")]') as $node){
+   $publisherText=cms_source_design_text($node->textContent,650);
+   if($publisherText!=='')break;
+  }
+ }
+ $fallback['publisher_logo_url']=$publisherLogo;
+ $fallback['publisher_text']=$publisherText;
+ $fallback['regional_links']=array_values($regional);
  return $fallback;
 }
 /** DOM-derived metadata only. A manually curated design is never overwritten. */
 function cms_source_design_merge(array $page,array $home):array{
- foreach(['name','logo_url','header_links','topic_links','footer_links','footer_text','copyright'] as $key){
+ foreach(['name','logo_url','header_links','topic_links','footer_links','footer_text','copyright','social_title','social_links','footer_actions','publisher_logo_url','publisher_text','regional_links'] as $key){
   if($key==='name'){
    if(!empty($home[$key]))$page[$key]=$home[$key];
   }elseif(!empty($home[$key]))$page[$key]=$home[$key];
