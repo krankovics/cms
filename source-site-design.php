@@ -59,13 +59,16 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   $logoRaw=trim((string)($_POST['logo_url']??''));
   $logo=$logoRaw===''?'':cms_source_design_url($logoRaw,$url);
   if($logoRaw!==''&&$logo==='')throw new RuntimeException('Érvénytelen logó URL.');
-  $design=[
+  // Keep automatically extracted, safe chrome fields when an admin reviews
+  // publisher name, logo and menus. Do not erase social and network data.
+  $design=is_array($profile['site_design']??null)?$profile['site_design']:[];
+  $design=array_merge($design,[
    'name'=>$name,'logo_url'=>$logo,
    'header_links'=>sd_parse_links((string)($_POST['header_links']??''),$url,14),
    'footer_links'=>sd_parse_links((string)($_POST['footer_links']??''),$url,10),
    'footer_text'=>cms_source_design_text((string)($_POST['footer_text']??''),420),
    'copyright'=>cms_source_design_text((string)($_POST['copyright']??''),240)
-  ];
+  ]);
   $current=cms_source_style_read($site,$url);
   if(!$current)throw new RuntimeException('A forrásarculat időközben nem található.');
   $current['site_design']=$design;
