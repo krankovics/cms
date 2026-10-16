@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS site_templates (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
  site_id BIGINT UNSIGNED NOT NULL,
- template_key ENUM('home','section','article') NOT NULL,
+ template_key ENUM('home','section','tag','article','page','login') NOT NULL,
  draft_json LONGTEXT NOT NULL,
  published_json LONGTEXT NULL,
  revision_number INT UNSIGNED NOT NULL DEFAULT 0,
