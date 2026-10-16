@@ -46,9 +46,25 @@ try{
 }
 $kindLabels=['home'=>'Nyitóoldal','section'=>'Rovatoldal','tag'=>'Címkeoldal','article'=>'Cikkoldal','page'=>'Statikus oldal','login'=>'Olvasói belépés'];
 $readOnly=!$flags['builder_enabled']||!$schemaReady;
+$previewArgs=['site'=>(string)($selected['slug']??''),'preview'=>'1','template'=>$kind];
+if(in_array($kind,['section','tag'],true)){
+ try{
+  $type=$kind==='tag'?'tag':'category';
+  $t=$pdo->prepare('SELECT slug FROM taxonomy_terms WHERE site_id IN (0,?) AND type=? ORDER BY site_id DESC,id LIMIT 1');
+  $t->execute([$site,$type]);
+  $previewSlug=$t->fetchColumn();
+  if($previewSlug)$previewArgs[$kind==='tag'?'tag':'section']=$previewSlug;
+ }catch(PDOException $e){error_log('builder page sample: '.$e->getMessage());}
+}
+if($kind==='page'){
+ try{$t=$pdo->prepare('SELECT slug FROM site_pages WHERE site_id=? ORDER BY id LIMIT 1');$t->execute([$site]);$sample=$t->fetchColumn();if($sample)$previewArgs['page']=$sample;}
+ catch(PDOException $e){error_log('builder page sample: '.$e->getMessage());}
+}
+if($kind==='login')$previewArgs['login']='1';
+$previewUrl='/public.php?'.http_build_query($previewArgs);
 ?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Oldalépítő | comesy</title><link rel="stylesheet" href="/assets/ui.css"><link rel="stylesheet" href="/assets/builder.css"><script src="/assets/ui.js" defer></script><script src="/assets/builder.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
 <main class="ui-page ui-builder-page" id="main-content">
-<header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Vizuális megjelenés</p><h1 class="ui-page-title">Oldalépítő</h1><p class="ui-page-description">Szerkeszthető komponensek, reszponzív előnézet, külön mentés és publikálás.</p></div><div class="ui-page-actions"><a class="ui-btn ui-btn-secondary" href="/public.php?site=<?=h($selected['slug']??'')?>&amp;preview=1&amp;template=<?=h($kind)?>" target="_blank" rel="noopener">Előnézet ↗</a></div></header>
+<header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Vizuális megjelenés</p><h1 class="ui-page-title">Oldalépítő</h1><p class="ui-page-description">Szerkeszthető komponensek, reszponzív előnézet, külön mentés és publikálás.</p></div><div class="ui-page-actions"><a class="ui-btn ui-btn-secondary" href="<?=h($previewUrl)?>" target="_blank" rel="noopener">Előnézet ↗</a></div></header>
 <?php if($error):?><p class="ui-notice error" role="alert"><?=h($error)?></p><?php endif;?>
 <?php if(isset($_GET['saved'])):?><p class="ui-notice success" role="status"><?=h($_GET['saved']==='publish'?'A sablon új verziója publikálva.':($_GET['saved']==='menu'?'A navigáció mentve.':'A sablon változásait elmentettük.'))?></p><?php endif;?>
 <?php if($readOnly):?><p class="ui-notice" role="status">Ezen a webhelyen az oldalépítő ki van kapcsolva. A korábban publikált frontend változatlanul működik. <?php if($u['role']==='platform_admin'):?><a href="/sites.php?edit=<?=$site?>">Funkció bekapcsolása a webhelybeállításoknál</a><?php endif;?></p><?php endif;?>
@@ -66,7 +82,7 @@ $readOnly=!$flags['builder_enabled']||!$schemaReady;
 </form>
 </section>
 <aside class="ui-builder-aside">
-<section class="ui-panel"><h2>Előnézet</h2><p class="ui-page-description">A tartalom a jelenleg mentett vagy publikált cikkekből épül.</p><div class="ui-builder-viewport"><button type="button" data-builder-width="100%" aria-pressed="true">Desktop</button><button type="button" data-builder-width="768px" aria-pressed="false">Tablet</button><button type="button" data-builder-width="390px" aria-pressed="false">Mobil</button></div><div class="ui-builder-frame-wrap"><iframe id="builder-preview-frame" src="/public.php?site=<?=h($selected['slug']??'')?>&amp;preview=1&amp;template=<?=h($kind)?>" title="Kiadói sablon előnézete" loading="lazy"></iframe></div><button type="button" class="ui-btn ui-btn-secondary" data-builder-refresh>Előnézet frissítése</button></section>
+<section class="ui-panel"><h2>Előnézet</h2><p class="ui-page-description">A tartalom a jelenleg mentett vagy publikált cikkekből épül.</p><div class="ui-builder-viewport"><button type="button" data-builder-width="100%" aria-pressed="true">Desktop</button><button type="button" data-builder-width="768px" aria-pressed="false">Tablet</button><button type="button" data-builder-width="390px" aria-pressed="false">Mobil</button></div><div class="ui-builder-frame-wrap"><iframe id="builder-preview-frame" src="<?=h($previewUrl)?>" title="Kiadói sablon előnézete" loading="lazy"></iframe></div><button type="button" class="ui-btn ui-btn-secondary" data-builder-refresh>Előnézet frissítése</button></section>
 <section class="ui-panel"><h2>Verziótörténet</h2><?php if(!$revisions):?><p class="ui-page-description">Még nincs mentett sablon.</p><?php endif;?>
 <?php foreach($revisions as $rev):?><form method="post" class="ui-builder-revision" onsubmit="return confirm('Ebből a verzióból új piszkozat készüljön?')"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="site_id" value="<?=$site?>"><input type="hidden" name="template" value="<?=h($kind)?>"><input type="hidden" name="action" value="restore"><input type="hidden" name="revision" value="<?=(int)($record['revision_number']??0)?>"><input type="hidden" name="revision_id" value="<?=(int)$rev['id']?>"><strong>#<?=(int)$rev['revision_number']?> · <?=h($rev['event'])?></strong><small><?=h($rev['created_at'])?> · <?=h($rev['editor']??'Rendszer')?></small><button type="submit" class="ui-btn ui-btn-secondary" <?=$readOnly?'disabled':''?>>Visszaállítás</button></form><?php endforeach;?></section>
 </aside></div>
