@@ -92,6 +92,10 @@ try{
  assert(previewBody.includes('Fotó: Tesztszerkesztőség'),'Imported photo credit must survive source preview.');
  assert(previewBody.includes('class="cms-source-header"')&&previewBody.includes('class="cms-source-footer"'),'Imported draft should render publisher header and footer.');
  assert(previewBody.includes('Forrás Napilap')&&previewBody.includes('Belföld')&&previewBody.includes('Impresszum'),'Source logo identity, navigation and legal footer must be present.');
+ assert(previewBody.includes('cms-source-breadcrumb'),'Saved preview must include source-page breadcrumb.');
+ assert(previewBody.indexOf('<h1>')<previewBody.indexOf('class="cms-cover"'),'Headline must precede featured cover image in source-page preview.');
+ assert(previewBody.includes('cms-source-menu-toggle'),'The category menu must be collapsed instead of occupying the whole mobile screen.');
+
  assert(!previewBody.includes('<script>'),'Saved preview should not emit executable scripts.');
  assert((await admin.locator('#source-style-label').innerText()).includes('source-example.invalid'),'Editor should recognize the original source design profile.');
  const siteDesignContext=await browser.newContext({viewport:{width:1366,height:850}});
@@ -124,6 +128,7 @@ try{
  assert(await popup.locator('iframe[sandbox]').count()===1,'Preview must open in new tab with isolated iframe.');
  assert((await popup.locator('h1').innerText()).includes('Szerkesztői gazdag tartalom próba'),'Preview must use unsaved article title.');
  assert(await popup.locator('.cms-source-header').count()===1&&await popup.locator('.cms-source-footer').count()===1,'Unsaved article preview includes publisher global site shell.');
+ assert(await popup.locator('.cms-source-menu-toggle').count()===1,'Unsaved preview must use compact source menu drawer.');
  await popup.close();
  await admin.locator('.ed-rich-canvas').evaluate(el=>{
   const node=[...el.querySelectorAll('p')][0].firstChild;
