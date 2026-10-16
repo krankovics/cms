@@ -71,7 +71,11 @@ function cms_template_family_seed(PDO $pdo,int $siteId,int $actor,array $profile
   $count=$pdo->prepare('SELECT COUNT(*) FROM site_menu_items WHERE site_id=?');
   $count->execute([$siteId]);
   if((int)$count->fetchColumn()===0){
-   $menus=[['Nyitóoldal','/'],['Belföld','/section/belfold'],['Magyar Péter','/tag/magyar-peter'],['Impresszum','/page/impresszum']];
+   $menus=[['Nyitóoldal','/']];
+   if(in_array($host,['magyarnemzet.hu','www.magyarnemzet.hu'],true)){
+    $menus[]=['Belföld','/section/belfold'];$menus[]=['Magyar Péter','/tag/magyar-peter'];
+   }
+   $menus[]=['Impresszum','/page/impresszum'];
    if($readerEnabled)$menus[]=['Bejelentkezés','/bejelentkezes'];
    $ins=$pdo->prepare('INSERT INTO site_menu_items(site_id,label,url,position,active) VALUES(?,?,?,?,1)');
    foreach($menus as $n=>$m)$ins->execute([$siteId,$m[0],$m[1],$n]);
