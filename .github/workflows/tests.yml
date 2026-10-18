@@ -39,6 +39,8 @@ jobs:
           node --check assets/admin-pages-v2.js
           node --check assets/builder.js
           node --check assets/ad-external.js
+          node --check assets/ad-external-page.js
+          node tests/ad-external-page.mjs
           node tests/theme-contrast.mjs
           sh -n import-worker.sh
           sh import-worker.sh --check
