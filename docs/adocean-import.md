@@ -159,3 +159,17 @@ SDK / MASTER / ad-request / creative-detected / no-creative statuses.
 The iframe load event alone is no longer reported as a delivered advertisement.
 Automated browser tests simulate cookie access and eval without making an
 AdOcean ad impression. This does NOT alter production publisher ad delivery.
+
+### Mobile preview and truthful creative statuses
+
+The dedicated editor preview no longer treats a successful iframe `load`,
+AdOcean tracking pixels, 1×1 beacons or any unrelated image as a rendered
+advertisement. A visible, meaningful image/video/canvas/background/text inside
+the chosen LEAF is required. A large cross-origin creative iframe is reported
+as **unverified** rather than guaranteed visible.
+
+The test frame computes a presentation-only scale factor for oversized
+desktop creatives (such as 970×250) and resizes the outer editor frame via
+authenticated-by-channel postMessage. This does not change actual AdOcean
+campaign size, targeting, or the production frontend's CSS. A desktop-only
+campaign may still serve no creative on mobile.
