@@ -87,7 +87,7 @@ $config=json_encode(['server'=>$server,'master'=>$masterCode,'leaf'=>$leafCode,'
  }
 })();
 </script>
-<script src="/assets/ad-external-preview-detect.js?v=1"></script>
+<script><?=file_get_contents(__DIR__.'/assets/ad-external-preview-detect.js')?></script>
 <script src="https://<?=htmlspecialchars($server,ENT_QUOTES,'UTF-8')?>/files/js/ado.js"></script>
 <script>
 (function(){
