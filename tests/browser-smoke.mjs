@@ -159,6 +159,49 @@ try{
  assert((await updatedPreview.text()).includes('Kézzel jóváhagyott kiadó'),'Approved publisher shell must persist on the saved draft.');
  await siteDesignEditor.goto(base+'/sites.php?edit=1');
  assert((await siteDesignEditor.locator('#source-template-id option').count())>=3,'Collected appearance templates must be selectable in Webhelyek.');
+ // The source template used to nest a second <form> inside the site editor,
+ // causing browsers to detach the final save button from its parent form.
+ const templateOption=await siteDesignEditor.locator('#source-template-id option').nth(1).getAttribute('value');
+ assert(templateOption,'Fixture must offer an imported source template.');
+ await siteDesignEditor.locator('#source-template-id').selectOption(templateOption);
+ await Promise.all([
+  siteDesignEditor.waitForURL(/\/sites\.php\?edit=1&saved=1/),
+  siteDesignEditor.locator('[data-site-save-button]').click()
+ ]);
+ assert((await siteDesignEditor.locator('#site-save-feedback').innerText()).includes('sikeresen mentettük'),
+  'Site editor must confirm saving near its edit form.');
+ assert.equal(await siteDesignEditor.locator('[data-site-save-button]').evaluate(el=>el.form?.id),
+  'site-edit-form','Main save button must belong to the site edit form even with a source template.');
+ assert.equal(await siteDesignEditor.locator('#site-edit-form form').count(),0,
+  'Site editor must never contain a nested form.');
+ assert.equal(await siteDesignEditor.locator('#site-family-generate-form').count(),1,
+  'Template family action should have its own external form.');
+ const adsFlag=siteDesignEditor.locator('#site-edit-form input[name="ad_slots_enabled"]');
+ const originalFlag=await adsFlag.isChecked();
+ await adsFlag.setChecked(!originalFlag);
+ assert((await siteDesignEditor.locator('#site-save-feedback').innerText()).includes('Nem mentett'),
+  'Changing website functions should clearly mark them as unsaved.');
+ await Promise.all([
+  siteDesignEditor.waitForURL(/\/sites\.php\?edit=1&saved=1/),
+  siteDesignEditor.locator('[data-site-save-button]').click()
+ ]);
+ assert.equal(await siteDesignEditor.locator('#site-edit-form input[name="ad_slots_enabled"]').isChecked(),!originalFlag,
+  'Checkbox settings must persist after saving.');
+ assert(await siteDesignEditor.locator('#site-save-feedback.success').isVisible(),
+  'Successful checkbox save must display a visible status message inside the editor.');
+ const siteName=siteDesignEditor.locator('#site-edit-form input[name="name"]');
+ const validName=await siteName.inputValue();
+ await siteName.fill('');
+ await siteDesignEditor.locator('[data-site-save-button]').click();
+ assert((await siteDesignEditor.locator('#site-save-feedback').innerText()).includes('nem indult el'),
+  'Invalid form submit must show a visible error.');
+ await siteName.fill(validName);
+ // Restore fixture's original ad flag so unrelated tests stay isolated.
+ await siteDesignEditor.locator('#site-edit-form input[name="ad_slots_enabled"]').setChecked(originalFlag);
+ await Promise.all([
+  siteDesignEditor.waitForURL(/\/sites\.php\?edit=1&saved=1/),
+  siteDesignEditor.locator('[data-site-save-button]').click()
+ ]);
  await siteDesignContext.close();
 
 
