@@ -206,7 +206,7 @@ $jsonFlags=JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_A
 <section class="pub-section pub-ad pub-adocean" aria-label="Hirdetési pozíció"><p>Hirdetés</p>
 <?php if($preview):?>
 <div class="pub-adocean-preview">AdOcean pozíció: LEAF #<?=(int)($block['external_leaf_id']??0)?>, MASTER #<?=(int)($block['external_master_id']??0)?>.</div>
-<?php if(isset($externalSlots['slots'][$layoutIndex]))):?>
+<?php if(isset($externalSlots['slots'][$layoutIndex])):?>
 <?php $adPreviewArgs=['site_id'=>$siteId,'external_import_id'=>(int)($block['external_import_id']??0),'external_folder_id'=>(int)($block['external_folder_id']??0),'external_master_id'=>(int)($block['external_master_id']??0),'external_leaf_id'=>(int)($block['external_leaf_id']??0)];?>
 <div class="pub-adocean-test-controls" data-ao-preview-control>
 <label><input type="checkbox" data-ao-preview-consent> Engedélyezem a külső AdOcean-tesztkérés indítását ebben a szerkesztői előnézetben. A szolgáltató cookie-kat és más követő technikákat használhat.</label>
