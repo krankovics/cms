@@ -52,3 +52,11 @@ a{color:inherit}a:focus-visible,button:focus-visible{outline:3px solid var(--pub
 .pub-rich-content audio{display:block;max-width:100%;width:100%;margin:18px 0}
 .pub-rich-content a{color:var(--pub-accent)}
 @media(max-width:520px){.pub-rich-content iframe{min-height:240px}.pub-rich-content th,.pub-rich-content td{padding:9px;font-size:13px}}
+
+/* AdOcean placeholders are first-party layout elements, never iframe embeds. */
+.pub-adocean{display:block;max-width:1200px;margin-inline:auto}
+.pub-adocean>p{font:600 11px/1.4 system-ui,sans-serif;color:var(--pub-muted);text-align:center;margin:0 0 8px}
+.pub-adocean-container{min-height:70px;max-width:100%;margin:0 auto;display:flex;justify-content:center;align-items:start;overflow:hidden}
+.pub-adocean-container>div{max-width:100%}
+.pub-adocean-preview{border:1px dashed var(--pub-border);background:var(--pub-card);color:var(--pub-muted);border-radius:10px;padding:28px 16px;text-align:center;font-size:13px}
+@media(max-width:767px){.pub-adocean{padding:18px 12px}.pub-adocean-container{min-height:56px}}

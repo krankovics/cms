@@ -101,6 +101,37 @@ $q->execute([$external]);$mapping=$q->fetch();
 ok($mapping&&(int)$mapping['enabled']===0&&$mapping['site_id']===null,'Imported external inventory must be unmapped and disabled.');
 $q=$pdo->prepare('SELECT COUNT(*) FROM ad_external_nodes WHERE import_id=?');
 $q->execute([$external]);ok((int)$q->fetchColumn()===4,'External inventory must preserve every node.');
+// AdOcean page blocks must be inert by default and bound to mapped sites.
+require_once dirname(__DIR__).'/app/layouts.php';
+require_once dirname(__DIR__).'/app/ad-external-placements.php';
+$externalBlock=[
+ 'type'=>'adocean','title'=>'Címlapi hirdetési hely','external_import_id'=>$external,
+ 'external_folder_id'=>10,'external_master_id'=>11,'external_leaf_id'=>12
+];
+$pdo->prepare('UPDATE ad_external_sites SET site_id=? WHERE id=?')->execute([$sites[0],$mapping['id']]);
+$options=cms_external_editor_options($pdo,$sites[0]);
+ok(count($options)===1&&count($options[0]['masters'])===1&&count($options[0]['leaves'])===1,'Builder must show only site-owned AdOcean inventory.');
+ok(cms_external_editor_options($pdo,$sites[1])===[],'Unrelated site must not see external inventory.');
+$json=cms_layout_validate(json_encode([$externalBlock],JSON_THROW_ON_ERROR),'home');
+$validatedBlock=json_decode($json,true)[0];
+ok($validatedBlock['external_leaf_id']===12&&$validatedBlock['external_master_id']===11,'Layout roundtrip must preserve AdOcean IDs.');
+cms_external_validate_template($pdo,$sites[0],$json);
+$off=cms_external_page_slots($pdo,$sites[0],[$validatedBlock],true);
+ok($off['groups']===[],'Disabled AdOcean source may not deliver a public position.');
+$pdo->prepare('UPDATE ad_external_sites SET enabled=1 WHERE id=?')->execute([$mapping['id']]);
+$on=cms_external_page_slots($pdo,$sites[0],[$validatedBlock],true);
+ok(count($on['groups'])===1&&$on['groups'][0]['master_node']===11&&
+ count($on['groups'][0]['positions'])===1&&$on['groups'][0]['positions'][0]['nodeId']===12,
+ 'Enabled site-owned MASTER/SLAVE block must resolve for published frontend.');
+ok(cms_external_page_slots($pdo,$sites[1],[$validatedBlock],true)['groups']===[],'Other site must never serve AdOcean blocks.');
+ok(cms_external_page_slots($pdo,$sites[0],[$validatedBlock],false)['groups']===[],'Global site ad-disable must suppress external positions.');
+$wrong=$externalBlock;$wrong['external_master_id']=9999;
+$threw=false;try{cms_external_validate_template($pdo,$sites[0],cms_layout_validate(json_encode([$wrong],JSON_THROW_ON_ERROR),'home'));}
+catch(RuntimeException $e){$threw=true;}
+ok($threw,'Nonmatching MASTER must be rejected during template save.');
+$pdo->prepare('UPDATE ad_external_sites SET enabled=0 WHERE id=?')->execute([$mapping['id']]);
+ok(cms_external_page_slots($pdo,$sites[0],[$validatedBlock],true)['groups']===[],
+ 'Revoking mapping must immediately stop previously published AdOcean placement.');
 // Native advertiser, campaign and site-scoped creatives.
 $q=$pdo->prepare('INSERT INTO ad_advertisers(site_id,name) VALUES(?,?)');
 $q->execute([$sites[0],'Teszt hirdető']);$adv=(int)$pdo->lastInsertId();
@@ -185,7 +216,7 @@ $q=$pdo->prepare('SELECT COUNT(*),MAX(duration_ms) FROM import_item_metrics WHER
 ok((int)$metricRow[0]===1&&(int)$metricRow[1]===22,'Retry must upsert one metrics row instead of duplicating it.');
 $q=$pdo->prepare('SELECT status FROM articles WHERE id=?');
 $q->execute([$first['article_id']]);ok($q->fetchColumn()==='draft','Imported article must remain draft.');
-require dirname(__DIR__).'/app/layouts.php';
+require_once dirname(__DIR__).'/app/layouts.php';
 $pdo->prepare('UPDATE sites SET settings_json=? WHERE id=?')->execute([json_encode(['builder_enabled'=>true,'accent_color'=>'#325de6']),$sites[0]]);
 $initialLayout=cms_default_layout('home');
 $initialJson=json_encode($initialLayout,JSON_UNESCAPED_UNICODE);

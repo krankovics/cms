@@ -7,8 +7,11 @@ const layoutInput=form.querySelector('[name="layout_json"]');
 let items;try{items=JSON.parse(layoutInput.value)}catch(e){items=[];}
 if(!Array.isArray(items))items=[];
 const list=document.getElementById('builder-block-list');
+let adInventory=[];
+try{adInventory=JSON.parse(document.getElementById('builder-ad-inventory')?.textContent||'[]')}catch(_){}
+if(!Array.isArray(adInventory))adInventory=[];
 let dirty=false;
-const texts={hero:'Hero',latest:'Cikklista',text:'Szöveg',image:'Kép',ad:'Hirdetési hely',article:'Cikktartalom',page_body:'Statikus oldaltartalom',reader_form:'Olvasói bejelentkezés'};
+const texts={hero:'Hero',latest:'Cikklista',text:'Szöveg',image:'Kép',ad:'Saját hirdetési zóna',adocean:'AdOcean pozíció',article:'Cikktartalom',page_body:'Statikus oldaltartalom',reader_form:'Olvasói bejelentkezés'};
 const esc=(s)=>String(s??'');
 const field=(name,value,kind='text')=>{
  const label=document.createElement('label');label.className='ui-builder-field';
@@ -28,6 +31,52 @@ const field=(name,value,kind='text')=>{
  });
  label.append(input);return label;
 };
+function externalEditor(item){
+ const container=document.createElement('div');container.className='ui-builder-external';
+ if(!adInventory.length){
+  const info=document.createElement('p');info.className='ui-page-description';
+  info.textContent='Ehhez a webhelyhez még nincs AdOcean-forrás rendelve. Előbb rendeld hozzá az AdOcean importnál.';
+  container.append(info);return container;
+ }
+ const makeSelect=(title,values,selected,onChange)=>{
+  const label=document.createElement('label');label.className='ui-builder-field';
+  const heading=document.createElement('span');heading.textContent=title;
+  const select=document.createElement('select');select.disabled=readOnly;
+  for(const choice of values){
+   const opt=document.createElement('option');opt.value=String(choice.value);
+   opt.textContent=choice.label;opt.disabled=!!choice.disabled;select.append(opt);
+  }
+  select.value=String(selected);
+  select.addEventListener('change',()=>{onChange(select.value);dirty=true;render();});
+  label.append(heading,select);return label;
+ };
+ const key=String(item.external_import_id||0)+':'+String(item.external_folder_id||0);
+ const group=adInventory.find(g=>g.import_id+':'+g.folder_id===key);
+ container.append(makeSelect('AdOcean forráswebhely',[
+  {value:'0:0',label:'Válassz forráswebhelyet'},
+  ...adInventory.map(g=>({value:g.import_id+':'+g.folder_id,
+   label:g.name+' (#'+g.import_id+')'+(g.enabled?'':' · inaktív')}))
+ ],group?key:'0:0',value=>{
+  const match=adInventory.find(g=>g.import_id+':'+g.folder_id===value);
+  item.external_import_id=match?.import_id||0;item.external_folder_id=match?.folder_id||0;
+  item.external_master_id=0;item.external_leaf_id=0;
+ }));
+ if(!group)return container;
+ const master=group.masters.find(x=>x.id===Number(item.external_master_id||0));
+ container.append(makeSelect('MASTER (önálló LEAF-nél nincs)',[
+  {value:0,label:'Nincs MASTER, önálló pozíció'},
+  ...group.masters.map(x=>({value:x.id,label:x.name+' (#'+x.id+')'+(x.active?'':' · inaktív')}))
+ ],master?master.id:0,value=>{item.external_master_id=Number(value);item.external_leaf_id=0;}));
+ const matching=group.leaves.filter(x=>master?(x.slave&&x.master_code===master.master_code):!x.slave);
+ container.append(makeSelect('LEAF hirdetési pozíció',[
+  {value:0,label:'Válassz pozíciót'},
+  ...matching.map(x=>({value:x.id,label:x.name+' (#'+x.id+')'+(x.active?'':' · inaktív')}))
+ ],matching.some(x=>x.id===Number(item.external_leaf_id))?item.external_leaf_id:0,
+ value=>{item.external_leaf_id=Number(value);}));
+ const status=document.createElement('p');status.className='ui-page-description';
+ status.textContent='Az előnézet csak üres hirdetési helyet mutat. Az AdOcean kód kizárólag éles, engedélyezett webhelyen, CMP-hozzájárulás után tölthető be.';
+ container.append(status);return container;
+}
 function render(){
  list.replaceChildren();
  items.forEach((item,index)=>{
@@ -49,6 +98,7 @@ function render(){
   if(['hero','text'].includes(item.type))body.append(field('text',item.text||'','textarea'));
   if(item.type==='image')body.append(field('image_url',item.image_url||'','url'));
   if(item.type==='ad')body.append(field('zone',item.zone||''));
+   if(item.type==='adocean')body.append(externalEditor(item));
   if(['latest'].includes(item.type))body.append(field('limit',item.limit||10,'number'));
   if(['latest'].includes(item.type))body.append(field('columns',item.columns||2,'number'));
   if(['latest'].includes(item.type))body.append(field('offset',item.offset||0,'number'));
@@ -70,7 +120,7 @@ document.querySelector('[data-builder-add]')?.addEventListener('click',()=>{
  if(items.length>=30){alert('Legfeljebb 30 komponens lehet.');return;}
  const type=document.getElementById('builder-new-type').value;
  if(!texts[type])return;
- const block={type,title:'',text:'',columns:type==='latest'?3:1,limit:10,zone:'',image_url:'',offset:0};
+ const block={type,title:'',text:'',columns:type==='latest'?3:1,limit:10,zone:'',image_url:'',offset:0,external_import_id:0,external_folder_id:0,external_master_id:0,external_leaf_id:0};
  items.push(block);dirty=true;render();list.lastElementChild?.scrollIntoView({behavior:'smooth',block:'nearest'});
 });
 form.addEventListener('submit',event=>{

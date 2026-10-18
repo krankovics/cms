@@ -7,7 +7,7 @@
  const sdkByServer=new Map(),rendered=new Set(),masters=new Set();
  let initialized=false;
  const safeId=id=>Number.isSafeInteger(Number(id))&&Number(id)>0;
- const baseDefault='https://cms.8media.hu';
+ const baseDefault=window.location.origin;
  function loadSdk(server){
   if(sdkByServer.has(server))return sdkByServer.get(server);
   if(!/^[a-z0-9-]+(?:\.[a-z0-9-]+)*\.adocean\.pl$/.test(server))return Promise.reject(new Error('Unknown AdOcean server'));

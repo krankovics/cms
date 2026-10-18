@@ -63,3 +63,8 @@ body.comesy-admin .ui-builder-menu-toggle input{width:19px;height:19px;accent-co
  body.comesy-admin .ui-builder-actions>.ui-btn{flex:1}
  body.comesy-admin #builder-preview-frame{height:520px}
 }
+/* Explicit AdOcean source -> MASTER -> LEAF inventory selection. */
+body.comesy-admin .ui-builder-external{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+body.comesy-admin .ui-builder-external .ui-builder-field select{min-height:43px;border:1px solid var(--ui-border);border-radius:9px;background:var(--ui-surface);color:var(--ui-text);font-size:16px;min-width:0;width:100%;padding:9px}
+body.comesy-admin .ui-builder-external>.ui-page-description{grid-column:1/-1;margin:0;color:var(--ui-text-secondary);font-size:12px}
+@media(max-width:980px){body.comesy-admin .ui-builder-external{grid-template-columns:1fr}}

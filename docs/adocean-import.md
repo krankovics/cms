@@ -79,3 +79,31 @@ Browser CORS allows the HTTPS origin whose hostname matches `sites.domain` (with
 - `php -l ad-external.php ad-external-feed.php app/ad-external-import.php`: PHP syntax (run each file separately).
 
 Official reference: [AdOcean user manual, section 4.2.4.2: Master-Slave codes](https://int.adocean-global.com/adman/manual/AO_manual_en.pdf).
+
+
+## Native comesy page-builder integration (next phase)
+
+Use \`/builder.php?site_id=...&template=home\` or article/section/tag:
+select **AdOcean pozíció**, choose an explicitly mapped source publication,
+then a MASTER and one of its LEAF nodes. Standalone LEAFs use **Nincs MASTER**.
+The editor stores import snapshot, folder, MASTER and LEAF IDs as typed references
+and rejects references belonging to a different site or unrelated MASTER.
+
+Save a draft and view the page in **Előnézet**: you will only see a neutral placeholder.
+Publish when the layout is correct. Production \`/public.php\` returns a position
+only while the mapping, nodes and site's **Hirdetési pozíciók** feature are enabled.
+
+**CMP integration remains explicit:** nothing is fetched from AdOcean on page load,
+even for already published templates. The publisher's consent handler must call:
+
+\`\`\`js
+await window.comesyAdOceanPage.activate({consentGranted: true});
+\`\`\`
+
+only after the CMP explicitly confirms appropriate purposes and vendor authorization.
+A consent withdrawal must be handled by the CMP and generally requires reloading
+the page to stop existing provider scripts. Existing iframe-native comesy advertising
+remains a separate system. Domain-level routing, cache, canonical URLs, SEO,
+CMP, vendor contracts and production adserver verification are required before
+using a branded live publication domain. The \`public.php\` staging URLs
+continue to send \`noindex, nofollow\`.

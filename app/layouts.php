@@ -23,7 +23,7 @@ function cms_layout_validate(string $json,string $kind):string{
  foreach($blocks as $b){
   if(!is_array($b))throw new RuntimeException('Érvénytelen komponens.');
   $type=(string)($b['type']??'');
-  if(!in_array($type,['hero','latest','text','image','ad','article','page_body','reader_form'],true))throw new RuntimeException('Ismeretlen oldalkomponens.');
+  if(!in_array($type,['hero','latest','text','image','ad','adocean','article','page_body','reader_form'],true))throw new RuntimeException('Ismeretlen oldalkomponens.');
   if(($type==='article'&&$kind!=='article')||($type==='page_body'&&$kind!=='page')||($type==='reader_form'&&$kind!=='login'))throw new RuntimeException('A cikkkomponens csak cikkoldalon használható.');
   $title=trim((string)($b['title']??''));$text=trim((string)($b['text']??''));
   if(mb_strlen($title)>190||mb_strlen($text)>3000)throw new RuntimeException('A komponens szövege túl hosszú.');
@@ -33,7 +33,12 @@ function cms_layout_validate(string $json,string $kind):string{
   if(strlen($zone)>100)throw new RuntimeException('Érvénytelen hirdetési zónakód.');
   $url=trim((string)($b['image_url']??''));
   if(strlen($url)>1000||($url!==''&&(!filter_var($url,FILTER_VALIDATE_URL)||!in_array(parse_url($url,PHP_URL_SCHEME),['https','http'],true))))throw new RuntimeException('Érvénytelen képhivatkozás.');
-  $clean[]=['type'=>$type,'title'=>$title,'text'=>$text,'columns'=>$cols,'limit'=>$limit,'offset'=>$offset,'zone'=>$zone,'image_url'=>$url];
+  $cleanBlock=['type'=>$type,'title'=>$title,'text'=>$text,'columns'=>$cols,'limit'=>$limit,'offset'=>$offset,'zone'=>$zone,'image_url'=>$url];
+  if($type==='adocean'){
+   require_once __DIR__.'/ad-external-placements.php';
+   $cleanBlock=array_merge($cleanBlock,cms_external_layout_reference($b));
+  }
+  $clean[]=$cleanBlock;
  }
  return json_encode($clean,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
 }
@@ -45,7 +50,7 @@ function cms_template_save(PDO $pdo,array $user,int $site,string $kind,string $a
  if(!$row)throw new RuntimeException('A webhely nem található.');
  if(!cms_site_settings($row)['builder_enabled'])throw new RuntimeException('Az oldalépítő ezen a webhelyen ki van kapcsolva.');
  if(!in_array($action,['save','publish','restore'],true))throw new RuntimeException('Ismeretlen sablonművelet.');
- if(!in_array($kind,['home','section','article'],true))throw new RuntimeException('Ismeretlen oldalsablon.');
+ if(!in_array($kind,['home','section','tag','article','page','login'],true))throw new RuntimeException('Ismeretlen oldalsablon.');
  $pdo->beginTransaction();
  try{
   $q=$pdo->prepare('SELECT * FROM site_templates WHERE site_id=? AND template_key=? FOR UPDATE');$q->execute([$site,$kind]);
@@ -58,6 +63,8 @@ function cms_template_save(PDO $pdo,array $user,int $site,string $kind,string $a
    $json=(string)$restore;
   }
   $json=cms_layout_validate($json,$kind);
+  require_once __DIR__.'/ad-external-placements.php';
+  cms_external_validate_template($pdo,$site,$json);
   $next=$current+1;
   if($template){
    $sql=$action==='publish'?'UPDATE site_templates SET draft_json=?,published_json=?,published_at=NOW(),updated_by=?,revision_number=? WHERE id=?':'UPDATE site_templates SET draft_json=?,updated_by=?,revision_number=? WHERE id=?';
