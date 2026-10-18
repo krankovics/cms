@@ -34,6 +34,13 @@ Az [eredeti, 2026. október 14-i végleges kiadói CMS specifikáció](https://d
 - `/ad-click.php?id=1`: csak aktív kreatív cél URL-jére mutató kattintási átirányítás.
 - Szerepkörök és audit. A teljes adserver, viewability/frequency cap és bevétel-elszámolás még fejlesztendő.
 
+### AdOcean inventory import (külön, inaktív modul)
+
+- `/ad-external.php`: AdOcean `nodes_*.xlsx` fájlok validált FOLDER/MASTER/LEAF importja és forráswebhely–comesy webhely hozzárendelése.
+- Az import változatlan forrásazonosítókat és MASTER/SLAVE kapcsolatokat őriz; azonos fájl újraimportálása nem duplikál. Minden új forráswebhely **inaktív**, manuális aktiválás szükséges.
+- `/ad-external-feed.php` + `/assets/ad-external.js`: kizárólag engedélyezett webhelyekről ad ki pozícióazonosítókat, és a külső adserver csak explicit CMP-hozzájárulás után indul a kiadói oldal közös JS-környezetében.
+- **Nem** importál AdOcean kampányt vagy elszámolást. Éles működéshez külön DB-migráció, kiadói integráció és teszt szükséges. Részletek: [AdOcean import](docs/adocean-import.md).
+
 ### Importközpont, első működő szelet
 
 - `/imports.php`: egy URL, RSS/Atom, sitemap, sitemapből teljes oldal felderítése, max. 10 cikkes demó feladatsor.
