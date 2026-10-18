@@ -61,3 +61,9 @@
 
 
 /* comesy Admin v2 components live in admin-v2.css, admin-pages-v2.css and admin-secondary-v2.css. */
+
+/* Webhelyfunkciók mentési visszajelzése, az űrlap mellett. */
+.ui-site-save-feedback{margin:12px 0 18px;border:1px solid var(--line);border-radius:9px;padding:12px;font-size:14px;line-height:1.5}
+.ui-site-save-feedback:not(.success):not(.error){background:var(--surface);color:var(--ink)}
+.ui-site-save-feedback[hidden]{display:none!important}
+.ui-site-save-pending{border-color:var(--blue)}
