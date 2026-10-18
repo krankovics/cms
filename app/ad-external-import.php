@@ -84,7 +84,8 @@ function external_validate_nodes(array $rows):array {
   $byId[$id]=$row;$counts[$type]++;
  }
  $folderFor=[];$resolving=[];
- $resolve=function(string $id)use(&$resolve,&$folderFor,&$resolving,$byId):int{
+ $resolve=function(string|int $id)use(&$resolve,&$folderFor,&$resolving,$byId):int{
+  $id=(string)$id;
   if(array_key_exists($id,$folderFor))return $folderFor[$id];
   if(isset($resolving[$id]))throw new RuntimeException('Körkörös node-hierarchia: '.$id);
   $resolving[$id]=true;$row=$byId[$id];$parent=(string)$row['parent id'];
