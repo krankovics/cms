@@ -107,3 +107,36 @@ remains a separate system. Domain-level routing, cache, canonical URLs, SEO,
 CMP, vendor contracts and production adserver verification are required before
 using a branded live publication domain. The \`public.php\` staging URLs
 continue to send \`noindex, nofollow\`.
+
+
+## Opt-in real creative preview (editor-only)
+
+Open **Oldalépítő → Előnézet** on a site with **Natív hirdetési zónák**
+enabled and an active AdOcean source assignment. The saved draft's
+AdOcean block shows the expected MASTER/LEAF IDs. Tick the explicit
+AdOcean network-request authorization checkbox, then click
+**Valódi AdOcean-hirdetés megjelenítése**.
+
+This creates a sandboxed, authenticated \`ad-external-preview.php\` iframe
+containing only the validated provider server and source ID. It uses
+\`ado.config({mode:'new', ...})\`, \`ado.preview({enabled:true})\`, then
+the MASTER and the chosen LEAF (or standalone placement).
+
+- No third-party ad SDK is requested on initial editorial preview load.
+- The ad is rendered within the **opaque-origin iframe** with scripts enabled,
+  not in the authenticated admin page. This iframe deliberately omits
+  \`allow-same-origin\`.
+- Server checks current user permission, source mapping, site ownership,
+  node activity and MASTER/LEAF relationship before writing any tags.
+- The provider's **Live Preview** option may support uncounted campaign
+  previews when configured in the AdOcean account; ordinary active campaign
+  ads can still be eligible and count normally. Never assume all test
+  impressions are excluded from billing or statistics.
+- The preview may be empty when no creative targets the comesy domain,
+  device, location, or account. Empty creative is not the same as broken
+  inventory. Browser blockers or CSP may also prevent delivery.
+- This is per-placement **diagnostic preview**, not an exact test of page-wide
+  Surround coordination. Production deployment continues to require proper
+  page-level CMP gating via \`comesyAdOceanPage.activate(...)\`.
+
+Tests use a mock AdOcean SDK; they never contact a real provider.
