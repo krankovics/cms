@@ -5,8 +5,11 @@
   sdk_ready:'Az AdOcean JavaScript-könyvtár betöltődött.',
   master_ready:'Az AdOcean MASTER inicializálása sikerült.',
   request_started:'Az AdOcean hirdetéskérése elindult. Kreatívra várunk…',
-  creative_detected:'Az AdOcean kreatívot helyezett el a tesztkeretben.',
-  no_creative:'Az AdOcean kérés elindult, de nem jelent meg kreatív. Lehetséges ok: kampánycélzás, AdOcean-beállítás vagy böngészőblokkolás.',
+  creative_visible:'Látható AdOcean-kreatív jelent meg a hirdetési pozícióban.',
+  creative_container:'Hirdetési iframe érkezett. A kreatív megjelenése még nem igazolt.',
+  creative_unverified:'Hirdetési iframe érkezett, de nem tudjuk igazolni, hogy látható kreatív van benne.',
+  detector_error:'A kreatív láthatóságának ellenőrzése nem futott le.',
+  no_creative:'A LEAF pozícióban nem jelent meg látható kreatív. Lehetséges ok: mobilos kampánycélzás, AdOcean-beállítás vagy böngészőblokkolás.',
   sdk_error:'Nem sikerült betölteni az AdOcean JavaScript-könyvtárát.',
   master_error:'Az AdOcean MASTER indítása sikertelen. Ellenőrizd a böngésző konzolját.',
   render_error:'A LEAF kreatív indítása hibára futott. Ellenőrizd a böngésző konzolját.'
@@ -47,10 +50,22 @@
      const message=event.data;
      if(!message||message.type!=='comesy-adocean-preview'||message.channel!==channel)return;
      if(!Object.prototype.hasOwnProperty.call(states,message.phase))return;
+     if(message.phase==='layout'){
+      const h=Number(message.details?.height);
+      if(Number.isFinite(h))iframe.style.height=Math.max(180,Math.min(850,h))+'px';
+      const width=Number(message.details?.original_width),scale=Number(message.details?.scale);
+      if(Number.isFinite(width)&&width>0&&Number.isFinite(scale)&&scale<100){
+       control.dataset.adWidth=String(Math.round(width));
+       control.dataset.adScale=String(Math.round(scale));
+      }
+      return;
+     }
+     if(phase==='creative_visible'&&message.phase!=='creative_visible')return;
      phase=message.phase;
-     status.textContent=states[phase];
-     if(phase==='creative_detected')button.textContent='AdOcean kreatív észlelve';
-     if(phase.endsWith('_error')||phase==='no_creative')button.textContent='AdOcean teszt befejezve';
+     const isScaled=control.dataset.adScale&&Number(control.dataset.adScale)<100;
+     status.textContent=states[phase]+(phase==='creative_visible'&&isScaled?' (Mobilnézethez '+control.dataset.adScale+'%-ra kicsinyítve.)':'');
+     if(phase==='creative_visible')button.textContent='AdOcean kreatív látható';
+     if(phase.endsWith('_error')||phase==='no_creative'||phase==='creative_unverified')button.textContent='AdOcean teszt befejezve';
     };
     window.addEventListener('message',handler);
     iframe.addEventListener('load',()=>{
@@ -67,7 +82,7 @@
       button.textContent='AdOcean teszt nem indult';
      }
      window.removeEventListener('message',handler);
-    },16000);
+    },25000);
    });
   });
  }
