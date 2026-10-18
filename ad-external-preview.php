@@ -57,8 +57,9 @@ $config=json_encode(['server'=>$server,'master'=>$masterCode,'leaf'=>$leafCode,'
 ?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AdOcean próba · LEAF #<?=(int)$valid['leaf_node_id']?></title>
 <style>*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#334155;font:12px/1.5 system-ui,sans-serif}
-.preview-ad{max-width:100%;min-height:90px;display:flex;justify-content:center;align-items:flex-start;overflow:hidden}
-.preview-ad>div{max-width:100%}#preview-status{padding:8px 10px;text-align:center;background:#f1f5f9;color:#475569}
+.preview-ad{position:relative;width:100%;min-height:90px;display:block;overflow:hidden}
+#preview-stage{position:absolute;top:0;left:0;width:max-content;max-width:none;transform-origin:top left}
+#preview-stage>div{max-width:none}#preview-status{padding:8px 10px;text-align:center;background:#f1f5f9;color:#475569}
 </style>
 <script>
 // An opaque-origin sandbox is required to isolate advertising creatives from
@@ -86,13 +87,14 @@ $config=json_encode(['server'=>$server,'master'=>$masterCode,'leaf'=>$leafCode,'
  }
 })();
 </script>
+<script src="/assets/ad-external-preview-detect.js?v=1"></script>
 <script src="https://<?=htmlspecialchars($server,ENT_QUOTES,'UTF-8')?>/files/js/ado.js"></script>
 <script>
 (function(){
  var config=<?=$config?>;
  window.comesyPreviewConfig=config;
- window.comesyPreviewReport=function(phase){
-  if(config.channel)parent.postMessage({type:'comesy-adocean-preview',channel:config.channel,phase:phase},'*');
+ window.comesyPreviewReport=function(phase,details){
+  if(config.channel)parent.postMessage({type:'comesy-adocean-preview',channel:config.channel,phase:phase,details:details||{}},'*');
  };
  if(!window.ado||typeof window.ado.config!=='function'){
   window.comesyPreviewError='Az AdOcean könyvtár nem töltődött be.';
@@ -108,7 +110,7 @@ $config=json_encode(['server'=>$server,'master'=>$masterCode,'leaf'=>$leafCode,'
  }catch(e){window.comesyPreviewError='MASTER indítási hiba: '+(e.message||String(e));window.comesyPreviewReport('master_error');}
 })();
 </script></head><body>
-<div id="preview-ad" class="preview-ad"><div id="<?=htmlspecialchars($leafCode,ENT_QUOTES,'UTF-8')?>"></div></div>
+<div id="preview-ad" class="preview-ad"><div id="preview-stage"><div id="<?=htmlspecialchars($leafCode,ENT_QUOTES,'UTF-8')?>"></div></div></div>
 <div id="preview-status" role="status" aria-live="polite">Valódi AdOcean-teszt. A hirdetés megjelenése a kampánybeállításoktól is függ.</div>
 <script>
 (function(){
@@ -120,29 +122,24 @@ $config=json_encode(['server'=>$server,'master'=>$masterCode,'leaf'=>$leafCode,'
   else window.ado.placement({id:cfg.leaf,server:cfg.server});
   status.textContent='Az AdOcean kérés elindult. Kreatívválasz ellenőrzése…';
   window.comesyPreviewReport('request_started');
-  var observed=document.getElementById('preview-ad');
-  var delivered=false;
-  var hasCreative=function(){
-   if(!observed)return false;
-   if(observed.querySelector('img,iframe,object,video,canvas,svg'))return true;
-   if(observed.textContent.trim()!=='')return true;
-   return !!document.querySelector('img[src*="adocean.pl/"],iframe[src*="adocean.pl/"]');
-  };
-  var confirmCreative=function(){
-   if(delivered||!hasCreative())return;
-   delivered=true;
-   status.textContent='Hirdetési kreatív került a tesztkeretbe.';
-   window.comesyPreviewReport('creative_detected');
-  };
-  var observer=new MutationObserver(confirmCreative);
-  observer.observe(document.documentElement,{childList:true,subtree:true,characterData:true});
-  confirmCreative();
-  setTimeout(function(){
-   observer.disconnect();
-   if(delivered)return;
-   status.textContent='Az AdOcean kérés elindult, de 12 másodpercen belül nem jelent meg kreatív. Lehet, hogy nincs megfelelő kampány, vagy a böngésző blokkolja.';
-   window.comesyPreviewReport('no_creative');
-  },12000);
+  // Only visually meaningful elements INSIDE this LEAF count as creatives.
+  // Small impression pixels, analytics frames or SDK helper nodes must not
+  // produce a false green "creative" status.
+  if(window.comesyAdOceanPreviewDetect){
+   window.comesyAdOceanPreviewDetect.start({
+    slotId:cfg.leaf,
+    report:function(phase,details){
+     if(phase==='creative_visible')status.textContent='Látható hirdetési kreatív került a LEAF pozícióba.';
+     if(phase==='creative_container')status.textContent='Hirdetési iframe érkezett; a benne lévő kreatív még nem ellenőrizhető.';
+     if(phase==='creative_unverified')status.textContent='A hirdetéshez iframe érkezett, de a kreatív tényleges megjelenése nem igazolható.';
+     if(phase==='no_creative')status.textContent='12 másodpercen belül nem jelent meg látható kreatív ebben a LEAF pozícióban. Mobilos kampánycélzás vagy blokkolás is okozhatja.';
+     window.comesyPreviewReport(phase,details);
+    }
+   });
+  }else{
+   status.textContent='A kreatív láthatóságának ellenőrzése nem tölthető be.';
+   window.comesyPreviewReport('detector_error');
+  }
  }catch(e){status.textContent='AdOcean megjelenítési hiba: '+(e.message||String(e));window.comesyPreviewReport('render_error');}
 })();
 </script></body></html>
