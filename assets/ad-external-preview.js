@@ -49,7 +49,7 @@
      if(event.source!==iframe.contentWindow||event.origin!=='null')return;
      const message=event.data;
      if(!message||message.type!=='comesy-adocean-preview'||message.channel!==channel)return;
-     if(!Object.prototype.hasOwnProperty.call(states,message.phase))return;
+     if(message.phase!=='layout'&&!Object.prototype.hasOwnProperty.call(states,message.phase))return;
      if(message.phase==='layout'){
       const h=Number(message.details?.height);
       if(Number.isFinite(h))iframe.style.height=Math.max(180,Math.min(850,h))+'px';
