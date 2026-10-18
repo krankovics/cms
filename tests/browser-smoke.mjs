@@ -367,7 +367,7 @@ try{
  await admin.route('https://hu.adocean.pl/**',async route=>{
   providerCalls++;
   await route.fulfill({status:200,contentType:'application/javascript',body:
-   'window.ado={config(){},preview(){},master(){},slave(id){document.getElementById(id).textContent="CREATIVE_FROM_FAKE_ADOCEAN";},placement(){}};'
+   'window.ado={config(){},preview(){},master(){void document.cookie;void window.localStorage;},slave(id){new Function("id", "document.getElementById(id).textContent=\\"CREATIVE_FROM_FAKE_ADOCEAN\\";")(id);},placement(){}};'
   });
  });
  await admin.goto(base+'/public.php?site=test-0&preview=1&template=home',{waitUntil:'networkidle'});
@@ -383,6 +383,9 @@ try{
  assert.equal(await controls.locator('iframe').getAttribute('sandbox'),'allow-scripts allow-popups',
   'Ad preview must not have same-origin privileges.');
  await controls.frameLocator('iframe').locator('#slave-x').getByText('CREATIVE_FROM_FAKE_ADOCEAN').waitFor();
+ await controls.locator('[data-ao-preview-status]').getByText('Az AdOcean kreatívot helyezett el a tesztkeretben.').waitFor();
+ assert.equal(await controls.locator('iframe').getAttribute('sandbox'),'allow-scripts allow-popups',
+  'No same-origin escape permitted after AdOcean cookie support was added.');
  assert(providerCalls>=1,'Consented preview must fetch the AdOcean library.');
  const blockedOtherSite=await admin.request.get(base+'/ad-external-preview.php?site_id=2&external_import_id=1&external_folder_id=10&external_master_id=11&external_leaf_id=12');
  assert.equal(blockedOtherSite.status(),404,'Real ad preview must reject a cross-site placement.');
