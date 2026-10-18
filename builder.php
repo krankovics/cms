@@ -3,6 +3,7 @@ declare(strict_types=1);
 require __DIR__.'/app/bootstrap.php';
 require __DIR__.'/app/site-access.php';
 require __DIR__.'/app/layouts.php';
+require_once __DIR__.'/app/ad-external-placements.php';
 require_once __DIR__.'/app/template-family.php';
 $u=require_user();
 if(!in_array($u['role'],['platform_admin','site_admin','editor'],true)){http_response_code(403);exit('Nincs oldalépítő-hozzáférés.');}
@@ -37,6 +38,9 @@ $flags=cms_site_settings($selected??[]);
 $sourceAppearance=$selected?cms_design_template_for_site($selected):null;
 $sourceExamples=$sourceAppearance?cms_template_family_sources($sourceAppearance):[];
 $referenceUrl=(string)($sourceExamples[$kind]??'');
+$externalOptions=[];
+try{$externalOptions=cms_external_editor_options($pdo,$site);}
+catch(PDOException $e){error_log('builder external inventory: '.$e->getMessage());}
 $schemaReady=true;$record=null;$revisions=[];$menu=[];$layout=cms_default_layout($kind);
 try{
  $q=$pdo->prepare('SELECT * FROM site_templates WHERE site_id=? AND template_key=?');$q->execute([$site,$kind]);$record=$q->fetch();
@@ -80,8 +84,9 @@ $previewUrl='/public.php?'.http_build_query($previewArgs);
 <form method="post" id="builder-layout-form" data-builder-form data-readonly="<?=$readOnly?'1':'0'?>" data-template="<?=h($kind)?>">
 <input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="site_id" value="<?=$site?>"><input type="hidden" name="template" value="<?=h($kind)?>"><input type="hidden" name="revision" value="<?=(int)($record['revision_number']??0)?>">
 <input type="hidden" name="layout_json" value="<?=h(json_encode($layout,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR))?>">
+<script id="builder-ad-inventory" type="application/json"><?=json_encode($externalOptions,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR)?></script>
 <div id="builder-block-list" class="ui-builder-blocks"></div>
-<div class="ui-builder-add"><label for="builder-new-type">Komponens hozzáadása</label><select id="builder-new-type" <?=$readOnly?'disabled':''?>><option value="hero">Hero</option><option value="latest">Dinamikus cikklista</option><option value="text">Szövegdoboz</option><option value="image">Kép</option><option value="ad">Hirdetési zóna</option><?php if($kind==='article'):?><option value="article">Cikktartalom</option><?php endif;?><?php if($kind==='page'):?><option value="page_body">Statikus oldal tartalma</option><?php endif;?><?php if($kind==='login'):?><option value="reader_form">Olvasói bejelentkezés</option><?php endif;?></select><button type="button" class="ui-btn ui-btn-secondary" data-builder-add <?=$readOnly?'disabled':''?>>Hozzáadás</button></div>
+<div class="ui-builder-add"><label for="builder-new-type">Komponens hozzáadása</label><select id="builder-new-type" <?=$readOnly?'disabled':''?>><option value="hero">Hero</option><option value="latest">Dinamikus cikklista</option><option value="text">Szövegdoboz</option><option value="image">Kép</option><option value="ad">Saját hirdetési zóna</option><option value="adocean">AdOcean pozíció</option><?php if($kind==='article'):?><option value="article">Cikktartalom</option><?php endif;?><?php if($kind==='page'):?><option value="page_body">Statikus oldal tartalma</option><?php endif;?><?php if($kind==='login'):?><option value="reader_form">Olvasói bejelentkezés</option><?php endif;?></select><button type="button" class="ui-btn ui-btn-secondary" data-builder-add <?=$readOnly?'disabled':''?>>Hozzáadás</button></div>
 <div class="ui-builder-actions"><button type="submit" name="action" value="save" class="ui-btn ui-btn-secondary" <?=$readOnly?'disabled':''?>>Piszkozat mentése</button><button type="submit" name="action" value="publish" class="ui-btn ui-btn-primary" <?=$readOnly?'disabled':''?>>Sablon publikálása</button></div>
 </form>
 </section>
