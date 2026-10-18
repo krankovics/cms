@@ -37,6 +37,7 @@ jobs:
           node --check assets/editor.js
           node --check assets/ui.js
           node --check assets/admin-pages-v2.js
+          node --check assets/site-editor-form.js
           node --check assets/builder.js
           node --check assets/ad-external.js
           node --check assets/ad-external-page.js
