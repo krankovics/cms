@@ -334,6 +334,60 @@ try{
  await admin.goto(base+'/site-manage.php?site_id=1&tab=analytics',{waitUntil:'domcontentloaded'});
  assert.equal(await admin.locator('a[href="/ad-analytics.php?site_id=1"]').count(),1,'Publisher analytics must be linked.');
 
+ // Real AdOcean test preview: no third-party request until explicit click.
+ // CI intercepts provider JavaScript so the test never creates a genuine ad impression.
+ await admin.goto(base+'/ad-external.php?import_id=1',{waitUntil:'domcontentloaded'});
+ const mapForm=admin.locator('form').filter({has:admin.locator('input[name="map_id"]')}).first();
+ const mapId=await mapForm.locator('input[name="map_id"]').inputValue();
+ const mapCsrf=await mapForm.locator('input[name="csrf"]').inputValue();
+ assert(mapId,'Expected seeded AdOcean source mapping.');
+ const mapResult=await admin.request.post(base+'/ad-external.php?import_id=1',{form:{
+  csrf:mapCsrf,action:'map',map_id:mapId,site_id:'1',enabled:'1'
+ }});
+ assert.equal(mapResult.status(),200,'Mapped test AdOcean source should redirect to admin.');
+ await admin.goto(base+'/sites.php?edit=1',{waitUntil:'domcontentloaded'});
+ await admin.locator('#site-edit-form input[name="ad_slots_enabled"]').check();
+ await Promise.all([
+  admin.waitForURL(/sites\.php\?edit=1&saved=1/),
+  admin.locator('[data-site-save-button]').click()
+ ]);
+ await admin.goto(base+'/builder.php?site_id=1&template=home',{waitUntil:'domcontentloaded'});
+ const builderForm=admin.locator('#builder-layout-form');
+ const builderCsrf=await builderForm.locator('input[name="csrf"]').inputValue();
+ const builderRevision=await builderForm.locator('input[name="revision"]').inputValue();
+ const builderLayout=JSON.parse(await builderForm.locator('input[name="layout_json"]').inputValue());
+ builderLayout.push({type:'adocean',title:'Test banner',external_import_id:1,
+  external_folder_id:10,external_master_id:11,external_leaf_id:12});
+ const draft=await admin.request.post(base+'/builder.php?site_id=1&template=home',{form:{
+  csrf:builderCsrf,site_id:'1',template:'home',action:'save',revision:builderRevision,
+  revision_id:'0',layout_json:JSON.stringify(builderLayout)
+ }});
+ assert.equal(draft.status(),200,'Publisher template with AdOcean block should save as a draft.');
+ let providerCalls=0;
+ await admin.route('https://hu.adocean.pl/**',async route=>{
+  providerCalls++;
+  await route.fulfill({status:200,contentType:'application/javascript',body:
+   'window.ado={config(){},preview(){},master(){},slave(id){document.getElementById(id).textContent="CREATIVE_FROM_FAKE_ADOCEAN";},placement(){}};'
+  });
+ });
+ await admin.goto(base+'/public.php?site=test-0&preview=1&template=home',{waitUntil:'networkidle'});
+ const controls=admin.locator('[data-ao-preview-control]');
+ assert.equal(await controls.count(),1,'Draft AdOcean position should offer an opt-in preview.');
+ assert.equal(providerCalls,0,'Opening preview must not automatically contact AdOcean.');
+ const showButton=controls.locator('[data-ao-preview-load]');
+ assert(await showButton.isDisabled(),'Real creative button must require explicit authorization.');
+ await controls.locator('[data-ao-preview-consent]').check();
+ await showButton.click();
+ assert(await controls.locator('iframe.pub-adocean-test-frame').count()===1,
+  'Explicit click should create exactly one sandboxed ad test iframe.');
+ assert.equal(await controls.locator('iframe').getAttribute('sandbox'),'allow-scripts allow-popups',
+  'Ad preview must not have same-origin privileges.');
+ await controls.frameLocator('iframe').locator('#slave-x').getByText('CREATIVE_FROM_FAKE_ADOCEAN').waitFor();
+ assert(providerCalls>=1,'Consented preview must fetch the AdOcean library.');
+ const blockedOtherSite=await admin.request.get(base+'/ad-external-preview.php?site_id=2&external_import_id=1&external_folder_id=10&external_master_id=11&external_leaf_id=12');
+ assert.equal(blockedOtherSite.status(),404,'Real ad preview must reject a cross-site placement.');
+ await admin.unrouteAll();
+ 
  await admin.goto(base+'/settings.php',{waitUntil:'networkidle'});
  await overflow(admin,'settings mobile');
  await admin.close();

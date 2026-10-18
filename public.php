@@ -133,7 +133,8 @@ if(!$preview&&!empty($settings['ad_slots_enabled'])){
  catch(PDOException $e){error_log('publisher ad positions: '.$e->getMessage());}
 }
 $externalSlots=['slots'=>[],'groups'=>[]];
-if(!$preview&&!empty($settings['ad_slots_enabled'])){
+if(!empty($settings['ad_slots_enabled'])){
+ // Authenticated editor previews can resolve positions without serving them automatically.
  try{$externalSlots=cms_external_page_slots($pdo,$siteId,$layout,true);}
  catch(PDOException $e){error_log('publisher external ad lookup: '.$e->getMessage());}
 }
@@ -146,7 +147,7 @@ $positionConfig=['site_id'=>$siteId,'section'=>$sectionSlug,'positions'=>$adPlac
 $jsonFlags=JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT;
 ?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?=pub_h($title)?></title><meta name="robots" content="noindex,nofollow"><meta name="description" content="<?=pub_h($article['seo_description']??$settings['site_description'])?>">
-<link rel="stylesheet" href="/assets/public.css"><link rel="stylesheet" href="/assets/native-chrome.css?v=1"><link rel="stylesheet" href="/assets/site-page-families.css?v=2"><?php if(in_array($appearanceHost,['magyarnemzet.hu','www.magyarnemzet.hu'],true)):?><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;800&display=swap"><?php endif;?><?php if($appearance):?><link rel="stylesheet" href="/assets/site-appearance.css"><?php endif;?><style>:root{--pub-accent:<?=pub_h($themeColor)?>}</style><?php if($appearanceCss!==''):?><style id="assigned-appearance-css"><?=$appearanceCss?></style><?php endif;?><?php if(!$preview):?><script src="/assets/page-analytics.js?v=1" defer></script><?php endif;?><?php if($adPlacements):?><link rel="stylesheet" href="/assets/ad-placements.css?v=1"><script src="/assets/ad-placements.js?v=1" defer></script><?php endif;?><?php if($externalSlots['groups']):?><script src="/assets/ad-external.js?v=2" defer></script><script src="/assets/ad-external-page.js?v=1" defer></script><?php endif;?></head><body class="<?=$appearance?'pub-source-themed':''?><?=in_array($appearanceHost,['magyarnemzet.hu','www.magyarnemzet.hu'],true)?' pub-source-mno':''?> pub-kind-<?=pub_h($kind)?>">
+<link rel="stylesheet" href="/assets/public.css"><link rel="stylesheet" href="/assets/native-chrome.css?v=1"><link rel="stylesheet" href="/assets/site-page-families.css?v=2"><?php if(in_array($appearanceHost,['magyarnemzet.hu','www.magyarnemzet.hu'],true)):?><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;800&display=swap"><?php endif;?><?php if($appearance):?><link rel="stylesheet" href="/assets/site-appearance.css"><?php endif;?><style>:root{--pub-accent:<?=pub_h($themeColor)?>}</style><?php if($appearanceCss!==''):?><style id="assigned-appearance-css"><?=$appearanceCss?></style><?php endif;?><?php if(!$preview):?><script src="/assets/page-analytics.js?v=1" defer></script><?php endif;?><?php if($adPlacements):?><link rel="stylesheet" href="/assets/ad-placements.css?v=1"><script src="/assets/ad-placements.js?v=1" defer></script><?php endif;?><?php if($externalSlots['groups']&&!$preview):?><script src="/assets/ad-external.js?v=2" defer></script><script src="/assets/ad-external-page.js?v=1" defer></script><?php endif;?><?php if($preview&&$externalSlots['groups']):?><script src="/assets/ad-external-preview.js?v=1" defer></script><?php endif;?></head><body class="<?=$appearance?'pub-source-themed':''?><?=in_array($appearanceHost,['magyarnemzet.hu','www.magyarnemzet.hu'],true)?' pub-source-mno':''?> pub-kind-<?=pub_h($kind)?>">
 <?php if($preview):?><div class="pub-preview-bar">Szerkesztői előnézet · Nem nyilvános kiadás <a href="/builder.php?site_id=<?=$siteId?>&amp;template=<?=pub_h($kind)?>">Vissza az oldalépítőhöz</a></div><?php endif;?>
 <header class="pub-header <?=$appearance?'cms-source-header':''?>">
 <div class="pub-header-inner <?=$appearance?'pub-native-header':''?>">
@@ -203,7 +204,17 @@ $jsonFlags=JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_A
 <?php endif;?></section>
 <?php elseif($type==='adocean'&&($preview||isset($externalSlots['slots'][$layoutIndex]))):?>
 <section class="pub-section pub-ad pub-adocean" aria-label="Hirdetési pozíció"><p>Hirdetés</p>
-<?php if($preview):?><div class="pub-adocean-preview">AdOcean pozíció előnézete: LEAF #<?=(int)($block['external_leaf_id']??0)?>, MASTER #<?=(int)($block['external_master_id']??0)?>. Külső kód nem fut.</div>
+<?php if($preview):?>
+<div class="pub-adocean-preview">AdOcean pozíció: LEAF #<?=(int)($block['external_leaf_id']??0)?>, MASTER #<?=(int)($block['external_master_id']??0)?>.</div>
+<?php if(isset($externalSlots['slots'][$layoutIndex])):?>
+<?php $adPreviewArgs=['site_id'=>$siteId,'external_import_id'=>(int)($block['external_import_id']??0),'external_folder_id'=>(int)($block['external_folder_id']??0),'external_master_id'=>(int)($block['external_master_id']??0),'external_leaf_id'=>(int)($block['external_leaf_id']??0)];?>
+<div class="pub-adocean-test-controls" data-ao-preview-control>
+<label><input type="checkbox" data-ao-preview-consent> Engedélyezem a külső AdOcean-tesztkérés indítását ebben a szerkesztői előnézetben. A szolgáltató cookie-kat és más követő technikákat használhat.</label>
+<button type="button" data-ao-preview-load data-preview-url="/ad-external-preview.php?<?=pub_h(http_build_query($adPreviewArgs))?>" disabled>Valódi AdOcean-hirdetés megjelenítése</button>
+<div data-ao-preview-status role="status" aria-live="polite">A teszt csak külön engedélyezés után indít hirdetési kérést.</div>
+<div data-ao-preview-frame></div>
+</div>
+<?php else:?><div class="pub-adocean-preview-error" role="status">A webhely hirdetési funkciója, a forrás-hozzárendelés vagy a pozíció inaktív. Ellenőrizd a Webhelyfunkciókat és az AdOcean importot.</div><?php endif;?>
 <?php else:?><div class="pub-adocean-container" id="<?=pub_h($externalSlots['slots'][$layoutIndex])?>"></div><?php endif;?></section>
 <?php elseif($type==='ad'&&!empty($block['zone'])&&!empty($settings['ad_slots_enabled'])):?><section class="pub-section pub-ad"><p>Hirdetés</p><?php if($preview):?><p class="pub-preview-ad">Hirdetési pozíció: <?=pub_h((string)$block['zone'])?> (előnézet, mérés nélkül)</p><?php else:?><iframe title="Hirdetés" loading="lazy" referrerpolicy="no-referrer" src="/ad-slot.php?site_id=<?=$siteId?>&amp;zone=<?=rawurlencode($block['zone'])?><?=$sectionSlug?'&amp;section='.rawurlencode($sectionSlug):''?>"></iframe><?php endif;?></section>
 <?php endif;?>
@@ -215,5 +226,5 @@ $jsonFlags=JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_A
 <p>comesy · Content. Media. System.</p></footer>
 <?php if(!$preview):?><script id="cms-page-analytics" type="application/json"><?=json_encode($trackingConfig,$jsonFlags)?></script><?php endif;?>
 <?php if($adPlacements):?><script id="cms-ad-placements" type="application/json"><?=json_encode($positionConfig,$jsonFlags)?></script><?php endif;?>
-<?php if($externalSlots['groups']):?><script id="cms-ad-external" type="application/json"><?=json_encode(['site_id'=>$siteId,'groups'=>$externalSlots['groups']],$jsonFlags)?></script><?php endif;?>
+<?php if($externalSlots['groups']&&!$preview):?><script id="cms-ad-external" type="application/json"><?=json_encode(['site_id'=>$siteId,'groups'=>$externalSlots['groups']],$jsonFlags)?></script><?php endif;?>
 </body></html>
