@@ -4,7 +4,8 @@ require __DIR__.'/app/bootstrap.php';
 require __DIR__.'/app/ad-external-import.php';
 $u=require_user();
 if($u['role']!=='platform_admin'){http_response_code(403);exit('Csak platformadmin importálhat és kapcsolhat össze külső hirdetési zónákat.');}
-$error='';$message='';$imports=[];$groups=[];$sites=[];$masters=[];$leaves=[];
+$error='';$message='';$imports=[];$groups=[];$sites=[];$masters=[];$leaves=[];$leafTotal=0;
+$page=max(1,(int)($_GET['page']??1));
 $importId=max(0,(int)($_GET['import_id']??0));$folderId=max(0,(int)($_GET['folder']??0));
 try{
  $pdo=db();
@@ -58,7 +59,10 @@ try{
    $q=$pdo->prepare('SELECT source_id,name,master_code_id,(SELECT COUNT(*) FROM ad_external_nodes c WHERE c.import_id=n.import_id AND c.folder_source_id=n.folder_source_id AND c.node_type="LEAF" AND c.is_slave=1 AND c.master_code_id=n.master_code_id) slaves
        FROM ad_external_nodes n WHERE n.import_id=? AND n.folder_source_id=? AND n.node_type="MASTER" ORDER BY n.name LIMIT 200');
    $q->execute([$importId,$folderId]);$masters=$q->fetchAll();
-   $q=$pdo->prepare('SELECT source_id,name,leaf_code_id,is_slave,master_code_id FROM ad_external_nodes WHERE import_id=? AND folder_source_id=? AND node_type="LEAF" ORDER BY source_id LIMIT 100');
+   $q=$pdo->prepare('SELECT COUNT(*) FROM ad_external_nodes WHERE import_id=? AND folder_source_id=? AND node_type="LEAF"');
+   $q->execute([$importId,$folderId]);$leafTotal=(int)$q->fetchColumn();
+   $page=min($page,max(1,(int)ceil($leafTotal/100)));
+   $q=$pdo->prepare('SELECT source_id,name,leaf_code_id,is_slave,master_code_id FROM ad_external_nodes WHERE import_id=? AND folder_source_id=? AND node_type="LEAF" ORDER BY source_id LIMIT 100 OFFSET '.(($page-1)*100));
    $q->execute([$importId,$folderId]);$leaves=$q->fetchAll();
   }
  }
@@ -103,9 +107,13 @@ try{
 <div class="external-table-wrap"><table class="external-table"><thead><tr><th>MASTER node</th><th>MASTER-kód</th><th>SLAVE pozíciók</th></tr></thead><tbody>
 <?php foreach($masters as $m):?><tr><td><?=h($m['name'])?><small class="external-muted"> #<?=(int)$m['source_id']?></small></td><td class="external-code"><?=h($m['master_code_id'])?></td><td><?=(int)$m['slaves']?></td></tr><?php endforeach;?>
 </tbody></table></div>
-<h3>Első 100 LEAF pozíció</h3><div class="external-table-wrap"><table class="external-table"><thead><tr><th>Node ID</th><th>Név</th><th>Szerep</th></tr></thead><tbody>
+<h3>LEAF pozíciók (<?=$leafTotal?>), oldal <?=$page?> / <?=max(1,(int)ceil($leafTotal/100))?></h3><div class="external-table-wrap"><table class="external-table"><thead><tr><th>Node ID</th><th>Név</th><th>Szerep</th></tr></thead><tbody>
 <?php foreach($leaves as $l):?><tr><td><?=(int)$l['source_id']?></td><td><?=h($l['name'])?></td><td><?=!empty($l['is_slave'])?'SLAVE':'Önálló'?></td></tr><?php endforeach;?>
-</tbody></table></div></section>
+</tbody></table></div>
+<div class="external-form" style="margin-top:12px">
+<?php if($page>1):?><a class="ui-btn ui-btn-secondary" href="/ad-external.php?import_id=<?=$importId?>&amp;folder=<?=$folderId?>&amp;page=<?=$page-1?>">← Előző 100</a><?php endif;?>
+<?php if($page*100<$leafTotal):?><a class="ui-btn ui-btn-secondary" href="/ad-external.php?import_id=<?=$importId?>&amp;folder=<?=$folderId?>&amp;page=<?=$page+1?>">Következő 100 →</a><?php endif;?>
+</div></section>
 <?php endif;?>
 <section class="external-panel"><h2>Integráció</h2>
 <p>A külső webhely az <code>/assets/ad-external.js</code> adaptert használhatja. Csak az adott oldalra kirakott LEAF-eket kérje le; egy MASTER összes SLAVE-jét egyszerre nem szabad automatikusan betölteni. A <code>consentGranted</code> jelzőt kizárólag a CMP megfelelő engedélye után szabad igazra állítani.</p>
