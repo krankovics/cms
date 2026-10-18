@@ -7,7 +7,7 @@ require __DIR__.'/app/site-import-assignment.php';
 require __DIR__.'/app/template-family.php';
 $u=require_user();
 if($u['role']!=='platform_admin'){http_response_code(403);exit('Nincs jogosultság.');}
-$error='';$saved=isset($_GET['saved']);$sites=[];$importCandidates=[];
+$error='';$saved=isset($_GET['saved'])&&$_SERVER['REQUEST_METHOD']!=='POST';$sites=[];$importCandidates=[];
 $appearanceTemplates=cms_design_templates_list();
 $templateLabels=array_column($appearanceTemplates,'title','id');
 try{
@@ -55,10 +55,16 @@ try{
   }
   $audit=$pdo->prepare('INSERT INTO audit_log(user_id,action,object_type,object_id,meta_json) VALUES(?,?,?,?,?)');
   $audit->execute([$u['id'],$current?'site.update':'site.create','site',$id,json_encode(['domain'=>$domain,'flags'=>array_intersect_key($settings,array_fill_keys(['builder_enabled','reader_accounts_enabled','comments_enabled','newsletter_enabled','ai_enabled','ad_slots_enabled'],true)),'source_template_id'=>$settings['source_template_id']??''],JSON_UNESCAPED_UNICODE)]);
-  header('Location: /sites.php?saved=1');exit;
+  header('Location: /sites.php?edit='.$id.'&saved=1',true,303);exit;
  }
+ }catch(Throwable $e){error_log('sites: '.$e->getMessage());$error=$e instanceof PDOException?'Az adatbázis-művelet sikertelen. A domain és az azonosító egyedi kell legyen.':$e->getMessage();}
+try{
+ $pdo=$pdo??db();
  $sites=$pdo->query('SELECT s.id,s.name,s.domain,s.slug,s.settings_json,(SELECT COUNT(*) FROM articles a WHERE a.site_id=s.id OR EXISTS (SELECT 1 FROM article_sites asite WHERE asite.article_id=a.id AND asite.site_id=s.id)) article_count FROM sites s ORDER BY s.name')->fetchAll();
-}catch(Throwable $e){error_log('sites: '.$e->getMessage());$error=$e instanceof PDOException?'Az adatbázis-művelet sikertelen. A domain és az azonosító egyedi kell legyen.':$e->getMessage();}
+}catch(Throwable $loadError){
+ error_log('sites list: '.$loadError->getMessage());
+ if($error==='')$error='A webhelyek listája jelenleg nem tölthető be.';
+}
 $edit=max(0,(int)($_GET['edit']??0));$selected=null;foreach($sites as $s)if((int)$s['id']===$edit)$selected=$s;
 $siteSettings=cms_site_settings($selected??[]);
 $importCandidateError='';
@@ -66,17 +72,19 @@ if($selected){
  try{$importCandidates=cms_site_import_candidates($pdo,(int)$selected['id'],(string)$selected['domain']);}
  catch(Throwable $e){$importCandidateError='A korábbi importok ellenőrzése nem sikerült. Ellenőrizd az adatbázis-migrációt.';error_log('site import candidates: '.$e->getMessage());}
 }
-?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Webhelyek | comesy</title><link rel="stylesheet" href="/assets/ui.css"><script src="/assets/ui.js" defer></script><script src="/assets/admin-pages-v2.js" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
+?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Webhelyek | comesy</title><link rel="stylesheet" href="/assets/ui.css"><script src="/assets/ui.js" defer></script><script src="/assets/admin-pages-v2.js" defer></script><script src="/assets/site-editor-form.js?v=1" defer></script></head><body><?php require __DIR__.'/app/header.php';?>
 <main class="ui-admin-section" id="main-content">
 <header class="ui-page-header"><div class="ui-page-heading"><p class="ui-eyebrow">Adminisztráció</p><h1 class="ui-page-title">Webhelyek</h1><p class="ui-page-description">A comesy felületen kezelt kiadói webhelyek és tartalmaik.</p></div>
 <div class="ui-page-actions"><?php if($selected):?><a class="ui-btn ui-btn-primary" href="/sites.php?new=1">Új webhely</a><?php else:?><button type="button" class="ui-btn ui-btn-primary ui-compact-action" data-panel-open="site-editor" aria-controls="site-editor" aria-expanded="false">+ Új webhely</button><?php endif;?></div></header>
-<?php if($error):?><p class="error" role="alert"><?=h($error)?></p><?php endif;?>
-<?php if($saved):?><p class="success" role="status">A webhely adatait mentettük.</p><?php endif;?>
+<?php if($error&&!$selected):?><p class="error" role="alert"><?=h($error)?></p><?php endif;?>
+<?php if($saved&&!$selected):?><p class="success" role="status">A webhely adatait mentettük.</p><?php endif;?>
 <div class="ui-workbench">
 <section class="ui-admin-panel ui-workbench-list"><div class="ui-panel-header"><h2>Meglévő webhelyek</h2><span class="ui-text-muted"><?=count($sites)?> webhely</span></div>
 <?php if($sites):?><div class="ui-admin-list"><?php foreach($sites as $s):?><article class="ui-admin-row"><div class="ui-admin-row-main"><strong><?=h($s['name'])?></strong><small><?=h($s['domain'])?> · <?=h($s['slug'])?> · <?=(int)$s['article_count']?> cikk<?php $assigned=(string)(cms_site_settings($s)['source_template_id']??'');if($assigned!==''):?> · Sablon: <?=h($templateLabels[$assigned]??'Nem található')?><?php endif;?></small></div><a href="/public.php?site=<?=rawurlencode((string)$s['slug'])?>&amp;preview=1" target="_blank" rel="noopener">Megtekintés ↗</a><a href="/site-manage.php?site_id=<?=(int)$s['id']?>">Kezelés</a></article><?php endforeach;?></div>
 <?php else:?><div class="ui-empty-state"><strong>Még nincs webhely.</strong><p>Az új webhelyet a jobb oldali űrlapon veheted fel.</p></div><?php endif;?></section>
-<aside class="ui-admin-panel ui-workbench-pane" id="site-editor" data-ui-pane data-panel-default-open="<?=$selected||isset($_GET['new'])?'1':'0'?>" aria-labelledby="site-form-title"><button type="button" class="ui-pane-close" data-panel-close aria-label="Panel bezárása">✕</button><h2 id="site-form-title"><?=$selected?'Webhely szerkesztése':'Új webhely'?></h2><?php if($selected):?><p style="margin:8px 0 16px"><a class="ui-btn ui-btn-primary" href="/site-manage.php?site_id=<?=(int)$selected['id']?>">Webhelykezelő megnyitása ↗</a></p><?php endif;?><form method="post" class="ui-admin-form"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="id" value="<?=(int)($selected['id']??0)?>">
+<aside class="ui-admin-panel ui-workbench-pane" id="site-editor" data-ui-pane data-panel-default-open="<?=$selected||isset($_GET['new'])?'1':'0'?>" aria-labelledby="site-form-title"><button type="button" class="ui-pane-close" data-panel-close aria-label="Panel bezárása">✕</button><h2 id="site-form-title"><?=$selected?'Webhely szerkesztése':'Új webhely'?></h2>
+<p id="site-save-feedback" class="ui-site-save-feedback <?=$saved?'success':($error?'error':'')?>" aria-live="polite" role="<?=$error?'alert':'status'?>" <?=!$saved&&!$error?'hidden':''?>><?php if($error):?><?=h($error)?><?php elseif($saved):?>A webhely módosításait sikeresen mentettük.<?php endif;?></p>
+<?php if($selected):?><p style="margin:8px 0 16px"><a class="ui-btn ui-btn-primary" href="/site-manage.php?site_id=<?=(int)$selected['id']?>">Webhelykezelő megnyitása ↗</a></p><?php endif;?><form method="post" class="ui-admin-form" id="site-edit-form" data-site-edit-form><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="id" value="<?=(int)($selected['id']??0)?>">
 <label class="ui-field">Név <input name="name" data-pane-first required minlength="2" maxlength="190" value="<?=h($selected['name']??'')?>" placeholder="Kiadói webhely"></label>
 <label class="ui-field">Domain <input name="domain" required maxlength="190" placeholder="pelda.hu" value="<?=h($selected['domain']??'')?>"></label>
 <label class="ui-field">Azonosító (slug) <input name="slug" required maxlength="100" placeholder="pelda" value="<?=h($selected['slug']??'')?>"></label>
@@ -107,14 +115,21 @@ if($selected){
 <?php if(isset($_GET['family'])):?><p class="success"><?=(int)$_GET['family']?> új oldaltípus-sablon készült.</p><?php endif;?>
 <a class="ui-btn ui-btn-secondary" href="/builder.php?site_id=<?=(int)$selected['id']?>&amp;template=home">Oldalsablonok szerkesztése ↗</a>
 <a class="ui-btn ui-btn-secondary" href="/pages.php?site_id=<?=(int)$selected['id']?>">Statikus oldalak ↗</a>
-<form action="/sites.php" method="post" style="margin-top:12px"><input type="hidden" name="csrf" value="<?=h(csrf())?>"><input type="hidden" name="id" value="<?=(int)$selected['id']?>"><button class="ui-btn ui-btn-secondary" type="submit" name="action" value="generate_family">Hiányzó sablonok létrehozása</button></form>
+<p style="margin-top:12px"><button class="ui-btn ui-btn-secondary" type="submit" form="site-family-generate-form">Hiányzó sablonok létrehozása</button></p>
 </section><?php endif;?>
 <?php if($selected):?><div style="margin:14px 0;padding:12px 14px;border:1px solid var(--ui-border,#dde4ed);border-radius:10px"><strong>Natív navigáció és funkciók</strong>
 <p class="ui-page-description" style="margin:6px 0 12px">A kiválasztott arculati sablon csak a megjelenést adja. A menüpontokat a comesy menüszerkesztőjéből, a keresési találatokat a webhely saját cikkeiből építjük fel. A profilgomb jelenleg szerkesztőségi belépés.</p>
 <?php if(!empty($siteSettings['builder_enabled'])):?><a class="ui-btn ui-btn-secondary" href="/builder.php?site_id=<?=(int)$selected['id']?>&amp;template=home">Menü szerkesztése ↗</a>
 <?php else:?><p class="ui-page-description">A menüszerkesztő használatához kapcsold be a Vizuális oldalépítőt.</p><?php endif;?>
 <a class="ui-btn ui-btn-secondary" href="/public.php?site=<?=rawurlencode((string)$selected['slug'])?>&amp;preview=1" target="_blank" rel="noopener">Webhely előnézete ↗</a></div><?php endif;?>
-<div class="ui-admin-actions"><button class="ui-btn ui-btn-primary" type="submit">Mentés</button><?php if($selected):?><a class="ui-btn ui-btn-secondary" href="/sites.php">Mégse</a><?php endif;?></div></form>
+<div class="ui-admin-actions"><button class="ui-btn ui-btn-primary" type="submit" data-site-save-button>Mentés</button><?php if($selected):?><a class="ui-btn ui-btn-secondary" href="/sites.php">Mégse</a><?php endif;?></div></form>
+<?php if($selected&&!empty($siteSettings['source_template_id'])):?>
+<form id="site-family-generate-form" action="/sites.php" method="post" class="ui-site-family-external-form">
+<input type="hidden" name="csrf" value="<?=h(csrf())?>">
+<input type="hidden" name="id" value="<?=(int)$selected['id']?>">
+<input type="hidden" name="action" value="generate_family">
+</form>
+<?php endif;?>
 <?php if($selected):?>
 <section class="ui-site-import-links" style="margin:17px 0;padding:15px;border:1px solid var(--ui-border,#dce3ea);border-radius:10px">
 <h3 style="margin:0 0 8px">Importált cikkek hozzárendelése</h3>
