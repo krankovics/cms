@@ -216,7 +216,7 @@ $q=$pdo->prepare('SELECT COUNT(*),MAX(duration_ms) FROM import_item_metrics WHER
 ok((int)$metricRow[0]===1&&(int)$metricRow[1]===22,'Retry must upsert one metrics row instead of duplicating it.');
 $q=$pdo->prepare('SELECT status FROM articles WHERE id=?');
 $q->execute([$first['article_id']]);ok($q->fetchColumn()==='draft','Imported article must remain draft.');
-require dirname(__DIR__).'/app/layouts.php';
+require_once dirname(__DIR__).'/app/layouts.php';
 $pdo->prepare('UPDATE sites SET settings_json=? WHERE id=?')->execute([json_encode(['builder_enabled'=>true,'accent_color'=>'#325de6']),$sites[0]]);
 $initialLayout=cms_default_layout('home');
 $initialJson=json_encode($initialLayout,JSON_UNESCAPED_UNICODE);
