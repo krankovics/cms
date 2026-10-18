@@ -6,9 +6,9 @@ require_once __DIR__.'/app/rich-content.php';
 require_once __DIR__.'/app/site-design-templates.php';
 require_once __DIR__.'/app/native-site-chrome.php';
 require_once __DIR__.'/app/ad-placements.php';
+require_once __DIR__.'/app/ad-external-placements.php';
 header('Content-Type: text/html; charset=utf-8');
 header('X-Frame-Options: SAMEORIGIN');
-header("Content-Security-Policy: default-src 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self'; connect-src 'self'; font-src https://fonts.gstatic.com; img-src 'self' https: http: data:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://embed.spotify.com https://w.soundcloud.com https://www.facebook.com https://facebook.com https://www.instagram.com https://instagram.com https://www.tiktok.com https://player.simplecast.com https://embed.podcasts.apple.com https://www.podbean.com; media-src https: http:; frame-ancestors 'self'; base-uri 'none'; form-action 'self'");
 header('X-Robots-Tag: noindex, nofollow');
 $pdo=db();
 $siteSlug=trim((string)($_GET['site']??''));
@@ -132,12 +132,21 @@ if(!$preview&&!empty($settings['ad_slots_enabled'])){
  try{$adPlacements=cms_ad_placements($pdo,$siteId,$kind);}
  catch(PDOException $e){error_log('publisher ad positions: '.$e->getMessage());}
 }
+$externalSlots=['slots'=>[],'groups'=>[]];
+if(!$preview&&!empty($settings['ad_slots_enabled'])){
+ try{$externalSlots=cms_external_page_slots($pdo,$siteId,$layout,true);}
+ catch(PDOException $e){error_log('publisher external ad lookup: '.$e->getMessage());}
+}
+// Keep third-party permissions off pages without a VALID active external slot.
+// All external ad loading still requires an explicit CMP callback.
+$adProviderCsp=(!$preview&&$externalSlots['groups'])?' https://*.adocean.pl':'';
+header("Content-Security-Policy: default-src 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self'".$adProviderCsp."; connect-src 'self'".$adProviderCsp."; font-src https://fonts.gstatic.com; img-src 'self' https: http: data:; frame-src 'self'".$adProviderCsp." https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://embed.spotify.com https://w.soundcloud.com https://www.facebook.com https://facebook.com https://www.instagram.com https://instagram.com https://www.tiktok.com https://player.simplecast.com https://embed.podcasts.apple.com https://www.podbean.com; media-src https: http:; frame-ancestors 'self'; base-uri 'none'; form-action 'self'");
 $trackingConfig=['site_id'=>$siteId,'slug'=>$siteSlug,'kind'=>$kind,'content'=>$articleSlug?:($pageSlug?:($tagSlug?:($sectionSlug?:'home')))];
 $positionConfig=['site_id'=>$siteId,'section'=>$sectionSlug,'positions'=>$adPlacements];
 $jsonFlags=JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT;
 ?><!doctype html><html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title><?=pub_h($title)?></title><meta name="robots" content="noindex,nofollow"><meta name="description" content="<?=pub_h($article['seo_description']??$settings['site_description'])?>">
-<link rel="stylesheet" href="/assets/public.css"><link rel="stylesheet" href="/assets/native-chrome.css?v=1"><link rel="stylesheet" href="/assets/site-page-families.css?v=2"><?php if(in_array($appearanceHost,['magyarnemzet.hu','www.magyarnemzet.hu'],true)):?><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;800&display=swap"><?php endif;?><?php if($appearance):?><link rel="stylesheet" href="/assets/site-appearance.css"><?php endif;?><style>:root{--pub-accent:<?=pub_h($themeColor)?>}</style><?php if($appearanceCss!==''):?><style id="assigned-appearance-css"><?=$appearanceCss?></style><?php endif;?><?php if(!$preview):?><script src="/assets/page-analytics.js?v=1" defer></script><?php endif;?><?php if($adPlacements):?><link rel="stylesheet" href="/assets/ad-placements.css?v=1"><script src="/assets/ad-placements.js?v=1" defer></script><?php endif;?></head><body class="<?=$appearance?'pub-source-themed':''?><?=in_array($appearanceHost,['magyarnemzet.hu','www.magyarnemzet.hu'],true)?' pub-source-mno':''?> pub-kind-<?=pub_h($kind)?>">
+<link rel="stylesheet" href="/assets/public.css"><link rel="stylesheet" href="/assets/native-chrome.css?v=1"><link rel="stylesheet" href="/assets/site-page-families.css?v=2"><?php if(in_array($appearanceHost,['magyarnemzet.hu','www.magyarnemzet.hu'],true)):?><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;800&display=swap"><?php endif;?><?php if($appearance):?><link rel="stylesheet" href="/assets/site-appearance.css"><?php endif;?><style>:root{--pub-accent:<?=pub_h($themeColor)?>}</style><?php if($appearanceCss!==''):?><style id="assigned-appearance-css"><?=$appearanceCss?></style><?php endif;?><?php if(!$preview):?><script src="/assets/page-analytics.js?v=1" defer></script><?php endif;?><?php if($adPlacements):?><link rel="stylesheet" href="/assets/ad-placements.css?v=1"><script src="/assets/ad-placements.js?v=1" defer></script><?php endif;?><?php if($externalSlots['groups']):?><script src="/assets/ad-external.js?v=2" defer></script><script src="/assets/ad-external-page.js?v=1" defer></script><?php endif;?></head><body class="<?=$appearance?'pub-source-themed':''?><?=in_array($appearanceHost,['magyarnemzet.hu','www.magyarnemzet.hu'],true)?' pub-source-mno':''?> pub-kind-<?=pub_h($kind)?>">
 <?php if($preview):?><div class="pub-preview-bar">Szerkesztői előnézet · Nem nyilvános kiadás <a href="/builder.php?site_id=<?=$siteId?>&amp;template=<?=pub_h($kind)?>">Vissza az oldalépítőhöz</a></div><?php endif;?>
 <header class="pub-header <?=$appearance?'cms-source-header':''?>">
 <div class="pub-header-inner <?=$appearance?'pub-native-header':''?>">
@@ -158,7 +167,7 @@ $jsonFlags=JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_A
 <?php if($searchResults):?><div class="pub-search-result-list"><?php foreach($searchResults as $result):?><a class="pub-search-result" href="<?=pub_h(cms_native_site_url($siteSlug,$preview).'&article='.rawurlencode($result['slug']))?>"><?php if(!empty($result['og_image_url'])):?><img src="<?=pub_h($result['og_image_url'])?>" loading="lazy" alt=""><?php endif;?><span><strong><?=pub_h($result['title'])?></strong><small><?=pub_h(mb_substr((string)($result['lead']??''),0,220))?></small></span></a><?php endforeach;?></div>
 <?php else:?><p>Nem található a keresésnek megfelelő cikk. Próbálj másik kifejezést!</p><?php endif;?></section>
 <?php else:?>
-<?php foreach($layout as $block):$type=$block['type']??'';$sectionTitle=trim((string)($block['title']??''));$count=max(1,min(30,(int)($block['limit']??10)));$columns=max(1,min(4,(int)($block['columns']??3)));$offset=max(0,min(150,(int)($block['offset']??0)));?>
+<?php foreach($layout as $layoutIndex=>$block):$type=$block['type']??'';$sectionTitle=trim((string)($block['title']??''));$count=max(1,min(30,(int)($block['limit']??10)));$columns=max(1,min(4,(int)($block['columns']??3)));$offset=max(0,min(150,(int)($block['offset']??0)));?>
 <?php if($type==='hero'):?><section class="pub-hero"><div class="pub-hero-inner"><p class="pub-eyebrow"><?=pub_h($site['name'])?></p><h1><?=pub_h($article['title']??($staticPage['title']??$term['name']??$sectionTitle?:$site['name']))?></h1><?php if(!empty($block['text'])):?><p><?=pub_h($block['text'])?></p><?php endif;?></div></section>
 <?php elseif($type==='text'):?><section class="pub-section pub-text"><?php if($sectionTitle):?><h2><?=pub_h($sectionTitle)?></h2><?php endif;?><p><?=nl2br(pub_h((string)($block['text']??'')))?></p></section>
 <?php elseif($type==='image'&&!empty($block['image_url'])):?><section class="pub-section pub-image"><?php if($sectionTitle):?><h2><?=pub_h($sectionTitle)?></h2><?php endif;?><img src="<?=pub_h((string)$block['image_url'])?>" loading="lazy" alt="<?=pub_h($sectionTitle)?>"></section>
@@ -192,6 +201,10 @@ $jsonFlags=JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_A
 <label>E-mail-cím<input name="email" type="email" autocomplete="username" maxlength="190" required></label><label>Jelszó<input name="password" type="password" autocomplete="current-password" required></label><button type="submit">Bejelentkezés</button></form>
 <details><summary>Új olvasói fiók létrehozása</summary><form method="post" action="/reader-auth.php" class="pub-reader-form"><input type="hidden" name="csrf" value="<?=pub_h(csrf())?>"><input type="hidden" name="site" value="<?=pub_h($siteSlug)?>"><input type="hidden" name="action" value="register"><label>Név<input name="display_name" maxlength="190" required></label><label>E-mail-cím<input name="email" type="email" autocomplete="email" required></label><label>Jelszó (minimum 12 karakter)<input name="password" type="password" autocomplete="new-password" minlength="12" required></label><button type="submit">Regisztráció</button></form></details>
 <?php endif;?></section>
+<?php elseif($type==='adocean'&&($preview||isset($externalSlots['slots'][$layoutIndex]))):?>
+<section class="pub-section pub-ad pub-adocean" aria-label="Hirdetési pozíció"><p>Hirdetés</p>
+<?php if($preview):?><div class="pub-adocean-preview">AdOcean pozíció előnézete: LEAF #<?=(int)($block['external_leaf_id']??0)?>, MASTER #<?=(int)($block['external_master_id']??0)?>. Külső kód nem fut.</div>
+<?php else:?><div class="pub-adocean-container" id="<?=pub_h($externalSlots['slots'][$layoutIndex])?>"></div><?php endif;?></section>
 <?php elseif($type==='ad'&&!empty($block['zone'])&&!empty($settings['ad_slots_enabled'])):?><section class="pub-section pub-ad"><p>Hirdetés</p><?php if($preview):?><p class="pub-preview-ad">Hirdetési pozíció: <?=pub_h((string)$block['zone'])?> (előnézet, mérés nélkül)</p><?php else:?><iframe title="Hirdetés" loading="lazy" referrerpolicy="no-referrer" src="/ad-slot.php?site_id=<?=$siteId?>&amp;zone=<?=rawurlencode($block['zone'])?><?=$sectionSlug?'&amp;section='.rawurlencode($sectionSlug):''?>"></iframe><?php endif;?></section>
 <?php endif;?>
 <?php endforeach;?>
@@ -202,4 +215,5 @@ $jsonFlags=JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_A
 <p>comesy · Content. Media. System.</p></footer>
 <?php if(!$preview):?><script id="cms-page-analytics" type="application/json"><?=json_encode($trackingConfig,$jsonFlags)?></script><?php endif;?>
 <?php if($adPlacements):?><script id="cms-ad-placements" type="application/json"><?=json_encode($positionConfig,$jsonFlags)?></script><?php endif;?>
+<?php if($externalSlots['groups']):?><script id="cms-ad-external" type="application/json"><?=json_encode(['site_id'=>$siteId,'groups'=>$externalSlots['groups']],$jsonFlags)?></script><?php endif;?>
 </body></html>
