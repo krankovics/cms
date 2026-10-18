@@ -7,7 +7,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
  else{
   try{
    $pdo=db();
-   $sql=file_get_contents(__DIR__.'/database/editor.sql')."\n".file_get_contents(__DIR__.'/database/content.sql')."\n".file_get_contents(__DIR__.'/database/site-permissions.sql')."\n".file_get_contents(__DIR__.'/database/ads.sql')."\n".file_get_contents(__DIR__.'/database/ads-advanced.sql')."\n".file_get_contents(__DIR__.'/database/import.sql')."\n".file_get_contents(__DIR__.'/database/import-media.sql')."\n".file_get_contents(__DIR__.'/database/import-metrics.sql')."\n".file_get_contents(__DIR__.'/database/layouts.sql')."\n".file_get_contents(__DIR__.'/database/pages-readers.sql');
+   $sql=file_get_contents(__DIR__.'/database/editor.sql')."\n".file_get_contents(__DIR__.'/database/content.sql')."\n".file_get_contents(__DIR__.'/database/site-permissions.sql')."\n".file_get_contents(__DIR__.'/database/ads.sql')."\n".file_get_contents(__DIR__.'/database/ads-advanced.sql')."\n".file_get_contents(__DIR__.'/database/ads-external.sql')."\n".file_get_contents(__DIR__.'/database/import.sql')."\n".file_get_contents(__DIR__.'/database/import-media.sql')."\n".file_get_contents(__DIR__.'/database/import-metrics.sql')."\n".file_get_contents(__DIR__.'/database/layouts.sql')."\n".file_get_contents(__DIR__.'/database/pages-readers.sql');
    foreach(array_filter(array_map('trim',explode(';',$sql))) as $statement)$pdo->exec($statement);
    // Existing installations had an ENUM with only home/section/article.
    // Widening the enum is additive and preserves every saved revision.
