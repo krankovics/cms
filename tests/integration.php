@@ -10,9 +10,10 @@ $pdo=new PDO($dsn,(string)getenv('COMESY_TEST_USER'),(string)getenv('COMESY_TEST
 ]);
 require dirname(__DIR__).'/app/article-sites.php';
 require dirname(__DIR__).'/app/site-access.php';
+require dirname(__DIR__).'/app/ad-external-import.php';
 $tests=0;
 function ok(bool $condition,string $message):void{global $tests;$tests++;if(!$condition)throw new RuntimeException($message);}
-foreach(['schema','editor','content','site-permissions','ads','ads-advanced','import','import-media','import-metrics','layouts','pages-readers'] as $schema){
+foreach(['schema','editor','content','site-permissions','ads','ads-advanced','ads-external','import','import-media','import-metrics','layouts','pages-readers'] as $schema){
  $sql=file_get_contents(dirname(__DIR__).'/database/'.$schema.'.sql');
  foreach(array_filter(array_map('trim',explode(';',$sql))) as $statement)$pdo->exec($statement);
 }
@@ -81,6 +82,25 @@ ok((int)$q->fetchColumn()===1,'Article must link to globally shared term.');
 $pdo->prepare('DELETE FROM articles WHERE id=?')->execute([$articleId]);
 $q=$pdo->prepare('SELECT COUNT(*) FROM article_sites WHERE article_id=?');$q->execute([$articleId]);
 ok((int)$q->fetchColumn()===0,'Deleting article must cascade to its site assignments.');
+// External inventory is inert until a source folder is explicitly mapped and enabled.
+$example=[
+ 'rows'=>[
+  '1'=>['node id'=>'1','parent id'=>'0','node name'=>'Root','node type'=>'FOLDER','node path'=>'Root','node active'=>'Y','node slave'=>'N','master code id'=>'','leaf code id'=>'','code'=>''],
+  '10'=>['node id'=>'10','parent id'=>'1','node name'=>'Test Publisher','node type'=>'FOLDER','node path'=>'Root/Test Publisher','node active'=>'Y','node slave'=>'N','master code id'=>'','leaf code id'=>'','code'=>''],
+  '11'=>['node id'=>'11','parent id'=>'10','node name'=>'Master','node type'=>'MASTER','node path'=>'Root/Test Publisher/Master','node active'=>'Y','node slave'=>'N','master code id'=>'Master.X','leaf code id'=>'','code'=>"ado.master({id:'Master.X',server:'hu.adocean.pl'})"],
+  '12'=>['node id'=>'12','parent id'=>'11','node name'=>'Slave','node type'=>'LEAF','node path'=>'Root/Test Publisher/Master/Slave','node active'=>'Y','node slave'=>'Y','master code id'=>'Master.X','leaf code id'=>'slave-x','code'=>"ado.slave('slave-x',{myMaster:'Master.X'})"],
+ ],
+ 'folders'=>['10'=>'Test Publisher'],'folder_for'=>['1'=>0,'10'=>10,'11'=>10,'12'=>10],
+ 'counts'=>['FOLDER'=>2,'MASTER'=>1,'LEAF'=>1]
+];
+$external=external_import($pdo,$example,'test-fixture.xlsx',hash('sha256','external-ad-fixture'),$uid['platform_admin']);
+ok($external>0,'External import must create a snapshot.');
+ok(external_import($pdo,$example,'test-fixture.xlsx',hash('sha256','external-ad-fixture'),$uid['platform_admin'])===$external,'Repeat import must be idempotent.');
+$q=$pdo->prepare('SELECT id,enabled,site_id FROM ad_external_sites WHERE import_id=?');
+$q->execute([$external]);$mapping=$q->fetch();
+ok($mapping&&(int)$mapping['enabled']===0&&$mapping['site_id']===null,'Imported external inventory must be unmapped and disabled.');
+$q=$pdo->prepare('SELECT COUNT(*) FROM ad_external_nodes WHERE import_id=?');
+$q->execute([$external]);ok((int)$q->fetchColumn()===4,'External inventory must preserve every node.');
 // Native advertiser, campaign and site-scoped creatives.
 $q=$pdo->prepare('INSERT INTO ad_advertisers(site_id,name) VALUES(?,?)');
 $q->execute([$sites[0],'Teszt hirdető']);$adv=(int)$pdo->lastInsertId();
