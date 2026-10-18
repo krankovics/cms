@@ -25,7 +25,7 @@ $xml.=xmlRow($columns,1);
 foreach($rows as $i=>$r)$xml.=xmlRow($r,$i+2);
 $xml.='</sheetData></worksheet>';
 $tmp=tempnam(sys_get_temp_dir(),'ao-test-');
-$zip=new ZipArchive();check($zip->open($tmp,ZipArchive::OVERWRITE)===true,'Fixture ZIP creation failed.');
+$zip=new ZipArchive();check($zip->open($tmp,(ZipArchive::CREATE|ZipArchive::OVERWRITE))===true,'Fixture ZIP creation failed.');
 $zip->addFromString('xl/worksheets/sheet1.xml',$xml);$zip->close();
 try{
  $parsed=external_xlsx_rows($tmp);
