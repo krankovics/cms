@@ -49,8 +49,8 @@ function cms_external_editor_options(PDO $pdo,int $siteId):array {
 function cms_external_resolve_reference(PDO $pdo,int $siteId,array $block,bool $delivery=false):?array {
  $ref=cms_external_layout_reference($block);
  $stmt=$pdo->prepare("SELECT m.enabled mapped_enabled,l.is_active leaf_active,l.is_slave,
-         l.master_code_id leaf_master_code,l.leaf_code_id,
-         a.source_id master_id,a.is_active master_active,a.master_code_id actual_master_code
+         l.master_code_id leaf_master_code,l.leaf_code_id,l.name leaf_name,
+         a.source_id master_id,a.is_active master_active,a.master_code_id actual_master_code,a.name master_name
          FROM ad_external_sites m
          JOIN ad_external_nodes l ON l.import_id=m.import_id AND l.folder_source_id=m.folder_source_id
          AND l.source_id=? AND l.node_type='LEAF'
@@ -69,7 +69,9 @@ function cms_external_resolve_reference(PDO $pdo,int $siteId,array $block,bool $
  return [
   'import_id'=>$ref['external_import_id'],'folder_id'=>$ref['external_folder_id'],
   'master_node_id'=>$ref['external_master_id'],'leaf_node_id'=>$ref['external_leaf_id'],
-  'code_id'=>(string)$row['leaf_code_id']
+  'code_id'=>(string)$row['leaf_code_id'],
+  'master_name'=>(string)($row['master_name']??''),
+  'leaf_name'=>(string)($row['leaf_name']??'')
  ];
 }
 function cms_external_validate_template(PDO $pdo,int $siteId,string $json):void {
@@ -86,8 +88,8 @@ function cms_external_validate_template(PDO $pdo,int $siteId,string $json):void 
  * stale published blocks. Previews must not call this delivery helper.
  */
 function cms_external_page_slots(PDO $pdo,int $siteId,array $layout,bool $enabled):array {
- if(!$enabled)return ['slots'=>[],'groups'=>[]];
- $slots=[];$groups=[];
+ if(!$enabled)return ['slots'=>[],'groups'=>[],'devices'=>[]];
+ $slots=[];$groups=[];$devices=[];
  foreach($layout as $index=>$block){
   if(!is_array($block)||($block['type']??'')!=='adocean')continue;
   try{$resolved=cms_external_resolve_reference($pdo,$siteId,$block,true);}
@@ -96,6 +98,8 @@ function cms_external_page_slots(PDO $pdo,int $siteId,array $layout,bool $enable
   $key=$resolved['import_id'].':'.$resolved['folder_id'].':'.$resolved['master_node_id'];
   $domId='comesy-ao-slot-'.$index;
   $slots[$index]=$domId;
+  $sourceName=$resolved['master_name']?:$resolved['leaf_name'];
+  $devices[$index]=preg_match('/(?:^|[_\\s-])desktop(?:[_\\s-]|$)/i',$sourceName)?'desktop':(preg_match('/(?:^|[_\\s-])(?:mobil|mobile)(?:[_\\s-]|$)/i',$sourceName)?'mobile':'auto');
   if(!isset($groups[$key]))$groups[$key]=[
    'import_id'=>$resolved['import_id'],
    'folder_node'=>$resolved['folder_id'],
@@ -103,5 +107,5 @@ function cms_external_page_slots(PDO $pdo,int $siteId,array $layout,bool $enable
   ];
   $groups[$key]['positions'][]=['nodeId'=>$resolved['leaf_node_id'],'element'=>'#'.$domId];
  }
- return ['slots'=>$slots,'groups'=>array_values($groups)];
+ return ['slots'=>$slots,'groups'=>array_values($groups),'devices'=>$devices];
 }
