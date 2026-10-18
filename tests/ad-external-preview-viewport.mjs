@@ -1,6 +1,7 @@
 import {readFileSync} from 'node:fs';
 import {createServer} from 'node:http';
-import {chromium} from 'playwright';
+import {chromium} from 'playwright-core';
+import {execFileSync} from 'node:child_process';
 import assert from 'node:assert/strict';
 
 const client=readFileSync(new URL('../assets/ad-external-preview.js',import.meta.url),'utf8');
@@ -22,7 +23,11 @@ const server=createServer((req,res)=>{
  res.end(req.url.startsWith('/ad-external-preview.php')?previewHTML:documentHTML(req.url.includes('device=mobile')?'mobile':'desktop'));
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-const browser=await chromium.launch({headless:true});
+const chrome=process.env.CHROME_PATH||['/usr/bin/google-chrome','/usr/bin/chromium','/usr/bin/chromium-browser'].find(path=>{
+ try{execFileSync('test',['-x',path]);return true;}catch{return false;}
+});
+if(!chrome)throw new Error('Chrome/Chromium executable is required');
+const browser=await chromium.launch({executablePath:chrome,headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
 try{
  for(const mode of ['desktop','mobile']){
   const page=await browser.newPage({viewport:{width:390,height:844}});
