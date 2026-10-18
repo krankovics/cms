@@ -367,9 +367,10 @@ try{
  await admin.route('https://hu.adocean.pl/**',async route=>{
   providerCalls++;
   await route.fulfill({status:200,contentType:'application/javascript',body:
-   'window.ado={config(){},preview(){},master(){void document.cookie;void window.localStorage;},slave(id){new Function("id", "document.getElementById(id).textContent=\\"CREATIVE_FROM_FAKE_ADOCEAN\\";")(id);},placement(){}};'
+   "window.ado={\n config(){},preview(){},\n master(){void document.cookie;void window.localStorage;},\n slave(id){\n  const tracker=document.createElement('img');\n  tracker.width=1;tracker.height=1;\n  tracker.src='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';\n  document.body.appendChild(tracker);\n  setTimeout(()=>{\n   const image=new Function('return document.createElement(\"img\")')();\n   image.width=970;image.height=250;\n   image.src='data:image/svg+xml,'+encodeURIComponent('<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"970\" height=\"250\"><rect width=\"970\" height=\"250\" fill=\"blue\"/></svg>');\n   document.getElementById(id).appendChild(image);\n  },850);\n },\n placement(){}\n};"
   });
  });
+ await admin.setViewportSize({width:390,height:844});
  await admin.goto(base+'/public.php?site=test-0&preview=1&template=home',{waitUntil:'networkidle'});
  const controls=admin.locator('[data-ao-preview-control]');
  assert.equal(await controls.count(),1,'Draft AdOcean position should offer an opt-in preview.');
@@ -382,8 +383,16 @@ try{
   'Explicit click should create exactly one sandboxed ad test iframe.');
  assert.equal(await controls.locator('iframe').getAttribute('sandbox'),'allow-scripts allow-popups',
   'Ad preview must not have same-origin privileges.');
- await controls.frameLocator('iframe').locator('#slave-x').getByText('CREATIVE_FROM_FAKE_ADOCEAN').waitFor();
- await controls.locator('[data-ao-preview-status]').getByText('Az AdOcean kreatívot helyezett el a tesztkeretben.').waitFor();
+ await controls.frameLocator('iframe').locator('body > img').waitFor();
+ assert(!(await controls.locator('[data-ao-preview-status]').innerText()).includes('Látható AdOcean-kreatív'),
+  'A 1x1 tracking pixel cannot trigger a green creative status.');
+ await controls.frameLocator('iframe').locator('#slave-x img').waitFor();
+ await controls.locator('[data-ao-preview-status]').getByText(/Látható AdOcean-kreatív jelent meg/).waitFor();
+ assert(Number(await controls.getAttribute('data-ad-scale'))<100,
+  'Desktop-size 970px banner must be scaled to a narrow mobile preview.');
+ const iframeHeight=Number.parseInt(await controls.locator('iframe').evaluate(el=>el.style.height),10);
+ assert(iframeHeight>=180&&iframeHeight<850,
+  'The test frame should report a finite scaled height.');
  assert.equal(await controls.locator('iframe').getAttribute('sandbox'),'allow-scripts allow-popups',
   'No same-origin escape permitted after AdOcean cookie support was added.');
  assert(providerCalls>=1,'Consented preview must fetch the AdOcean library.');

@@ -71,3 +71,7 @@ a{color:inherit}a:focus-visible,button:focus-visible{outline:3px solid var(--pub
 .pub-adocean-test-frame{width:100%;height:350px;border:1px solid var(--pub-border);border-radius:8px;background:white}
 .pub-adocean-preview-error{margin:10px 0;padding:12px;background:#fff0f0;color:#8c2433;border-radius:8px;font-size:13px}
 @media(max-width:767px){.pub-adocean-test-frame{height:300px}.pub-adocean-test-controls{padding:10px}}
+
+/* Opaque-origin preview scales wide desktop creatives into narrow mobile screens. */
+.pub-adocean-test-frame{display:block;max-width:100%;min-height:180px;overflow:hidden}
+.pub-adocean-test-controls{overflow-wrap:anywhere}
