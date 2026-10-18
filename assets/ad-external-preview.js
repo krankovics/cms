@@ -44,6 +44,26 @@
     iframe.referrerPolicy='no-referrer';
     iframe.loading='eager';
     iframe.className='pub-adocean-test-frame';
+    // The adserver chooses campaigns from the iframe's actual viewport,
+    // not the size of a banner scaled later with CSS. On a phone a desktop
+    // MASTER must therefore run in a desktop-width browsing context.
+    let outsideScale=1;
+    const desktopMaster=control.dataset.aoPreviewDevice==='desktop';
+    const availableWidth=Math.max(1,holder.getBoundingClientRect().width);
+    if(desktopMaster&&availableWidth<970){
+     outsideScale=availableWidth/970;
+     iframe.style.width='970px';
+     iframe.style.maxWidth='none';
+     iframe.style.height='600px';
+     iframe.style.transformOrigin='top left';
+     iframe.style.transform='scale('+outsideScale+')';
+     holder.style.position='relative';
+     holder.style.overflow='hidden';
+     holder.style.height=Math.ceil(600*outsideScale)+'px';
+     control.dataset.previewDesktop='1';
+     control.dataset.adScale=String(Math.round(outsideScale*100));
+     status.textContent='Desktop AdOcean-zóna tesztelése 970 pixeles ablakban, mobilképernyőre kicsinyítve…';
+    }
     let phase='';
     const handler=event=>{
      if(event.source!==iframe.contentWindow||event.origin!=='null')return;
@@ -52,11 +72,18 @@
      if(message.phase!=='layout'&&!Object.prototype.hasOwnProperty.call(states,message.phase))return;
      if(message.phase==='layout'){
       const h=Number(message.details?.height);
-      if(Number.isFinite(h))iframe.style.height=Math.max(180,Math.min(850,h))+'px';
+      if(Number.isFinite(h)){
+       const frameHeight=Math.max(180,Math.min(850,h));
+       iframe.style.height=frameHeight+'px';
+       if(outsideScale<1)holder.style.height=Math.max(80,Math.ceil(frameHeight*outsideScale))+'px';
+      }
       const width=Number(message.details?.original_width),scale=Number(message.details?.scale);
-      if(Number.isFinite(width)&&width>0&&Number.isFinite(scale)&&scale<100){
-       control.dataset.adWidth=String(Math.round(width));
-       control.dataset.adScale=String(Math.round(scale));
+      if(Number.isFinite(width)&&width>0&&Number.isFinite(scale)){
+       const effective=Math.min(100,Math.round(scale*outsideScale));
+       if(effective<100){
+        control.dataset.adWidth=String(Math.round(width));
+        control.dataset.adScale=String(effective);
+       }
       }
       return;
      }
@@ -65,6 +92,7 @@
      const isScaled=control.dataset.adScale&&Number(control.dataset.adScale)<100;
      status.textContent=states[phase]+(phase==='creative_visible'&&isScaled?' (Mobilnézethez '+control.dataset.adScale+'%-ra kicsinyítve.)':'');
      if(phase==='creative_visible')button.textContent='AdOcean kreatív látható';
+     if(phase==='no_creative'&&desktopMaster)status.textContent+=' A desktop előnézeti méret használatával sem érkezett kampány.';
      if(phase.endsWith('_error')||phase==='no_creative'||phase==='creative_unverified')button.textContent='AdOcean teszt befejezve';
     };
     window.addEventListener('message',handler);
