@@ -383,7 +383,7 @@ try{
  assert.equal(await controls.locator('iframe').getAttribute('sandbox'),'allow-scripts allow-popups',
   'Ad preview must not have same-origin privileges.');
  await controls.frameLocator('iframe').locator('#slave-x').getByText('CREATIVE_FROM_FAKE_ADOCEAN').waitFor();
- assert(providerCalls>=1,'Consented preview must fetch the provider's ad library.');
+ assert(providerCalls>=1,'Consented preview must fetch the AdOcean library.');
  const blockedOtherSite=await admin.request.get(base+'/ad-external-preview.php?site_id=2&external_import_id=1&external_folder_id=10&external_master_id=11&external_leaf_id=12');
  assert.equal(blockedOtherSite.status(),404,'Real ad preview must reject a cross-site placement.');
  await admin.unrouteAll();
