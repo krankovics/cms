@@ -170,7 +170,7 @@ try{
  ]);
  assert((await siteDesignEditor.locator('#site-save-feedback').innerText()).includes('sikeresen mentettük'),
   'Site editor must confirm saving near its edit form.');
- assert.equal(await siteDesignEditor.locator('[data-site-save-button]').evaluate(el=>el.form?.id),
+ assert.equal(await siteDesignEditor.locator('[data-site-save-button]').evaluate(el=>el.form?.getAttribute('id')),
   'site-edit-form','Main save button must belong to the site edit form even with a source template.');
  assert.equal(await siteDesignEditor.locator('#site-edit-form form').count(),0,
   'Site editor must never contain a nested form.');
