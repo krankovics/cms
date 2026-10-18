@@ -173,3 +173,8 @@ desktop creatives (such as 970×250) and resizes the outer editor frame via
 authenticated-by-channel postMessage. This does not change actual AdOcean
 campaign size, targeting, or the production frontend's CSS. A desktop-only
 campaign may still serve no creative on mobile.
+
+
+### Desktop AdOcean zones tested from phones
+
+The editor reads the validated MASTER/LEAF source name, e.g. `MagyarNemzet_desktop_cimlap`, to determine whether a position is specifically desktop or mobile. When a desktop-only MASTER is previewed on a narrow screen, the iframe is *laid out* at 970 CSS pixels and then its whole surface is proportionally scaled to the parent viewport. This means AdOcean receives a desktop-width ad request, not a 390px mobile request. A mobile MASTER retains the actual phone viewport and is never falsely emulated as desktop. The live publisher frontend remains unchanged; these modes are restricted to opt-in editor previews. If no eligible campaign targets the source ID, device or test domain, the preview correctly remains empty. For production, select and place appropriate desktop and mobile positions separately.

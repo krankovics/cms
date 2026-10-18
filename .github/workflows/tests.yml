@@ -74,6 +74,7 @@ jobs:
           php publish-worker.php --max=10 || { cat /tmp/comesy-php-test.log; exit 1; }
           php tests/scheduling-smoke.php || { cat /tmp/comesy-php-test.log; exit 1; }
           python3 tests/http-smoke.py || { cat /tmp/comesy-php-test.log; exit 1; }
+          node tests/ad-external-preview-viewport.mjs || { cat /tmp/comesy-php-test.log; exit 1; }
           node tests/browser-smoke.mjs || { cat /tmp/comesy-php-test.log; exit 1; }
           node tests/all-admin-pages.mjs || { cat /tmp/comesy-php-test.log; exit 1; }
       - name: Upload desktop and mobile previews
