@@ -109,5 +109,5 @@ try{
 <?php endif;?>
 <section class="external-panel"><h2>Integráció</h2>
 <p>A külső webhely az <code>/assets/ad-external.js</code> adaptert használhatja. Csak az adott oldalra kirakott LEAF-eket kérje le; egy MASTER összes SLAVE-jét egyszerre nem szabad automatikusan betölteni. A <code>consentGranted</code> jelzőt kizárólag a CMP megfelelő engedélye után szabad igazra állítani.</p>
-<p><a href="https://github.com/krankovics/cms/blob/feature/adocean-zones-import/docs/adocean-import.md">Integrációs dokumentáció</a></p></section>
+<p><a href="https://github.com/krankovics/cms/blob/main/docs/adocean-import.md">Integrációs dokumentáció</a></p></section>
 </main></body></html>
