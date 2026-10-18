@@ -52,25 +52,34 @@
    if(typeof window.ado.preview==='function')window.ado.preview({enabled:false});
    initialized=true;
   }
-  if(data.master&&!masters.has(data.master)){
-   window.ado.master({id:data.master,server:data.server});
-   masters.add(data.master);
-  }
-  let count=0;
+  // All placeholders must exist before the MASTER call and subsequent SLAVE scripts.
+  const pending=[];
   for(const position of data.positions){
    const p=visible.find(p=>p.nodeId===position.node_id);
    if(!p||rendered.has(position.code_id))continue;
    if(!/^[A-Za-z0-9_.-]{1,190}$/.test(position.code_id))continue;
    if(document.getElementById(position.code_id))continue;
+   if(!((position.kind==='slave'&&data.master)||position.kind==='placement'))continue;
    const element=document.createElement('div');
    element.id=position.code_id;
    p.target.appendChild(element);
-   if(position.kind==='slave'&&data.master)window.ado.slave(position.code_id,{myMaster:data.master});
-   else if(position.kind==='placement')window.ado.placement({id:position.code_id,server:data.server});
-   else {element.remove();continue;}
-   rendered.add(position.code_id);count++;
+   pending.push({position,element});
   }
-  return {status:'mounted',count};
+  try{
+   if(data.master&&!masters.has(data.master)){
+    window.ado.master({id:data.master,server:data.server});
+    masters.add(data.master);
+   }
+   for(const {position} of pending){
+    if(position.kind==='slave')window.ado.slave(position.code_id,{myMaster:data.master});
+    else window.ado.placement({id:position.code_id,server:data.server});
+    rendered.add(position.code_id);
+   }
+  }catch(error){
+   for(const {position,element} of pending)if(!rendered.has(position.code_id))element.remove();
+   throw error;
+  }
+  return {status:'mounted',count:pending.length};
  }
  window.comesyAdOcean=Object.freeze({mount});
 })();
