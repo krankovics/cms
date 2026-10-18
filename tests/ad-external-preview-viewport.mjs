@@ -35,7 +35,7 @@ try{
   await page.locator('[data-ao-preview-consent]').check();
   await page.locator('[data-ao-preview-load]').click();
   const frame=page.frameLocator('iframe.pub-adocean-test-frame');
-  await frame.locator('body').waitFor();
+  await frame.locator('body').waitFor({state:'attached'});
   const childWidth=await frame.locator('body').evaluate(()=>window.innerWidth);
   const iframe=page.locator('iframe.pub-adocean-test-frame');
   const transform=await iframe.evaluate(e=>getComputedStyle(e).transform);
