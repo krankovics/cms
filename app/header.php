@@ -21,6 +21,7 @@ $navGroups=[
  ]]]:[]),
  ...((in_array($u['role'],['platform_admin','site_admin','ad_manager'],true))?[['title'=>'Monetizáció','links'=>[
   ['href'=>'/ads.php','page'=>'ads.php','text'=>'Hirdetésadmin','icon'=>'ad'],
+  ...($isPlatformAdmin?[['href'=>'/ad-external.php','page'=>'ad-external.php','text'=>'AdOcean import','icon'=>'import']]:[]),
   ['href'=>'/ad-analytics.php','page'=>'ad-analytics.php','text'=>'Analitika','icon'=>'layout']
  ]]]:[]),
   ['title'=>'Fiók','links'=>[
