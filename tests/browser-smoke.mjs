@@ -399,6 +399,29 @@ try{
  const blockedOtherSite=await admin.request.get(base+'/ad-external-preview.php?site_id=2&external_import_id=1&external_folder_id=10&external_master_id=11&external_leaf_id=12');
  assert.equal(blockedOtherSite.status(),404,'Real ad preview must reject a cross-site placement.');
  await admin.unrouteAll();
+
+ // Save the same editorial ad position with a separate mobile MASTER/LEAF.
+ await admin.goto(base+'/builder.php?site_id=1&template=home',{waitUntil:'domcontentloaded'});
+ const adEditor=admin.locator('.ui-builder-block').filter({has:admin.locator('.ui-builder-external')}).first();
+ await adEditor.locator('.ui-builder-external select').first().selectOption('responsive');
+ assert.equal(await adEditor.locator('[data-ad-device="desktop"]').count(),1);
+ assert.equal(await adEditor.locator('[data-ad-device="mobile"]').count(),1);
+ await adEditor.locator('[data-ad-device="mobile"] select').first().selectOption('13');
+ await adEditor.locator('[data-ad-device="mobile"] select').nth(1).selectOption('14');
+ await Promise.all([
+  admin.waitForURL(/builder.php.*saved=save/),
+  admin.locator('#builder-layout-form button[value="save"]').click()
+ ]);
+ const pairData=JSON.parse(await admin.locator('#builder-layout-form input[name="layout_json"]').inputValue());
+ const paired=pairData.find(x=>x.type==='adocean');
+ assert.equal(paired.external_device_mode,'responsive');
+ assert.equal(paired.external_mobile_master_id,13);
+ assert.equal(paired.external_mobile_leaf_id,14);
+ await admin.goto(base+'/public.php?site=test-0&preview=1&template=home',{waitUntil:'domcontentloaded'});
+ assert.equal(await admin.locator('[data-ao-preview-control]').count(),2,
+  'One AdOcean block with a desktop/mobile mapping must show both diagnostics.');
+ const dualModes=await admin.locator('[data-ao-preview-control]').evaluateAll(es=>es.map(e=>e.dataset.aoPreviewDevice));
+ assert.deepEqual(dualModes,['desktop','mobile']);
  
  await admin.goto(base+'/settings.php',{waitUntil:'networkidle'});
  await overflow(admin,'settings mobile');
