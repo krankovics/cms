@@ -367,7 +367,7 @@ try{
  await admin.route('https://hu.adocean.pl/**',async route=>{
   providerCalls++;
   await route.fulfill({status:200,contentType:'application/javascript',body:
-   "window.ado={\n config(){},preview(){},\n master(){void document.cookie;void window.localStorage;},\n slave(id){\n  const tracker=document.createElement('img');\n  tracker.width=1;tracker.height=1;\n  tracker.src='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';\n  document.body.appendChild(tracker);\n  setTimeout(()=>{\n   const image=new Function('return document.createElement(\"img\")')();\n   image.width=970;image.height=250;\n   image.src='data:image/svg+xml,'+encodeURIComponent('<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"970\" height=\"250\"><rect width=\"970\" height=\"250\" fill=\"blue\"/></svg>');\n   document.getElementById(id).appendChild(image);\n  },850);\n },\n placement(){}\n};"
+   "window.ado={\n config(){},preview(){},\n master(o){void document.cookie;void window.localStorage;window.__slaveIds=o.slaveIds;},\n slave(id,options){\n  const target=document.getElementById(id);\n  target.id=id+'1';\n  if(typeof options.onServerEmission==='function')options.onServerEmission();\n  const tracker=document.createElement('img');\n  tracker.width=1;tracker.height=1;\n  tracker.src='data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';\n  document.body.appendChild(tracker);\n  setTimeout(()=>{\n   const image=new Function('return document.createElement(\"img\")')();\n   image.width=970;image.height=250;\n   image.src='data:image/svg+xml,'+encodeURIComponent('<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"970\" height=\"250\"><rect width=\"970\" height=\"250\" fill=\"blue\"/></svg>');\n   document.getElementById(id+'1').appendChild(image);\n  },850);\n },\n placement(){}\n};"
   });
  });
  await admin.setViewportSize({width:390,height:844});
@@ -386,7 +386,11 @@ try{
  await controls.frameLocator('iframe').locator('body > img').waitFor();
  assert(!(await controls.locator('[data-ao-preview-status]').innerText()).includes('Látható AdOcean-kreatív'),
   'A 1x1 tracking pixel cannot trigger a green creative status.');
- await controls.frameLocator('iframe').locator('#slave-x img').waitFor();
+ await controls.frameLocator('iframe').locator('#slave-x1 img').waitFor();
+ assert.deepEqual(await controls.frameLocator('iframe').locator('body').evaluate(()=>window.__slaveIds),['slave-x'],
+  'Publisher MASTER must declare only the LEAFs present in the page.');
+ assert.equal(await controls.frameLocator('iframe').locator('#slave-x').count(),0,
+  'Mock provider must reproduce AdOcean replacing the original LEAF id.');
  await controls.locator('[data-ao-preview-status]').getByText(/Látható AdOcean-kreatív jelent meg/).waitFor();
  assert(Number(await controls.getAttribute('data-ad-scale'))<100,
   'Desktop-size 970px banner must be scaled to a narrow mobile preview.');
