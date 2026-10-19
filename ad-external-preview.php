@@ -101,11 +101,18 @@ $config=json_encode(['server'=>$server,'master'=>$masterCode,'leaf'=>$leafCode,'
   window.comesyPreviewReport('sdk_error');return;
  }
  window.comesyPreviewReport('sdk_ready');
+ window.comesyPreviewDelivery='pending';
+ window.addEventListener('error',function(event){
+  if(/Sandbox access violation|cross-origin frame|Failed to read a named property/i.test(event.message||'')){
+   window.comesyPreviewSandboxIssue=true;
+   window.comesyPreviewReport('provider_sandbox_error');
+  }
+ });
  try{
   // Official Live Preview mode. This alone cannot guarantee an eligible creative.
   window.ado.config({mode:'new',xml:false,consent:true,characterEncoding:true});
   if(typeof window.ado.preview==='function')window.ado.preview({enabled:true});
-  if(config.master)window.ado.master({id:config.master,server:config.server});
+  if(config.master)window.ado.master({id:config.master,server:config.server,slaveIds:[config.leaf]});
   window.comesyPreviewReport('master_ready');
  }catch(e){window.comesyPreviewError='MASTER indítási hiba: '+(e.message||String(e));window.comesyPreviewReport('master_error');}
 })();
@@ -118,8 +125,18 @@ $config=json_encode(['server'=>$server,'master'=>$masterCode,'leaf'=>$leafCode,'
  if(window.comesyPreviewError){status.textContent=window.comesyPreviewError;window.comesyPreviewReport('master_error');return;}
  try{
   var cfg=window.comesyPreviewConfig;
-  if(cfg.master)window.ado.slave(cfg.leaf,{myMaster:cfg.master});
-  else window.ado.placement({id:cfg.leaf,server:cfg.server});
+  var callbacks={
+   onServerEmission:function(){
+    window.comesyPreviewDelivery='selected';
+    window.comesyPreviewReport('provider_selected');
+   },
+   onServerEmissionEmpty:function(){
+    window.comesyPreviewDelivery='empty';
+    window.comesyPreviewReport('provider_empty');
+   }
+  };
+  if(cfg.master)window.ado.slave(cfg.leaf,Object.assign({myMaster:cfg.master},callbacks));
+  else window.ado.placement(Object.assign({id:cfg.leaf,server:cfg.server},callbacks));
   status.textContent='Az AdOcean kérés elindult. Kreatívválasz ellenőrzése…';
   window.comesyPreviewReport('request_started');
   // Only visually meaningful elements INSIDE this LEAF count as creatives.
@@ -132,7 +149,9 @@ $config=json_encode(['server'=>$server,'master'=>$masterCode,'leaf'=>$leafCode,'
      if(phase==='creative_visible')status.textContent='Látható hirdetési kreatív került a LEAF pozícióba.';
      if(phase==='creative_container')status.textContent='Hirdetési iframe érkezett; a benne lévő kreatív még nem ellenőrizhető.';
      if(phase==='creative_unverified')status.textContent='A hirdetéshez iframe érkezett, de a kreatív tényleges megjelenése nem igazolható.';
-     if(phase==='no_creative')status.textContent='12 másodpercen belül nem jelent meg látható kreatív ebben a LEAF pozícióban. Mobilos kampánycélzás vagy blokkolás is okozhatja.';
+     if(phase==='no_creative')status.textContent='12 másodpercen belül nem jelent meg látható kreatív ebben a LEAF pozícióban.';
+     if(phase==='provider_empty')status.textContent='Az AdOcean nem választott ki aktív kreatívot ehhez a pozícióhoz.';
+     if(phase==='provider_selected_no_visible')status.textContent='Az AdOcean átadott hirdetési kódot, de az nem jelenik meg látható méretben (pl. AdSense 0 × 0).';
      window.comesyPreviewReport(phase,details);
     }
    });
