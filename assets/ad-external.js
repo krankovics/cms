@@ -67,7 +67,8 @@
   }
   try{
    if(data.master&&!masters.has(data.master)){
-    window.ado.master({id:data.master,server:data.server});
+    const slaveIds=pending.filter(({position})=>position.kind==='slave').map(({position})=>position.code_id);
+    window.ado.master({id:data.master,server:data.server,slaveIds});
     masters.add(data.master);
    }
    for(const {position} of pending){

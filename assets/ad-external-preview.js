@@ -4,12 +4,16 @@
  const states={
   sdk_ready:'Az AdOcean JavaScript-könyvtár betöltődött.',
   master_ready:'Az AdOcean MASTER inicializálása sikerült.',
-  request_started:'Az AdOcean hirdetéskérése elindult. Kreatívra várunk…',
+  request_started:'Az AdOcean-kérés elindult. Ez még nem igazol megjelenített hirdetést.',
+  provider_selected:'Az AdOcean hirdetési kódot választott. A tényleges megjelenést ellenőrizzük…',
+  provider_empty:'Az AdOcean nem választott megjeleníthető kreatívot a pozícióhoz.',
+  provider_selected_no_visible:'Az AdOcean hirdetési kódot küldött, de nem jelent meg látható kreatív (például AdSense 0 × 0).',
+  provider_sandbox_error:'Az egyik hirdetési script a szülő dokumentumot próbálta elérni, amit a biztonságos előnézet tilt. A teljes kiszolgálás így nem ellenőrizhető.',
   creative_visible:'Látható AdOcean-kreatív jelent meg a hirdetési pozícióban.',
   creative_container:'Hirdetési iframe érkezett. A kreatív megjelenése még nem igazolt.',
   creative_unverified:'Hirdetési iframe érkezett, de nem tudjuk igazolni, hogy látható kreatív van benne.',
   detector_error:'A kreatív láthatóságának ellenőrzése nem futott le.',
-  no_creative:'A LEAF pozícióban nem jelent meg látható kreatív. Lehetséges ok: mobilos kampánycélzás, AdOcean-beállítás vagy böngészőblokkolás.',
+  no_creative:'Nem jelent meg igazolható, látható kreatív. Ennek oka lehet kampánycélzás, reklámblokkolás vagy a tesztkeret korlátozása.',
   sdk_error:'Nem sikerült betölteni az AdOcean JavaScript-könyvtárát.',
   master_error:'Az AdOcean MASTER indítása sikertelen. Ellenőrizd a böngésző konzolját.',
   render_error:'A LEAF kreatív indítása hibára futott. Ellenőrizd a böngésző konzolját.'
@@ -64,7 +68,7 @@
      control.dataset.adScale=String(Math.round(outsideScale*100));
      status.textContent='Desktop AdOcean-zóna tesztelése 970 pixeles ablakban, mobilképernyőre kicsinyítve…';
     }
-    let phase='';
+    let phase='',sandboxIssue=false;
     const handler=event=>{
      if(event.source!==iframe.contentWindow||event.origin!=='null')return;
      const message=event.data;
@@ -87,13 +91,17 @@
       }
       return;
      }
+     if(message.phase==='provider_sandbox_error')sandboxIssue=true;
      if(phase==='creative_visible'&&message.phase!=='creative_visible')return;
      phase=message.phase;
      const isScaled=control.dataset.adScale&&Number(control.dataset.adScale)<100;
      status.textContent=states[phase]+(phase==='creative_visible'&&isScaled?' (Mobilnézethez '+control.dataset.adScale+'%-ra kicsinyítve.)':'');
+     if(sandboxIssue&&['provider_empty','provider_selected_no_visible','no_creative','creative_unverified'].includes(phase)){
+      status.textContent+=' A Prebid működését az elkülönített tesztkeret is korlátozhatja.';
+     }
      if(phase==='creative_visible')button.textContent='AdOcean kreatív látható';
-     if(phase==='no_creative'&&desktopMaster)status.textContent+=' A desktop előnézeti méret használatával sem érkezett kampány.';
-     if(phase.endsWith('_error')||phase==='no_creative'||phase==='creative_unverified')button.textContent='AdOcean teszt befejezve';
+     if(phase==='no_creative'&&desktopMaster)status.textContent+=' A desktop előnézeti mérettel sem igazolható látható hirdetés.';
+     if(phase.endsWith('_error')||['no_creative','provider_empty','provider_selected_no_visible','creative_unverified'].includes(phase))button.textContent='AdOcean teszt befejezve';
     };
     window.addEventListener('message',handler);
     iframe.addEventListener('load',()=>{

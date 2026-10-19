@@ -178,3 +178,30 @@ campaign may still serve no creative on mobile.
 ### Desktop AdOcean zones tested from phones
 
 The editor reads the validated MASTER/LEAF source name, e.g. `MagyarNemzet_desktop_cimlap`, to determine whether a position is specifically desktop or mobile. When a desktop-only MASTER is previewed on a narrow screen, the iframe is *laid out* at 970 CSS pixels and then its whole surface is proportionally scaled to the parent viewport. This means AdOcean receives a desktop-width ad request, not a 390px mobile request. A mobile MASTER retains the actual phone viewport and is never falsely emulated as desktop. The live publisher frontend remains unchanged; these modes are restricted to opt-in editor previews. If no eligible campaign targets the source ID, device or test domain, the preview correctly remains empty. For production, select and place appropriate desktop and mobile positions separately.
+
+
+### AdOcean delivered versus actually visible (diagnostic)
+
+AdOcean 4.9 may replace a configured LEAF div's DOM id with an id ending in
+`1`, and inject its creative under `ao-<LEAF>`. The editor detects both
+forms, not unrelated analytics pixels. The provider's own callback
+`onServerEmissionEmpty` identifies an empty ad selection; `onServerEmission`
+only confirms that AdOcean selected creative code, **not** that a banner
+was rendered. A third-party AdSense container or frame may remain 0 × 0 even
+when code was selected. The editor must report this accurately.
+
+The MASTER now includes AdOcean's supported `slaveIds` list, containing only
+LEAF positions actually present on that page. This helps avoid unnecessary
+self-exclusion when the same MASTER tree contains other positions.
+
+The opaque-origin editor iframe still restricts cross-frame access.
+Third-party Prebid scripts may attempt `parent.document` and fail with
+a sandbox SecurityError. Never "fix" this by combining allow-same-origin
+and allow-scripts for a same-origin authenticated CMS iframe.
+A completely faithful publisher test must use a properly isolated
+preview domain or actual publisher site with a configured CMP.
+
+For a blank preview, check campaign targeting and publisher-domain
+authorization within AdOcean (desktop MASTER/LEAF #7616/#7617,
+mobile #7647/#7649 for the current Magyar Nemzet example).
+HTTP 200 from an emitter is not an impression or proof of a creative.
