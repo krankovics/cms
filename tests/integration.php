@@ -89,9 +89,11 @@ $example=[
   '10'=>['node id'=>'10','parent id'=>'1','node name'=>'Test Publisher','node type'=>'FOLDER','node path'=>'Root/Test Publisher','node active'=>'Y','node slave'=>'N','master code id'=>'','leaf code id'=>'','code'=>''],
   '11'=>['node id'=>'11','parent id'=>'10','node name'=>'Master','node type'=>'MASTER','node path'=>'Root/Test Publisher/Master','node active'=>'Y','node slave'=>'N','master code id'=>'Master.X','leaf code id'=>'','code'=>"ado.master({id:'Master.X',server:'hu.adocean.pl'})"],
   '12'=>['node id'=>'12','parent id'=>'11','node name'=>'Slave','node type'=>'LEAF','node path'=>'Root/Test Publisher/Master/Slave','node active'=>'Y','node slave'=>'Y','master code id'=>'Master.X','leaf code id'=>'slave-x','code'=>"ado.slave('slave-x',{myMaster:'Master.X'})"],
+  '13'=>['node id'=>'13','parent id'=>'10','node name'=>'Mobile_Master','node type'=>'MASTER','node path'=>'Root/Test Publisher/Mobile_Master','node active'=>'Y','node slave'=>'N','master code id'=>'Mobile.X','leaf code id'=>'','code'=>"ado.master({id:'Mobile.X',server:'hu.adocean.pl'})"],
+  '14'=>['node id'=>'14','parent id'=>'13','node name'=>'Mobile_Slave','node type'=>'LEAF','node path'=>'Root/Test Publisher/Mobile_Master/Mobile_Slave','node active'=>'Y','node slave'=>'Y','master code id'=>'Mobile.X','leaf code id'=>'mobile-x','code'=>"ado.slave('mobile-x',{myMaster:'Mobile.X'})"],
  ],
- 'folders'=>['10'=>'Test Publisher'],'folder_for'=>['1'=>0,'10'=>10,'11'=>10,'12'=>10],
- 'counts'=>['FOLDER'=>2,'MASTER'=>1,'LEAF'=>1]
+ 'folders'=>['10'=>'Test Publisher'],'folder_for'=>['1'=>0,'10'=>10,'11'=>10,'12'=>10,'13'=>10,'14'=>10],
+ 'counts'=>['FOLDER'=>2,'MASTER'=>2,'LEAF'=>2]
 ];
 $external=external_import($pdo,$example,'test-fixture.xlsx',hash('sha256','external-ad-fixture'),$uid['platform_admin']);
 ok($external>0,'External import must create a snapshot.');
@@ -100,7 +102,7 @@ $q=$pdo->prepare('SELECT id,enabled,site_id FROM ad_external_sites WHERE import_
 $q->execute([$external]);$mapping=$q->fetch();
 ok($mapping&&(int)$mapping['enabled']===0&&$mapping['site_id']===null,'Imported external inventory must be unmapped and disabled.');
 $q=$pdo->prepare('SELECT COUNT(*) FROM ad_external_nodes WHERE import_id=?');
-$q->execute([$external]);ok((int)$q->fetchColumn()===4,'External inventory must preserve every node.');
+$q->execute([$external]);ok((int)$q->fetchColumn()===6,'External inventory must preserve every node.');
 // AdOcean page blocks must be inert by default and bound to mapped sites.
 require_once dirname(__DIR__).'/app/layouts.php';
 require_once dirname(__DIR__).'/app/ad-external-placements.php';
@@ -110,7 +112,7 @@ $externalBlock=[
 ];
 $pdo->prepare('UPDATE ad_external_sites SET site_id=? WHERE id=?')->execute([$sites[0],$mapping['id']]);
 $options=cms_external_editor_options($pdo,$sites[0]);
-ok(count($options)===1&&count($options[0]['masters'])===1&&count($options[0]['leaves'])===1,'Builder must show only site-owned AdOcean inventory.');
+ok(count($options)===1&&count($options[0]['masters'])===2&&count($options[0]['leaves'])===2,'Builder must show only site-owned AdOcean inventory.');
 ok(cms_external_editor_options($pdo,$sites[1])===[],'Unrelated site must not see external inventory.');
 $json=cms_layout_validate(json_encode([$externalBlock],JSON_THROW_ON_ERROR),'home');
 $validatedBlock=json_decode($json,true)[0];
@@ -125,6 +127,42 @@ ok(count($on['groups'])===1&&$on['groups'][0]['master_node']===11&&
  'Enabled site-owned MASTER/SLAVE block must resolve for published frontend.');
 ok(cms_external_page_slots($pdo,$sites[1],[$validatedBlock],true)['groups']===[],'Other site must never serve AdOcean blocks.');
 ok(cms_external_page_slots($pdo,$sites[0],[$validatedBlock],false)['groups']===[],'Global site ad-disable must suppress external positions.');
+
+$paired=$externalBlock;
+$paired['external_device_mode']='responsive';
+$paired['external_mobile_master_id']=13;
+$paired['external_mobile_leaf_id']=14;
+$pairJson=cms_layout_validate(json_encode([$paired],JSON_THROW_ON_ERROR),'home');
+$pair=json_decode($pairJson,true)[0];
+ok($pair['external_device_mode']==='responsive'&&$pair['external_mobile_leaf_id']===14,
+ 'A responsive AdOcean layout must preserve independently selected desktop and mobile LEAFs.');
+cms_external_validate_template($pdo,$sites[0],$pairJson);
+$slots=cms_external_page_slots($pdo,$sites[0],[$pair],true);
+ok(count($slots['variants'][0])===2&&count($slots['groups'])===2,
+ 'One ad component must create one desktop and one mobile variant with separate MASTER contexts.');
+ok($slots['variants'][0][0]['device']==='desktop'&&$slots['variants'][0][1]['device']==='mobile',
+ 'Responsive AdOcean variants must be explicitly device-tagged.');
+ok($slots['groups'][0]['positions'][0]['device']==='desktop'&&$slots['groups'][1]['positions'][0]['device']==='mobile',
+ 'Published AdOcean JSON must allow device-only network requests.');
+foreach(['desktop','mobile','all'] as $mode){
+ $single=$externalBlock;$single['external_device_mode']=$mode;
+ $result=cms_external_page_slots($pdo,$sites[0],[json_decode(cms_layout_validate(json_encode([$single]),'home'),true)[0]],true);
+ ok(count($result['variants'][0])===1&&$result['variants'][0][0]['device']===$mode,
+  'A single AdOcean block must support '.$mode.' mode.');
+}
+$broken=$paired;$broken['external_mobile_master_id']=11;
+$threw=false;try{cms_external_validate_template($pdo,$sites[0],cms_layout_validate(json_encode([$broken]),'home'));}
+catch(RuntimeException $e){$threw=true;}
+ok($threw,'A mobile LEAF referencing the wrong MASTER must be rejected.');
+$missing=$paired;$missing['external_mobile_leaf_id']=0;
+$threw=false;try{cms_layout_validate(json_encode([$missing]),'home');}
+catch(RuntimeException $e){$threw=true;}
+ok($threw,'Responsive mode must require the mobile LEAF selection.');
+$pdo->prepare('UPDATE ad_external_nodes SET is_active=0 WHERE import_id=? AND source_id=14')->execute([$external]);
+ok(cms_external_page_slots($pdo,$sites[0],[$pair],true)['groups']===[],
+ 'If one responsive variant becomes inactive, neither provider call may be served.');
+$pdo->prepare('UPDATE ad_external_nodes SET is_active=1 WHERE import_id=? AND source_id=14')->execute([$external]);
+
 $wrong=$externalBlock;$wrong['external_master_id']=9999;
 $threw=false;try{cms_external_validate_template($pdo,$sites[0],cms_layout_validate(json_encode([$wrong],JSON_THROW_ON_ERROR),'home'));}
 catch(RuntimeException $e){$threw=true;}
