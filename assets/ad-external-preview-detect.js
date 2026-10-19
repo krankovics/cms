@@ -1,110 +1,118 @@
-/* Editor-only AdOcean creative visibility diagnostics.
- * Detect only meaningful, painted-sized content inside the selected LEAF.
- * Never count global tracking pixels or mere SDK/iframe network completion.
+/* AdOcean editor preview diagnostics.
+ * The SDK rewrites LEAF #id as #id1 and often nests #ao-id. Look only inside
+ * that selected placement, never count unrelated tracking pixels.
  */
 (()=>{
  'use strict';
- function visible(el){
-  if(!el.isConnected)return false;
+ const owned=(slotId)=>{
+  const original=document.getElementById(slotId);
+  const renamed=document.getElementById(slotId+'1');
+  const emitted=document.getElementById('ao-'+slotId);
+  return renamed||original||emitted||null;
+ };
+ function painted(el){
+  if(!el?.isConnected)return false;
   for(let p=el;p&&p.nodeType===1;p=p.parentElement){
-   const st=getComputedStyle(p);
-   if(st.display==='none'||st.visibility==='hidden'||st.visibility==='collapse'||Number(st.opacity)===0)return false;
+   const css=getComputedStyle(p);
+   if(css.display==='none'||css.visibility==='hidden'||css.visibility==='collapse'||Number(css.opacity)===0)return false;
   }
   return true;
  }
- function kind(el){
-  if(!visible(el))return null;
-  const rect=el.getBoundingClientRect();
-  if(rect.width<100||rect.height<45)return null;
-  const tag=el.tagName;
-  if(tag==='IMG'){
-   if(!el.complete||el.naturalWidth<100||el.naturalHeight<45)return null;
-   return 'image';
-  }
-  if(tag==='VIDEO'){
-   return el.readyState>=2&&el.videoWidth>=100&&el.videoHeight>=45?'video':null;
-  }
-  if(tag==='IFRAME'||tag==='OBJECT'||tag==='EMBED')return 'frame';
-  if(tag==='CANVAS')return el.width>=100&&el.height>=45?'canvas':null;
-  if(tag==='SVG')return 'svg';
-  return null;
- }
  function findCreative(slot){
   if(!slot)return null;
-  const candidates=slot.querySelectorAll('img,video,iframe,object,embed,canvas,svg');
-  let framed=null;
-  for(const element of candidates){
-   const type=kind(element);
-   if(!type)continue;
-   if(type==='frame'){framed=framed||element;continue;}
-   return {type,element,confirmed:true};
+  let unverified=null;
+  for(const el of slot.querySelectorAll('img,video,iframe,object,embed,canvas,svg')){
+   if(!painted(el))continue;
+   const box=el.getBoundingClientRect();
+   if(box.width<100||box.height<45)continue;
+   const tag=el.tagName;
+   if(tag==='IMG'){
+    if(el.complete&&el.naturalWidth>=100&&el.naturalHeight>=45)
+     return {type:'image',element:el,confirmed:true};
+    continue;
+   }
+   if(tag==='VIDEO'){
+    if(el.readyState>=2&&el.videoWidth>=100&&el.videoHeight>=45)
+     return {type:'video',element:el,confirmed:true};
+    continue;
+   }
+   if(tag==='CANVAS'&&(el.width<100||el.height<45))continue;
+   if(tag==='IFRAME'||tag==='OBJECT'||tag==='EMBED'){
+    unverified=unverified||{type:'frame',element:el,confirmed:false};
+    continue;
+   }
+   return {type:tag.toLowerCase(),element:el,confirmed:true};
   }
-  // Text/banner creatives can have backgrounds instead of images, but only
-  // count a genuine content box, never an empty wrapper or a 1x1 tracker.
-  const possible=slot.querySelectorAll('a,article,div');
-  for(const element of possible){
-   if(!visible(element))continue;
-   const box=element.getBoundingClientRect(),st=getComputedStyle(element);
+  for(const el of slot.querySelectorAll('a,article,div')){
+   if(!painted(el))continue;
+   const box=el.getBoundingClientRect();
    if(box.width<120||box.height<45)continue;
-   if(st.backgroundImage!=='none'&&st.backgroundImage.includes('url('))
-    return {type:'background',element,confirmed:true};
-   if(element.textContent.trim().length>=20&&element.children.length===0)
-    return {type:'text',element,confirmed:true};
+   const css=getComputedStyle(el);
+   if(css.backgroundImage!=='none'&&css.backgroundImage.includes('url('))
+    return {type:'background',element:el,confirmed:true};
+   if(el.children.length===0&&el.textContent.trim().length>=20)
+    return {type:'text',element:el,confirmed:true};
   }
-  return framed?{type:'frame',element:framed,confirmed:false}:null;
+  return unverified;
  }
  function start({slotId,report,timeoutMs=12000}){
-  const slot=document.getElementById(slotId);
-  const stage=document.getElementById('preview-stage');
   const container=document.getElementById('preview-ad');
-  if(!slot||!stage||!container)return;
-  let phase='',timer,observer,scale=1;
-  function resize(target){
-   if(!target)return;
-   // Content is inserted asynchronously. Preserve its native desktop width
-   // but scale it down to fit the narrow editorial preview viewport.
-   const base=target.element;
-   const rect=base.getBoundingClientRect();
-   const stageRect=stage.getBoundingClientRect();
-   const naturalWidth=Math.max(0,stage.scrollWidth,slot.scrollWidth,
-    base.offsetWidth,rect.width/scale,(rect.right-stageRect.left)/scale);
-   const naturalHeight=Math.max(90,stage.scrollHeight,slot.scrollHeight,
-    base.offsetHeight,rect.height/scale,(rect.bottom-stageRect.top)/scale);
+  const stage=document.getElementById('preview-stage');
+  const status=document.getElementById('preview-status');
+  if(!container||!stage){report('detector_error');return;}
+  let finished=false,phase='',heightSeen=0,widthSeen=0;
+  const resize=(candidate)=>{
+   if(!candidate)return;
+   const el=candidate.element;
+   const box=el.getBoundingClientRect();
+   const naturalWidth=Math.max(0,stage.scrollWidth,el.offsetWidth,box.width);
+   const naturalHeight=Math.max(90,stage.scrollHeight,el.offsetHeight,box.height);
    const available=Math.max(1,container.clientWidth);
-   scale=Math.min(1,available/Math.max(available,naturalWidth));
+   const scale=Math.min(1,available/Math.max(available,naturalWidth));
+   if(naturalWidth===widthSeen&&Math.round(naturalHeight*scale)===heightSeen)return;
+   widthSeen=naturalWidth;heightSeen=Math.round(naturalHeight*scale);
    stage.style.width=Math.ceil(naturalWidth)+'px';
+   stage.style.transformOrigin='top left';
    stage.style.transform='scale('+scale+')';
-   const height=Math.max(90,Math.min(1000,Math.ceil(naturalHeight*scale)));
-   container.style.height=height+'px';
-   const status=document.getElementById('preview-status');
-   const total=Math.ceil(height+(status?.offsetHeight||40)+10);
-   report('layout',{height:Math.max(160,Math.min(1100,total)),
+   container.style.height=Math.max(90,Math.min(1000,heightSeen))+'px';
+   report('layout',{height:Math.max(160,Math.min(1100,heightSeen+(status?.offsetHeight||40)+10)),
     original_width:Math.round(naturalWidth),scale:Math.round(scale*100)});
-  }
-  function check(){
+  };
+  const check=()=>{
+   if(finished)return;
+   const slot=owned(slotId);
+   if(!slot)return;
    const candidate=findCreative(slot);
    if(!candidate)return;
    resize(candidate);
    if(candidate.confirmed&&phase!=='creative_visible'){
     phase='creative_visible';
     report('creative_visible',{type:candidate.type});
-   }else if(!candidate.confirmed&&phase===''){
+   }else if(!candidate.confirmed&&!phase){
     phase='creative_container';
-    report('creative_container',{type:'iframe'});
+    report('creative_container',{type:candidate.type});
    }
-  }
-  observer=new MutationObserver(check);
-  observer.observe(slot,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['src','style','class','width','height']});
-  slot.addEventListener('load',check,true);
+  };
+  // AdOcean rewrites the original LEAF element, and nested ad providers can
+  // update their size without changing attributes. Both paths are observed.
+  const observer=new MutationObserver(check);
+  observer.observe(document.documentElement,{childList:true,subtree:true});
+  document.addEventListener('load',check,true);
+  const poll=setInterval(check,500);
   check();
-  timer=setTimeout(()=>{
-   observer.disconnect();
-   slot.removeEventListener('load',check,true);
-   if(phase!=='creative_visible'){
-    report(phase==='creative_container'?'creative_unverified':'no_creative');
-   }
+  const timer=setTimeout(()=>{
+   finished=true;observer.disconnect();clearInterval(poll);
+   document.removeEventListener('load',check,true);
+   if(phase==='creative_visible')return;
+   if(phase==='creative_container'){report('creative_unverified');return;}
+   const slot=owned(slotId);
+   const thirdParty=!!slot?.querySelector('.aoadsense,ins.adsbygoogle');
+   if(thirdParty||window.comesyPreviewDelivery==='selected')
+    report('provider_selected_no_visible',{thirdParty});
+   else if(window.comesyPreviewDelivery==='empty')report('provider_empty');
+   else report('no_creative');
   },timeoutMs);
-  return ()=>{clearTimeout(timer);observer.disconnect();slot.removeEventListener('load',check,true);};
+  return ()=>{finished=true;clearTimeout(timer);clearInterval(poll);observer.disconnect();document.removeEventListener('load',check,true);};
  }
  window.comesyAdOceanPreviewDetect=Object.freeze({start,findCreative});
 })();
