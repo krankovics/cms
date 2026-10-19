@@ -50,6 +50,14 @@ function externalEditor(item){
   select.addEventListener('change',()=>{onChange(select.value);dirty=true;render();});
   label.append(heading,select);return label;
  };
+ const mode=['all','desktop','mobile','responsive'].includes(item.external_device_mode)?
+  item.external_device_mode:'all';
+ container.append(makeSelect('Megjelenítés eszközön',[
+  {value:'all',label:'Minden eszközön ugyanaz a zóna'},
+  {value:'responsive',label:'Desktop + mobil, külön zónával'},
+  {value:'desktop',label:'Csak desktopon'},
+  {value:'mobile',label:'Csak mobilon'}
+ ],mode,value=>{item.external_device_mode=value;}));
  const key=String(item.external_import_id||0)+':'+String(item.external_folder_id||0);
  const group=adInventory.find(g=>g.import_id+':'+g.folder_id===key);
  container.append(makeSelect('AdOcean forráswebhely',[
@@ -60,22 +68,41 @@ function externalEditor(item){
   const match=adInventory.find(g=>g.import_id+':'+g.folder_id===value);
   item.external_import_id=match?.import_id||0;item.external_folder_id=match?.folder_id||0;
   item.external_master_id=0;item.external_leaf_id=0;
+  item.external_mobile_master_id=0;item.external_mobile_leaf_id=0;
  }));
  if(!group)return container;
- const master=group.masters.find(x=>x.id===Number(item.external_master_id||0));
- container.append(makeSelect('MASTER (önálló LEAF-nél nincs)',[
-  {value:0,label:'Nincs MASTER, önálló pozíció'},
-  ...group.masters.map(x=>({value:x.id,label:x.name+' (#'+x.id+')'+(x.active?'':' · inaktív')}))
- ],master?master.id:0,value=>{item.external_master_id=Number(value);item.external_leaf_id=0;}));
- const matching=group.leaves.filter(x=>master?(x.slave&&x.master_code===master.master_code):!x.slave);
- container.append(makeSelect('LEAF hirdetési pozíció',[
-  {value:0,label:'Válassz pozíciót'},
-  ...matching.map(x=>({value:x.id,label:x.name+' (#'+x.id+')'+(x.active?'':' · inaktív')}))
- ],matching.some(x=>x.id===Number(item.external_leaf_id))?item.external_leaf_id:0,
- value=>{item.external_leaf_id=Number(value);}));
+ const selection=(device,masterKey,leafKey)=>{
+  const master=group.masters.find(x=>x.id===Number(item[masterKey]||0));
+  const prefix=mode==='responsive'?(device==='desktop'?'Desktop ':'Mobil '):'';
+  const wrapper=document.createElement('div');wrapper.className='ui-builder-ad-device';
+  wrapper.dataset.adDevice=device;
+  const heading=document.createElement('strong');heading.textContent=prefix||'AdOcean pozíció';
+  wrapper.append(heading);
+  wrapper.append(makeSelect(prefix+'MASTER (önálló LEAF-nél nincs)',[
+   {value:0,label:'Nincs MASTER, önálló pozíció'},
+   ...group.masters.filter(x=>mode!=='responsive'||(
+    device==='desktop'?!/(?:^|[_\s-])(?:mobil|mobile)(?:[_\s-]|$)/i.test(x.name):
+    !/(?:^|[_\s-])desktop(?:[_\s-]|$)/i.test(x.name)
+   )).map(x=>({value:x.id,label:x.name+' (#'+x.id+')'+(x.active?'':' · inaktív')}))
+  ],master?master.id:0,value=>{item[masterKey]=Number(value);item[leafKey]=0;}));
+  const matching=group.leaves.filter(x=>master?(x.slave&&x.master_code===master.master_code):!x.slave);
+  wrapper.append(makeSelect(prefix+'LEAF hirdetési pozíció',[
+   {value:0,label:'Válassz pozíciót'},
+   ...matching.map(x=>({value:x.id,label:x.name+' (#'+x.id+')'+(x.active?'':' · inaktív')}))
+  ],matching.some(x=>x.id===Number(item[leafKey]))?item[leafKey]:0,
+  value=>{item[leafKey]=Number(value);}));
+  return wrapper;
+ };
+ container.append(selection(mode==='responsive'?'desktop':mode,'external_master_id','external_leaf_id'));
+ if(mode==='responsive')container.append(selection('mobile','external_mobile_master_id','external_mobile_leaf_id'));
  const status=document.createElement('p');status.className='ui-page-description';
- status.textContent='Az előnézet csak üres hirdetési helyet mutat. Az AdOcean kód kizárólag éles, engedélyezett webhelyen, CMP-hozzájárulás után tölthető be.';
- container.append(status);return container;
+ status.textContent=mode==='responsive'?
+  'Egyetlen hirdetési hely: desktopon a desktop, mobilon a mobil MASTER/LEAF fut. A váltási határ 768 px. Az előnézetben külön ellenőrizheted mindkét zónát, külső kérés csak jóváhagyás után indul.':
+  mode==='desktop'?'A hirdetési hely kizárólag legalább 768 px szélességnél jelenik meg.':
+  mode==='mobile'?'A hirdetési hely kizárólag 768 px alatti szélességnél jelenik meg.':
+  'A kiválasztott zóna minden képernyőméreten ugyanaz. A korábban mentett AdOcean-helyek is ezt a módot használják.';
+ container.append(status);
+ return container;
 }
 function render(){
  list.replaceChildren();
@@ -120,7 +147,7 @@ document.querySelector('[data-builder-add]')?.addEventListener('click',()=>{
  if(items.length>=30){alert('Legfeljebb 30 komponens lehet.');return;}
  const type=document.getElementById('builder-new-type').value;
  if(!texts[type])return;
- const block={type,title:'',text:'',columns:type==='latest'?3:1,limit:10,zone:'',image_url:'',offset:0,external_import_id:0,external_folder_id:0,external_master_id:0,external_leaf_id:0};
+ const block={type,title:'',text:'',columns:type==='latest'?3:1,limit:10,zone:'',image_url:'',offset:0,external_import_id:0,external_folder_id:0,external_master_id:0,external_leaf_id:0,external_device_mode:'all',external_mobile_master_id:0,external_mobile_leaf_id:0};
  items.push(block);dirty=true;render();list.lastElementChild?.scrollIntoView({behavior:'smooth',block:'nearest'});
 });
 form.addEventListener('submit',event=>{

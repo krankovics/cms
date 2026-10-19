@@ -32,3 +32,33 @@ const again=await window.comesyAdOceanPage.activate({consentGranted:true});
 assert.equal(again.status,'already_activated');
 assert.equal(calls.length,2);
 console.log('AdOcean publisher consent, grouping and idempotency: OK');
+
+// A single editorial ad slot may map to two independent AdOcean MASTERs.
+const responsiveGroups=[
+ {folder_node:10,master_node:11,positions:[{nodeId:12,element:'#desktop',device:'desktop'}]},
+ {folder_node:10,master_node:13,positions:[{nodeId:14,element:'#mobile',device:'mobile'}]},
+ {folder_node:10,master_node:0,positions:[{nodeId:15,element:'#shared',device:'all'}]}
+];
+for(const viewport of ['mobile','desktop']){
+ const requests=[];
+ const w={
+  location:{origin:'https://cms.8media.hu'},
+  matchMedia:query=>({matches:viewport==='mobile'&&query==='(max-width: 767px)'}),
+  comesyAdOcean:{mount:async opts=>{requests.push(opts);return {status:'mounted',count:opts.placements.length};}}
+ };
+ const d={getElementById:id=>id==='cms-ad-external'?{
+  textContent:JSON.stringify({site_id:1,groups:responsiveGroups})
+ }:null};
+ runInNewContext(script,{window:w,document:d,console});
+ assert.equal(requests.length,0,'No AdOcean calls without explicit CMP consent.');
+ const result=await w.comesyAdOceanPage.activate({consentGranted:true});
+ assert.equal(result.count,2,'Only the active device and shared slot should be mounted.');
+ assert.equal(result.device,viewport);
+ assert.equal(requests.length,2);
+ const ids=requests.flatMap(call=>call.placements.map(x=>x.nodeId));
+ assert.deepEqual(ids,viewport==='mobile'?[14,15]:[12,15]);
+ assert(!ids.includes(viewport==='mobile'?12:14),'Inactive device LEAF cannot trigger a provider request.');
+ const same=await w.comesyAdOceanPage.activate({consentGranted:true});
+ assert.equal(same.status,'already_activated','Ads must not be called twice when activation is repeated.');
+}
+console.log('AdOcean desktop/mobile responsive request routing: OK');

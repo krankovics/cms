@@ -75,3 +75,18 @@ a{color:inherit}a:focus-visible,button:focus-visible{outline:3px solid var(--pub
 /* Opaque-origin preview scales wide desktop creatives into narrow mobile screens. */
 .pub-adocean-test-frame{display:block;max-width:100%;min-height:180px;overflow:hidden}
 .pub-adocean-test-controls{overflow-wrap:anywhere}
+
+/* A single ad component can contain independent desktop/mobile provider slots.
+ * Hidden variants are also filtered out of CMP-gated JS requests. */
+.pub-adocean-variant+.pub-adocean-variant{margin-top:16px}
+.pub-adocean .pub-adocean-variant>.pub-adocean-preview{margin:10px 0}
+@media(max-width:767px){
+ .pub-adocean[data-ao-mode="desktop"],
+ .pub-ao-device-slot[data-ao-device="desktop"]{display:none!important}
+}
+@media(min-width:768px){
+ .pub-adocean[data-ao-mode="mobile"],
+ .pub-ao-device-slot[data-ao-device="mobile"]{display:none!important}
+}
+/* All editing previews remain available for both devices, even on a phone. */
+.pub-adocean:has([data-ao-preview-control]){display:block!important}
