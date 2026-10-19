@@ -5,7 +5,11 @@ declare(strict_types=1);
  * markup inside a template. Presentation and delivery stay separate.
  */
 function cms_external_layout_reference(array $block):array {
- $keys=['external_import_id','external_folder_id','external_master_id','external_leaf_id'];
+ $mode=(string)($block['external_device_mode']??'all');
+ if(!in_array($mode,['all','desktop','mobile','responsive'],true))
+  throw new RuntimeException('Ismeretlen AdOcean eszközmegjelenítés.');
+ $keys=['external_import_id','external_folder_id','external_master_id','external_leaf_id',
+        'external_mobile_master_id','external_mobile_leaf_id'];
  $ref=[];
  foreach($keys as $key){
   $raw=$block[$key]??0;
@@ -17,6 +21,10 @@ function cms_external_layout_reference(array $block):array {
  }
  if($ref['external_import_id']<=0||$ref['external_folder_id']<=0||$ref['external_leaf_id']<=0)
   throw new RuntimeException('Az AdOcean blokkhoz forráswebhely és LEAF pozíció szükséges.');
+ if($mode==='responsive'&&$ref['external_mobile_leaf_id']<=0)
+  throw new RuntimeException('A desktop + mobil hirdetési helyhez mindkét LEAF pozíciót add meg.');
+ $ref['external_device_mode']=$mode;
+ if($mode!=='responsive'){$ref['external_mobile_master_id']=0;$ref['external_mobile_leaf_id']=0;}
  return $ref;
 }
 /** Only inventory connected to THIS comesy site can appear in the editor. */
@@ -74,38 +82,64 @@ function cms_external_resolve_reference(PDO $pdo,int $siteId,array $block,bool $
   'leaf_name'=>(string)($row['leaf_name']??'')
  ];
 }
+/**
+ * "all" preserves old published layouts; explicit "desktop" and "mobile"
+ * are mutually exclusive, and "responsive" is a single editorial slot with
+ * two independently validated provider references.
+ */
+function cms_external_block_variants(PDO $pdo,int $siteId,array $block,bool $delivery=false):?array {
+ $ref=cms_external_layout_reference($block);
+ $mode=$ref['external_device_mode'];
+ $main=cms_external_resolve_reference($pdo,$siteId,$ref,$delivery);
+ if(!$main)return null;
+ if($mode!=='responsive')return [['device'=>$mode,'position'=>$main]];
+ $mobileBlock=$ref;
+ $mobileBlock['external_master_id']=$ref['external_mobile_master_id'];
+ $mobileBlock['external_leaf_id']=$ref['external_mobile_leaf_id'];
+ $mobile=cms_external_resolve_reference($pdo,$siteId,$mobileBlock,$delivery);
+ if(!$mobile)return null;
+ return [['device'=>'desktop','position'=>$main],['device'=>'mobile','position'=>$mobile]];
+}
 function cms_external_validate_template(PDO $pdo,int $siteId,string $json):void {
  $blocks=json_decode($json,true,64,JSON_THROW_ON_ERROR);
  foreach($blocks as $block){
   if(!is_array($block)||($block['type']??'')!=='adocean')continue;
-  if(cms_external_resolve_reference($pdo,$siteId,$block)===null)
-   throw new RuntimeException('Az AdOcean pozíció nem tartozik a kiválasztott comesy webhelyhez vagy MASTER-hez.');
+  if(cms_external_block_variants($pdo,$siteId,$block)===null)
+   throw new RuntimeException('Az AdOcean pozíció nem tartozik ehhez a webhelyhez, vagy a MASTER/LEAF kapcsolat hibás.');
  }
 }
 /**
- * Returned group data contains ONLY numeric references, no original ad tags.
- * Re-check at render time so changing an inventory mapping immediately disables
- * stale published blocks. Previews must not call this delivery helper.
+ * Every published variant is rechecked against the owning site and active
+ * mapping. A stale responsive pair fails closed rather than serving one half.
+ * Only the matching device is requested by the consent-gated browser adapter.
  */
 function cms_external_page_slots(PDO $pdo,int $siteId,array $layout,bool $enabled):array {
- if(!$enabled)return ['slots'=>[],'groups'=>[],'devices'=>[]];
- $slots=[];$groups=[];$devices=[];
+ $empty=['slots'=>[],'groups'=>[],'devices'=>[],'variants'=>[]];
+ if(!$enabled)return $empty;
+ $slots=[];$groups=[];$devices=[];$variants=[];
  foreach($layout as $index=>$block){
   if(!is_array($block)||($block['type']??'')!=='adocean')continue;
-  try{$resolved=cms_external_resolve_reference($pdo,$siteId,$block,true);}
+  try{$selected=cms_external_block_variants($pdo,$siteId,$block,true);}
   catch(Throwable $e){error_log('publisher AdOcean invalid block: '.$e->getMessage());continue;}
-  if(!$resolved)continue;
-  $key=$resolved['import_id'].':'.$resolved['folder_id'].':'.$resolved['master_node_id'];
-  $domId='comesy-ao-slot-'.$index;
-  $slots[$index]=$domId;
-  $sourceName=$resolved['master_name']?:$resolved['leaf_name'];
-  $devices[$index]=preg_match('/(?:^|[_\\s-])desktop(?:[_\\s-]|$)/i',$sourceName)?'desktop':(preg_match('/(?:^|[_\\s-])(?:mobil|mobile)(?:[_\\s-]|$)/i',$sourceName)?'mobile':'auto');
-  if(!isset($groups[$key]))$groups[$key]=[
-   'import_id'=>$resolved['import_id'],
-   'folder_node'=>$resolved['folder_id'],
-   'master_node'=>$resolved['master_node_id'],'positions'=>[]
-  ];
-  $groups[$key]['positions'][]=['nodeId'=>$resolved['leaf_node_id'],'element'=>'#'.$domId];
+  if(!$selected)continue;
+  $slots[$index]='comesy-ao-slot-'.$index;
+  $devices[$index]=$selected[0]['device'];
+  $variants[$index]=[];
+  foreach($selected as $variant){
+   $position=$variant['position'];$device=$variant['device'];
+   $sourceName=$position['master_name']?:$position['leaf_name'];
+   $inferred=preg_match('/(?:^|[_\s-])desktop(?:[_\s-]|$)/i',$sourceName)?'desktop':(
+    preg_match('/(?:^|[_\s-])(?:mobil|mobile)(?:[_\s-]|$)/i',$sourceName)?'mobile':'auto');
+   $domId=$slots[$index].($device==='all'?'':'-'.$device);
+   $variants[$index][]=array_merge($position,['device'=>$device,'dom_id'=>$domId,'preview_device'=>$inferred]);
+   $key=$position['import_id'].':'.$position['folder_id'].':'.$position['master_node_id'];
+   if(!isset($groups[$key]))$groups[$key]=[
+    'import_id'=>$position['import_id'],
+    'folder_node'=>$position['folder_id'],
+    'master_node'=>$position['master_node_id'],'positions'=>[]
+   ];
+   $groups[$key]['positions'][]=['nodeId'=>$position['leaf_node_id'],'element'=>'#'.$domId,'device'=>$device];
+  }
  }
- return ['slots'=>$slots,'groups'=>array_values($groups),'devices'=>$devices];
+ return ['slots'=>$slots,'groups'=>array_values($groups),'devices'=>$devices,'variants'=>$variants];
 }
